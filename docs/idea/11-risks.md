@@ -15,7 +15,7 @@ This underlies the whole precision–inference coupling ([02 — Core Model](02-
 | Spectrum framing reads as vague if the demo shows only one slice | Demo **two** profiles + the switch; state plainly "this is the validated slice, the profile engine is the extensible part" |
 | Scope creep back toward "cover the whole spectrum / all axes" | [05 — Locked Scope](05-scope.md) is the locked contract |
 | Fusion (Thesis B) gets dropped under time pressure, leaving only adaptivity | FR4 is P0 — a demo without fusion under-sells the actual innovation |
-| Agent/automation layer (OpenClaw or equivalent) unstable under time pressure | Timebox agent integration early; keep a manually-triggered fallback path for the live demo |
+| Agent/automation layer (OpenClaw or equivalent) unstable under time pressure | Reduced since the interactive surface is now a self-built mock UI rather than a third-party app ([05 — Locked Scope](05-scope.md), [09 — Open Questions](09-open-questions.md)) — the agent's real-world-execution job narrows to filling + submitting one real Google Form. Still timebox this integration early and keep a manually-triggered fallback path for the live demo. |
 | Patient voice input is hard to show convincingly in a short pitch | Pair the live demo with a recorded example of slow/unclear speech being accepted |
 | No representative user found in time | Clearly-labeled proxy constrained to a profile's exact coordinates |
 | Profile switch demo fails live | Have a recorded backup of the A→B reshape |

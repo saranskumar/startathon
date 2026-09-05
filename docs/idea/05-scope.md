@@ -3,7 +3,7 @@
 The spectrum is the pitch. The build proves it with **two points and a switch**. Locked contract:
 
 1. **Two capability profiles**, not the whole spectrum — Profile A and Profile B from [06 — User Model](06-user-model.md).
-2. **One bounded task** demoed under both profiles (still open — see [09 — Open Questions](09-open-questions.md)).
+2. **One bounded task**: filling out a real Google Form (built for this demo), via a custom mock UI that chains several distinct interaction patterns — a scroll selector, a card-grid discrete choice, a tab switcher, and possibly more (exact order/screens still TBD). This is the task demoed under both profiles. The agent takes the final fused/confirmed input from the custom UI and actually fills and submits the real form — keeping the "agent executes on the real world" claim intact even though the interactive surface is self-built rather than a third-party app. See [09 — Open Questions](09-open-questions.md).
 3. **Profile switch** that visibly reshapes the interface between A and B — this *is* the proof of the thesis; do not cut it. Demoed to judges as a live calibration flow; the underlying mechanism is a preset toggle.
 4. **Input composition** shown at least once: Profile B must demonstrate touch-for-selection + voice-for-content in the *same* interaction (this is Thesis B; a demo without it only proves adaptivity, not fusion).
 5. **Both output modes** appear across the two profiles (screen for A, narration for B) — this gets output composition demoed "for free" via the profile switch rather than needing a third build.

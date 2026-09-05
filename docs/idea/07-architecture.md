@@ -46,6 +46,9 @@
         │    narrowing)                   │
         │  • confirms consequential acts  │
         │  • executes on the computer     │
+        │    (fills + submits the real    │
+        │    Google Form built for this   │
+        │    demo)                        │
         │  • prepares output per profile  │
         └───────────────┬───────────────┘
                         │ result
