@@ -1,17 +1,17 @@
 :root {
-  --bg: #f6f5fb;
-  --surface: #ffffff;
-  --surface-2: #eeecf7;
-  --text: #211d38;
-  --muted: #716a94;
-  --accent: #6f5fd8;
+  --bg: #f8f8ef;
+  --surface: #fefef9;
+  --surface-2: #d8dab8;
+  --text: #302f1e;
+  --muted: #7d795d;
+  --accent: #6e6b39;
   --accent-contrast: #ffffff;
-  --border: #e1ddf4;
+  --border: #e1e4c9;
   --shine: rgba(255, 255, 255, 0.9);
-  --shine-dim: rgba(111, 95, 216, 0.1);
+  --shine-dim: rgba(110, 107, 57, 0.12);
   --surface-shine: linear-gradient(var(--surface), var(--surface)) padding-box,
     linear-gradient(135deg, var(--shine), var(--shine-dim) 45%, var(--shine) 100%) border-box;
-  --danger: #c93b56;
+  --danger: #a8483a;
   --radius: 10px;
 }
 
@@ -33,8 +33,8 @@
 .glow-2 {
   width: 380px; height: 380px;
   bottom: -160px; right: -100px;
-  background: #c9a8ff;
-  opacity: 0.16;
+  background: #c9c48a;
+  opacity: 0.18;
   animation: glow-float-2 20s ease-in-out infinite;
 }
 .glow-3 {
