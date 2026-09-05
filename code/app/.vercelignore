@@ -1,0 +1,11 @@
+android
+ios
+linux
+macos
+windows
+test
+.dart_tool
+.idea
+.flutter-plugins-dependencies
+build/native_assets
+*.iml

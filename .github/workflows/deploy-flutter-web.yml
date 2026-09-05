@@ -1,0 +1,305 @@
+# Deploy Flutter web (code/app) to Vercel
+#
+# Pattern mirrored from kowdiar-wardapp deploy-expo-web.yml:
+#   1. Teammate pushes (any branch) → write timestamp.md (audit log)
+#   2. Commit + push as repo owner (saranskumar) so Vercel Git deploys
+#   3. Build Flutter web in CI, then `npx vercel --yes` / `--prod`
+#
+# Secrets (GitHub → Settings → Secrets and variables → Actions):
+#   VERCEL_TOKEN        — https://vercel.com/account/tokens (scope = owning team)
+#   VERCEL_ORG_ID       — Team/Org ID
+#   VERCEL_PROJECT_ID   — Project ID
+#
+# Repo → Settings → Actions → General → Workflow permissions → Read and write
+#
+# In the Vercel project, set Root Directory to: code/app
+
+name: Deploy Flutter Web (Vercel)
+
+on:
+  push:
+    paths:
+      - 'code/app/**'
+      - '.github/workflows/deploy-flutter-web.yml'
+  pull_request:
+    branches: [main]
+    paths:
+      - 'code/app/**'
+      - '.github/workflows/deploy-flutter-web.yml'
+  workflow_dispatch:
+
+env:
+  VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+  VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+  WORKING_DIR: code/app
+  REPO_OWNER: saranskumar
+  REPO_OWNER_EMAIL: saranskumarwh@gmail.com
+
+jobs:
+  preview:
+    name: Preview deployment
+    if: |
+      github.event_name == 'pull_request' ||
+      (github.event_name == 'push' && github.ref != 'refs/heads/main') ||
+      (github.event_name == 'workflow_dispatch' && github.ref != 'refs/heads/main')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+      statuses: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          ref: ${{ github.event_name == 'pull_request' && format('refs/heads/{0}', github.head_ref) || github.ref }}
+
+      - name: Update timestamp.md (bypass / audit log)
+        if: |
+          github.actor != env.REPO_OWNER &&
+          (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository)
+        env:
+          ACTOR: ${{ github.actor }}
+          SHA: ${{ github.sha }}
+          BRANCH: ${{ github.event_name == 'pull_request' && github.head_ref || github.ref_name }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          set -e
+          ts=$(date -u +"%Y-%m-%d %H:%M UTC")
+          original_message=$(git log -1 --pretty=%B)
+          original_subject=$(printf '%s\n' "$original_message" | head -1)
+          echo "Deployment trigger by ${REPO_OWNER} at $ts" > timestamp.md
+          echo "" >> timestamp.md
+          echo "| Date (UTC) | Owner | Change |" >> timestamp.md
+          echo "|---|---|---|" >> timestamp.md
+          echo "| $ts | ${REPO_OWNER} (repo owner) | Push by @$ACTOR on branch \`$BRANCH\` (\`${SHA:0:7}\`) — \`$original_subject\` → preview deploy. Run: $RUN_URL |" >> timestamp.md
+
+      - name: Commit and push as repo owner
+        id: bypass
+        if: |
+          github.actor != env.REPO_OWNER &&
+          (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository)
+        env:
+          ACTOR: ${{ github.actor }}
+          BRANCH: ${{ github.event_name == 'pull_request' && github.head_ref || github.ref_name }}
+        run: |
+          set -e
+          original_message=$(git log -1 --pretty=%B)
+          first_line=$(printf '%s\n' "$original_message" | head -1)
+
+          if printf '%s\n' "$first_line" | grep -q '^chore: bypass release commit by saranskumar'; then
+            echo "Already an owner bypass commit — skip"
+            echo "skipped=true" >> "$GITHUB_OUTPUT"
+            echo "sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          git config user.name "${REPO_OWNER}"
+          git config user.email "${REPO_OWNER_EMAIL}"
+          git add -f timestamp.md
+
+          {
+            printf '%s\n\n' "chore: bypass release commit by saranskumar"
+            printf 'Pushed by: @%s\n\n' "$ACTOR"
+            printf '%s\n' "$original_message"
+          } > /tmp/bypass-commit-msg.txt
+
+          git commit -F /tmp/bypass-commit-msg.txt || echo "No changes to commit"
+          git push origin HEAD:"$BRANCH"
+          echo "skipped=false" >> "$GITHUB_OUTPUT"
+          echo "sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+
+      - name: Resolve status SHA
+        id: status_sha
+        run: |
+          if [ -n "${{ steps.bypass.outputs.sha }}" ]; then
+            echo "sha=${{ steps.bypass.outputs.sha }}" >> "$GITHUB_OUTPUT"
+          else
+            echo "sha=${{ github.sha }}" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Record preview in Actions summary
+        env:
+          BRANCH: ${{ github.event_name == 'pull_request' && github.head_ref || github.ref_name }}
+        run: |
+          ts=$(date -u +"%Y-%m-%d %H:%M UTC")
+          original_message=$(git log -1 --pretty=%B | head -1)
+          {
+            echo "### Preview deploy"
+            echo ""
+            echo "| Field | Value |"
+            echo "|---|---|"
+            echo "| Time (UTC) | $ts |"
+            echo "| Branch | \`$BRANCH\` |"
+            echo "| Triggered by | @${{ github.actor }} |"
+            echo "| Commit | \`${{ steps.status_sha.outputs.sha }}\` |"
+            echo "| Message | \`$original_message\` |"
+            echo "| Owner bypass | ${{ github.actor != env.REPO_OWNER && 'yes' || 'skipped (owner push)' }} |"
+            echo "| Run | ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }} |"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - name: Build Flutter web
+        working-directory: ${{ env.WORKING_DIR }}
+        run: |
+          flutter pub get
+          flutter build web --release --base-href /
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Deploy preview to Vercel
+        id: deploy
+        working-directory: ${{ env.WORKING_DIR }}
+        run: |
+          url=$(npx vercel --yes --token="$VERCEL_TOKEN")
+          echo "url=$url" >> "$GITHUB_OUTPUT"
+          echo "### Preview URL" >> "$GITHUB_STEP_SUMMARY"
+          echo "$url" >> "$GITHUB_STEP_SUMMARY"
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+
+      - name: Comment preview URL on PR
+        if: github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const url = '${{ steps.deploy.outputs.url }}';
+            if (!url) return;
+            const body = `### Flutter web preview\n${url}\n\n_Deployed from \`code/app\` via GitHub Actions._`;
+            github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+              body,
+            });
+
+      - name: Post preview link on branch commit
+        if: github.event_name == 'push'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const url = '${{ steps.deploy.outputs.url }}';
+            if (!url) return;
+            const branch = context.ref.replace('refs/heads/', '');
+            await github.rest.repos.createCommitStatus({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              sha: '${{ steps.status_sha.outputs.sha }}',
+              state: 'success',
+              target_url: url,
+              description: `Flutter web preview (${branch})`,
+              context: 'vercel/preview',
+            });
+
+  production:
+    name: Production deployment
+    if: github.ref == 'refs/heads/main' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Update timestamp.md (bypass / audit log)
+        if: github.actor != env.REPO_OWNER
+        env:
+          ACTOR: ${{ github.actor }}
+          SHA: ${{ github.sha }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          set -e
+          ts=$(date -u +"%Y-%m-%d %H:%M UTC")
+          original_message=$(git log -1 --pretty=%B)
+          original_subject=$(printf '%s\n' "$original_message" | head -1)
+          echo "Deployment trigger by ${REPO_OWNER} at $ts" > timestamp.md
+          echo "" >> timestamp.md
+          echo "| Date (UTC) | Owner | Change |" >> timestamp.md
+          echo "|---|---|---|" >> timestamp.md
+          echo "| $ts | ${REPO_OWNER} (repo owner) | Push by @$ACTOR (\`${SHA:0:7}\`) — \`$original_subject\` → production deploy. Run: $RUN_URL |" >> timestamp.md
+
+      - name: Commit and push as repo owner
+        if: github.actor != env.REPO_OWNER
+        env:
+          ACTOR: ${{ github.actor }}
+        run: |
+          set -e
+          original_message=$(git log -1 --pretty=%B)
+          first_line=$(printf '%s\n' "$original_message" | head -1)
+
+          if printf '%s\n' "$first_line" | grep -q '^chore: bypass release commit by saranskumar'; then
+            echo "Already an owner bypass commit — skip"
+            exit 0
+          fi
+
+          git config user.name "${REPO_OWNER}"
+          git config user.email "${REPO_OWNER_EMAIL}"
+          git add -f timestamp.md
+
+          {
+            printf '%s\n\n' "chore: bypass release commit by saranskumar"
+            printf 'Pushed by: @%s\n\n' "$ACTOR"
+            printf '%s\n' "$original_message"
+          } > /tmp/bypass-commit-msg.txt
+
+          git commit -F /tmp/bypass-commit-msg.txt || echo "No changes to commit"
+          git push origin HEAD:${GITHUB_REF_NAME:-main}
+
+      - name: Record deploy in Actions summary
+        run: |
+          ts=$(date -u +"%Y-%m-%d %H:%M UTC")
+          original_message=$(git log -1 --pretty=%B | head -1)
+          {
+            echo "### Production deploy"
+            echo ""
+            echo "| Field | Value |"
+            echo "|---|---|"
+            echo "| Time (UTC) | $ts |"
+            echo "| Triggered by | @${{ github.actor }} |"
+            echo "| Commit | \`${{ github.sha }}\` |"
+            echo "| Message | \`$original_message\` |"
+            echo "| Owner bypass | ${{ github.actor != env.REPO_OWNER && 'yes' || 'skipped (owner push)' }} |"
+            echo "| Run | ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }} |"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - name: Build Flutter web
+        working-directory: ${{ env.WORKING_DIR }}
+        run: |
+          flutter pub get
+          flutter build web --release --base-href /
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Deploy production to Vercel
+        id: deploy
+        working-directory: ${{ env.WORKING_DIR }}
+        run: |
+          url=$(npx vercel --prod --yes --token="$VERCEL_TOKEN")
+          echo "url=$url" >> "$GITHUB_OUTPUT"
+          echo "### Production URL" >> "$GITHUB_STEP_SUMMARY"
+          echo "$url" >> "$GITHUB_STEP_SUMMARY"
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
