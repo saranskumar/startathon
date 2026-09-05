@@ -106,6 +106,7 @@ class _JoystickPadState extends State<JoystickPad> {
               left: r + _knob.dx * (r - knobSize / 2) - knobSize / 2,
               top: r + _knob.dy * (r - knobSize / 2) - knobSize / 2,
               child: Container(
+                key: const ValueKey('joystick-knob'),
                 width: knobSize,
                 height: knobSize,
                 decoration: BoxDecoration(

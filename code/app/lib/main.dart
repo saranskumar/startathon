@@ -4,6 +4,7 @@ import 'calibration/calibration_flow.dart';
 import 'model/profile.dart';
 import 'model/session.dart';
 import 'runtime/demo_screen.dart';
+import 'runtime/preview_screen.dart';
 
 /// Adaptive Capability-Profile Access Layer -- input layer only.
 ///
@@ -22,7 +23,7 @@ class AccessLayerApp extends StatefulWidget {
   State<AccessLayerApp> createState() => _AccessLayerAppState();
 }
 
-enum _Screen { home, calibrate, demo }
+enum _Screen { home, calibrate, preview, demo }
 
 class _AccessLayerAppState extends State<AccessLayerApp> {
   final AppState _state = AppState();
@@ -36,7 +37,7 @@ class _AccessLayerAppState extends State<AccessLayerApp> {
 
   void _use(CapabilityProfile p) {
     _state.setProfile(p);
-    setState(() => _screen = _Screen.demo);
+    setState(() => _screen = _Screen.preview);
   }
 
   @override
@@ -64,8 +65,13 @@ class _AccessLayerAppState extends State<AccessLayerApp> {
                   child: CalibrationFlow(onComplete: _use),
                 ),
               ),
+            _Screen.preview => InputPreviewScreen(
+                onContinue: () => setState(() => _screen = _Screen.demo),
+                onRecalibrate: () => setState(() => _screen = _Screen.home),
+              ),
             _Screen.demo => DemoScreen(
                 onRecalibrate: () => setState(() => _screen = _Screen.home),
+                onOpenPreview: () => setState(() => _screen = _Screen.preview),
               ),
           },
         ),

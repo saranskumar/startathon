@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../inputs/voice_modes.dart';
 import '../model/profile.dart';
 import '../runtime/task_spec.dart';
 import 'step_frame.dart';
@@ -76,6 +77,9 @@ class CalibrationResults extends StatelessWidget {
                 _fact(scheme, scale, 'Voice',
                     '${profile.clarity.label} -- ${profile.clarity.grants}'),
                 _fact(scheme, scale, 'Vision', profile.vision.label),
+                const SizedBox(height: 18),
+                _section(scheme, scale, 'Voice and text plan'),
+                _voicePlan(scheme, scale, profile),
                 if (draft.axisLock != null)
                   _fact(
                     scheme,
@@ -141,6 +145,56 @@ class CalibrationResults extends StatelessWidget {
           ),
         ),
       );
+
+  Widget _voicePlan(
+    ColorScheme scheme,
+    double scale,
+    CapabilityProfile profile,
+  ) {
+    final mode = textComposeModeFor(profile.clarity);
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 16),
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.all(14),
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: scheme.outlineVariant),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              mode.title,
+              style: TextStyle(
+                fontSize: 16 * scale,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+            const SizedBox(height: 6),
+            Text(
+              mode.detail,
+              style: TextStyle(
+                fontSize: 13 * scale,
+                color: scheme.onSurfaceVariant,
+              ),
+            ),
+            if (mode == TextComposeMode.vocalConfirm) ...[
+              const SizedBox(height: 10),
+              Text(
+                'Nod = short yes · Sound = yes · Hum = long yes · '
+                'Two sounds = next phrase',
+                style: TextStyle(
+                  fontSize: 12 * scale,
+                  color: scheme.primary,
+                ),
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
 
   Widget _scoreRow(
     ColorScheme scheme,

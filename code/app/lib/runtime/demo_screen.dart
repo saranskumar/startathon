@@ -16,9 +16,14 @@ import 'text_view.dart';
 /// an intent, and the final review is the one consequential action -- gated by
 /// an explicit confirmation, per 2.4.
 class DemoScreen extends StatefulWidget {
-  const DemoScreen({super.key, required this.onRecalibrate});
+  const DemoScreen({
+    super.key,
+    required this.onRecalibrate,
+    this.onOpenPreview,
+  });
 
   final VoidCallback onRecalibrate;
+  final VoidCallback? onOpenPreview;
 
   @override
   State<DemoScreen> createState() => _DemoScreenState();
@@ -102,6 +107,7 @@ class _DemoScreenState extends State<DemoScreen> {
           spec: _spec,
           choice: choice,
           onRecalibrate: widget.onRecalibrate,
+          onOpenPreview: widget.onOpenPreview,
         ),
         Expanded(
           key: ValueKey('${_spec.id}-$_epoch-${choice.method}'),
@@ -300,12 +306,14 @@ class _Ribbon extends StatelessWidget {
     required this.spec,
     required this.choice,
     required this.onRecalibrate,
+    this.onOpenPreview,
   });
 
   final CapabilityProfile profile;
   final TaskSpec spec;
   final MethodChoice choice;
   final VoidCallback onRecalibrate;
+  final VoidCallback? onOpenPreview;
 
   @override
   Widget build(BuildContext context) {
@@ -366,6 +374,12 @@ class _Ribbon extends StatelessWidget {
               ],
             ),
           ),
+          if (onOpenPreview != null)
+            IconButton(
+              onPressed: onOpenPreview,
+              icon: const Icon(Icons.sports_esports_outlined),
+              tooltip: 'Controllers and laptop preview',
+            ),
           IconButton(
             onPressed: onRecalibrate,
             icon: const Icon(Icons.tune),

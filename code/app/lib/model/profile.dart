@@ -39,7 +39,8 @@ extension SpeechClarityLabel on SpeechClarity {
   String get grants => switch (this) {
         SpeechClarity.full => 'free-text dictation',
         SpeechClarity.partial => 'dictation, patient, confirm each field',
-        SpeechClarity.sounds => 'sound-count vocabulary: 1 sound yes, 2 no',
+        SpeechClarity.sounds =>
+          'nod / sound / hum = yes; two sounds = next phrase',
         SpeechClarity.none => 'voice not offered',
       };
 

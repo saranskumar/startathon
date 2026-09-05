@@ -10,6 +10,7 @@ import 'package:startathon/runtime/continuous_view.dart';
 import 'package:startathon/runtime/demo_screen.dart';
 import 'package:startathon/runtime/discrete_view.dart';
 import 'package:startathon/runtime/pointing_view.dart';
+import 'package:startathon/runtime/preview_screen.dart';
 import 'package:startathon/runtime/task_spec.dart';
 import 'package:startathon/runtime/text_view.dart';
 
@@ -380,6 +381,34 @@ void main() {
   });
 
   group('runtime wiring', () {
+    testWidgets('after a profile is chosen, controllers and the top strip show',
+        (tester) async {
+      usePhoneSurface(tester);
+      final state = AppState()..setProfile(ProfilePresets.profileB);
+      await tester.pumpWidget(
+        harness(
+          state,
+          InputPreviewScreen(onContinue: () {}, onRecalibrate: () {}),
+        ),
+      );
+      await tester.pump();
+
+      expect(find.text('Your controllers'), findsOneWidget);
+      expect(find.byType(JoystickPad), findsOneWidget);
+      expect(find.textContaining('profile loaded'), findsOneWidget);
+      expect(
+        tester.getTopLeft(find.textContaining('profile loaded')).dy,
+        lessThan(80),
+      );
+
+      await tester.tap(find.text('Buttons'));
+      await tester.pump();
+      await tester.tap(find.text('Option A'));
+      await tester.pump();
+      expect(state.latest!.text, contains('preview tap = Option A'));
+      await teardownTree(tester);
+    });
+
     testWidgets('profile B falls back to the joystick for a discrete task',
         (tester) async {
       usePhoneSurface(tester);

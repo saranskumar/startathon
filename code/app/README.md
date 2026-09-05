@@ -18,6 +18,8 @@ flutter test --update-goldens test/golden_screens_test.dart   # regenerate test/
 
 **Calibration (7 steps, ~2 min)** — reachable zone, buttons, joystick, trackpad, touch-and-hold, voice, vision. Each produces real measurements: success rate, time-to-target and error, combined with the formula in [03 §3.1](../../docs/idea/03-input-calibration.md) into one score per method. Results screen shows the score table, the derived profile, and which method each task shape will use.
 
+**After calibration** — a controller playground comes first: every input surface (buttons, joystick, trackpad, switch, voice) can be tried, and the laptop-preview strip is pinned to the top so live signals and intents are visible before any task starts. Tasks still mount only the method they need; the playground is how you see the rest.
+
 **Runtime (4 tasks)** — discrete choice, continuous adjust, free pointing, and free text. Each task has a fixed ideal input method; the [§3.3 fallback rule](../../docs/idea/03-input-calibration.md) swaps in the user's best method when it scores meaningfully higher, using that method's own native interaction pattern.
 
 The full 3 × 4 matrix is built, not just the two the demo needs:
@@ -66,5 +68,6 @@ lib/
   calibration/            the 7 steps, the flow that sequences them, the results screen
   runtime/task_spec.dart  task shapes, the static ideal mapping, the fallback rule
   runtime/*_view.dart     one file per task shape, all four methods inside each
+  runtime/preview_screen.dart  controllers + top laptop-preview after calibration
   runtime/output_bar.dart the output strip and the full log sheet
 ```

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../inputs/voice.dart';
+import '../inputs/voice_modes.dart';
 import '../model/profile.dart';
 import 'discrete_view.dart';
 
@@ -60,17 +61,23 @@ class _TextTaskViewState extends State<TextTaskView> {
 
   double get _scale => widget.profile.vision.textScale;
   bool get _canDictate => widget.profile.clarity.canDictate;
-  bool get _soundsOnly => widget.profile.clarity == SpeechClarity.sounds;
+  bool get _soundsOnly =>
+      textComposeModeFor(widget.profile.clarity) == TextComposeMode.vocalConfirm;
 
   Future<void> _onUtterance(int sounds, int heldMs) async {
     if (_soundsOnly) {
-      // The entire vocabulary for this tier: one sound accepts, two reject.
-      widget.onRaw('$sounds sound(s), ${heldMs}ms');
+      final kind = VocalClassifier.classify(
+        soundCount: sounds,
+        heldMs: heldMs,
+        clarity: widget.profile.clarity,
+      );
+      widget.onRaw('${kind.label}: $sounds burst(s), ${heldMs}ms');
+      // Burst count is the vocabulary: 2+ = next, 1 = yes (nod, sound, or hum).
       if (sounds >= 2) {
         setState(() => _suggestion = (_suggestion + 1) % _suggestions.length);
-        widget.onNote('two sounds = next suggestion');
+        widget.onNote('${kind.label} = next suggestion');
       } else if (sounds == 1) {
-        widget.onNote('one sound = accept');
+        widget.onNote('${kind.label} = accept');
         setState(() => _proposal = _suggestions[_suggestion]);
       }
       return;
@@ -247,14 +254,14 @@ class _TextTaskViewState extends State<TextTaskView> {
           children: [
             HoldToSpeak(
               height: 130,
-              label: 'One sound = yes, two = next',
+              label: 'Nod, sound, or hum = yes · two sounds = next',
               onUtterance: _onUtterance,
             ),
             const SizedBox(height: 12),
             Text(
               'Suggestion ${_suggestion + 1} of ${_suggestions.length}. '
-              'The words come from the agent; your voice only has to say '
-              'yes or no.',
+              'A short nod or sound, or a longer hum, accepts. '
+              'Two sounds skips to the next phrase.',
               textAlign: TextAlign.center,
               style: TextStyle(
                 fontSize: 13 * _scale,

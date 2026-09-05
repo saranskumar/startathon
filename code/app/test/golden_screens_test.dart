@@ -11,6 +11,7 @@ import 'package:startathon/calibration/touch_steps.dart';
 import 'package:startathon/model/profile.dart';
 import 'package:startathon/model/session.dart';
 import 'package:startathon/runtime/demo_screen.dart';
+import 'package:startathon/runtime/preview_screen.dart';
 import 'package:startathon/runtime/pointing_view.dart';
 import 'package:startathon/main.dart';
 import 'package:startathon/runtime/text_view.dart';
@@ -115,6 +116,20 @@ void main() {
           draft: filledDraft(), onUse: () {}, onRedo: () {}),
       '10-results',
     );
+  });
+
+  testWidgets('controller playground after calibration', (tester) async {
+    usePhoneSurface(tester);
+    final state = AppState()..setProfile(ProfilePresets.profileB);
+    await tester.pumpWidget(
+      harness(state, InputPreviewScreen(onContinue: () {}, onRecalibrate: () {})),
+    );
+    await tester.pump();
+    await shoot(tester, '10b-controllers-preview');
+    await tester.tap(find.text('Voice'));
+    await tester.pump();
+    await shoot(tester, '10c-controllers-voice');
+    await teardownTree(tester);
   });
 
   testWidgets('runtime screens per profile', (tester) async {

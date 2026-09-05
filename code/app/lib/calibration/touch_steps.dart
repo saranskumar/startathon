@@ -371,7 +371,13 @@ class JoystickStep extends CalibrationStep {
 }
 
 class _JoystickStepState extends State<JoystickStep> {
-  static const _targets = <String>['up', 'right', 'down', 'left'];
+  // All 8 positions, not just the 4 cardinals -- a stick that is accurate on
+  // the axes but sloppy on the diagonals would otherwise score as fully
+  // calibrated while still under-serving half of a free-pointing task.
+  static const _targets = <String>[
+    'up', 'up-right', 'right', 'down-right',
+    'down', 'down-left', 'left', 'up-left',
+  ];
   static const _holdMs = 500;
   static const _timeout = Duration(seconds: 9);
 
@@ -410,11 +416,17 @@ class _JoystickStepState extends State<JoystickStep> {
     _timeoutTimer = Timer(_timeout, () => _finish(false));
   }
 
+  static final double _diag = math.sqrt(0.5); // unit-length diagonal component
+
   Offset _targetVector(String dir) => switch (dir) {
         'up' => const Offset(0, -1),
         'down' => const Offset(0, 1),
         'left' => const Offset(-1, 0),
-        _ => const Offset(1, 0),
+        'right' => const Offset(1, 0),
+        'up-right' => Offset(_diag, -_diag),
+        'down-right' => Offset(_diag, _diag),
+        'down-left' => Offset(-_diag, _diag),
+        _ => Offset(-_diag, -_diag), // 'up-left'
       };
 
   void _onVector(Offset v) {
@@ -496,7 +508,11 @@ class _JoystickStepState extends State<JoystickStep> {
               'up' => Icons.arrow_upward,
               'down' => Icons.arrow_downward,
               'left' => Icons.arrow_back,
-              _ => Icons.arrow_forward,
+              'right' => Icons.arrow_forward,
+              'up-right' => Icons.north_east,
+              'down-right' => Icons.south_east,
+              'down-left' => Icons.south_west,
+              _ => Icons.north_west, // 'up-left'
             },
             size: 64,
             color: _onTarget ? scheme.primary : scheme.outline,
