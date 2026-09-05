@@ -1,266 +1,130 @@
-// Aperture — a normal, everyday website (video browsing, settings, a
-// feedback form). This is the *target application* the real adaptive
-// system will eventually operate on — it deliberately has no
-// accessibility-profile UI of its own. That logic lives on the
-// phone/remote-control side (see docs/idea/07-architecture.md).
-
-const VIDEOS = [
-  { id: 1, title: 'Morning walk vlog' },
-  { id: 2, title: 'How radios work' },
-  { id: 3, title: 'Kitchen tips #12' },
-  { id: 4, title: 'City drone tour' },
-  { id: 5, title: 'Guitar lesson 3' },
-  { id: 6, title: 'Garden update' },
-  { id: 7, title: 'Quiz night highlights' },
-  { id: 8, title: 'Train journey, Kerala' },
-];
+// Mock UI — Interaction Pattern Demo.
+// Deliberately NOT dressed up as a real app: this is a sequence of
+// isolated, honestly-labeled UI patterns (one component per step),
+// stepped through with Back/Next. Each step is one of the task
+// shapes from docs/idea/03-input-calibration.md.
 
 const state = {
-  route: 'home',
-  selectedVideo: null,
-  playing: false,
-  seek: 20,
-  settingsTab: 'display',
-  fontStep: 1,
-  notifCorner: null,
-  searchQuery: '',
-  form: { name: '', preference: null, comment: '' },
+  step: 0,
+  scrollValue: 5,
+  cardChoice: null,
+  activeTab: 'a',
+  tapPoint: null,
+  text: '',
 };
 
-function goto(route) {
-  state.route = route;
-  location.hash = '/' + route;
-  render();
-  window.scrollTo({ top: 0, behavior: 'instant' });
-}
+const STEPS = [
+  { key: 'scroll', name: 'Scroll selector', render: renderScroll },
+  { key: 'cards', name: 'Card grid', render: renderCards },
+  { key: 'tabs', name: 'Tab switcher', render: renderTabs },
+  { key: 'point', name: 'Free tap', render: renderPoint },
+  { key: 'text', name: 'Text entry', render: renderText },
+  { key: 'review', name: 'Confirm / review', render: renderReview },
+];
 
-function routeFromHash() {
-  const route = (location.hash || '').replace(/^#\/?/, '').split('/')[0];
-  return ROUTES[route] ? route : 'home';
-}
-
-window.addEventListener('hashchange', () => {
-  state.route = routeFromHash();
-  if (state.route === 'player' && !state.selectedVideo) state.selectedVideo = VIDEOS[0];
-  render();
-});
-
-function skeleton(cls) { return `<div class="skeleton-block ${cls || ''}"></div>`; }
-
-// ---------- Screens ----------
-
-function renderHome() {
+function renderScroll() {
   return `
-    <h1>Aperture</h1>
-    <p class="hint">Watch something, tweak your settings, or send us feedback.</p>
-    <h2>Continue watching</h2>
-    <div class="grid">
-      ${VIDEOS.slice(0, 3).map(videoCard).join('')}
-    </div>
-    <div class="actions">
-      <button class="btn primary" onclick="goto('videos')">Browse all videos</button>
+    <p class="pattern-name">Scroll selector</p>
+    <p class="pattern-hint">A continuous, drag-to-adjust control.</p>
+    <div class="widget scroll-select">
+      <input type="range" min="0" max="10" value="${state.scrollValue}" oninput="onScroll(this.value)" />
+      <span class="value">${state.scrollValue}</span>
     </div>
   `;
 }
+function onScroll(v) { state.scrollValue = Number(v); render(); }
 
-function videoCard(v) {
+function renderCards() {
+  const labels = ['A', 'B', 'C', 'D', 'E', 'F'];
   return `
-    <button class="card" onclick="openVideo(${v.id})">
-      <div class="thumb skeleton-block"></div>
-      <span class="title">${escapeHtml(v.title)}</span>
-    </button>
-  `;
-}
-
-function renderVideos() {
-  const items = VIDEOS.filter(v =>
-    !state.searchQuery || v.title.toLowerCase().includes(state.searchQuery.toLowerCase())
-  );
-  return `
-    <h1>Videos</h1>
-    <div class="searchbar">
-      <input placeholder="Search" value="${escapeHtml(state.searchQuery)}" oninput="onSearchInput(this.value)" />
-    </div>
-    <div class="grid">
-      ${items.map(videoCard).join('') || '<p class="hint">No matches.</p>'}
+    <p class="pattern-name">Card grid</p>
+    <p class="pattern-hint">A discrete choice among several options.</p>
+    <div class="widget card-grid">
+      ${labels.map(l => `<div class="pattern-card ${state.cardChoice === l ? 'selected' : ''}" onclick="onCard('${l}')">${l}</div>`).join('')}
     </div>
   `;
 }
+function onCard(l) { state.cardChoice = l; render(); }
 
-function onSearchInput(v) { state.searchQuery = v; render(); }
-
-function openVideo(id) {
-  state.selectedVideo = VIDEOS.find(v => v.id === id);
-  state.playing = false;
-  state.seek = 0;
-  goto('player');
-}
-
-function renderPlayer() {
-  const v = state.selectedVideo;
-  if (!v) return renderVideos();
+function renderTabs() {
+  const tabs = [{ id: 'a', label: 'One' }, { id: 'b', label: 'Two' }, { id: 'c', label: 'Three' }];
   return `
-    <h1>${escapeHtml(v.title)}</h1>
-    <div class="player-art skeleton-block"></div>
-    <div class="controls-row">
-      <button class="btn primary" onclick="togglePlay()">${state.playing ? 'Pause' : 'Play'}</button>
-      <span>${state.seek}s</span>
-      <input type="range" min="0" max="120" value="${state.seek}" oninput="onSeek(this.value)" />
-    </div>
-    <div class="actions">
-      <button class="btn" onclick="goto('videos')">Back to videos</button>
-    </div>
-  `;
-}
-
-function togglePlay() { state.playing = !state.playing; render(); }
-function onSeek(v) { state.seek = Number(v); render(); }
-
-function renderSettings() {
-  const tabs = [
-    { id: 'display', label: 'Display' },
-    { id: 'sound', label: 'Sound' },
-    { id: 'notifications', label: 'Notifications' },
-    { id: 'about', label: 'About' },
-  ];
-  return `
-    <h1>Settings</h1>
-    <div class="tabbar">
-      ${tabs.map(t => `<button class="${state.settingsTab === t.id ? 'active' : ''}" onclick="setTab('${t.id}')">${t.label}</button>`).join('')}
-    </div>
-    ${renderSettingsTab()}
-  `;
-}
-
-function setTab(id) {
-  state.settingsTab = id;
-  location.hash = '/settings/' + id;
-  render();
-}
-
-function renderSettingsTab() {
-  if (state.settingsTab === 'display') {
-    const sizes = ['Small', 'Medium', 'Large'];
-    return `
-      <div class="field">
-        <label>Text size — ${sizes[state.fontStep]}</label>
-        <input type="range" min="0" max="2" value="${state.fontStep}" oninput="onFontStep(this.value)" />
+    <p class="pattern-name">Tab switcher</p>
+    <p class="pattern-hint">A discrete choice between sections.</p>
+    <div class="widget">
+      <div class="tabbar">
+        ${tabs.map(t => `<button class="${state.activeTab === t.id ? 'active' : ''}" onclick="onTab('${t.id}')">${t.label}</button>`).join('')}
       </div>
-    `;
-  }
-  if (state.settingsTab === 'notifications') {
-    return `
-      <div class="field">
-        <label>Where should notifications appear?</label>
-        <div class="pointfield" onclick="onPointTap(event)">
-          <div class="marker" id="marker" style="${state.notifCorner ? `display:block;left:${state.notifCorner.x}%;top:${state.notifCorner.y}%;` : ''}"></div>
-        </div>
-        <p class="hint">Tap anywhere on the preview to place it.</p>
-      </div>
-    `;
-  }
-  if (state.settingsTab === 'sound') {
-    return `<p class="hint">Sound settings.</p>`;
-  }
-  return `<p class="hint">Aperture, a small video app built for a demo.</p>`;
+      <div class="tab-panel">Panel content for tab "${tabs.find(t => t.id === state.activeTab).label}".</div>
+    </div>
+  `;
 }
+function onTab(id) { state.activeTab = id; render(); }
 
-function onFontStep(v) {
-  state.fontStep = Number(v);
-  document.documentElement.style.setProperty('font-size', [14, 16, 19][state.fontStep] + 'px');
-  render();
+function renderPoint() {
+  return `
+    <p class="pattern-name">Free tap</p>
+    <p class="pattern-hint">Free 2D pointing — tap anywhere in the field.</p>
+    <div class="widget pointfield" onclick="onPoint(event)">
+      <div class="marker" style="${state.tapPoint ? `display:block;left:${state.tapPoint.x}%;top:${state.tapPoint.y}%;` : ''}"></div>
+    </div>
+  `;
 }
-
-function onPointTap(e) {
+function onPoint(e) {
   const rect = e.currentTarget.getBoundingClientRect();
-  state.notifCorner = {
+  state.tapPoint = {
     x: ((e.clientX - rect.left) / rect.width) * 100,
     y: ((e.clientY - rect.top) / rect.height) * 100,
   };
   render();
 }
 
-function renderForm() {
+function renderText() {
   return `
-    <h1>Feedback</h1>
-    <div class="field">
-      <label>Name</label>
-      <input value="${escapeHtml(state.form.name)}" oninput="onFormField('name', this.value)" />
-    </div>
-    <div class="field">
-      <label>How should we follow up?</label>
-      <div class="pref-row">
-        ${['Email me', 'Call me', 'No contact'].map(p => `<button class="btn ${state.form.preference === p ? 'selected' : ''}" onclick="onFormField('preference', '${p}')">${p}</button>`).join('')}
-      </div>
-    </div>
-    <div class="field">
-      <label>Comment</label>
-      <textarea rows="3" oninput="onFormField('comment', this.value)">${escapeHtml(state.form.comment)}</textarea>
-    </div>
-    <div class="actions">
-      <button class="btn primary" onclick="goto('review')">Review</button>
+    <p class="pattern-name">Text entry</p>
+    <p class="pattern-hint">Free-form content input.</p>
+    <div class="widget field">
+      <input placeholder="Type something" value="${escapeHtml(state.text)}" oninput="onText(this.value)" />
     </div>
   `;
 }
-
-function onFormField(field, value) { state.form[field] = value; render(); }
+function onText(v) { state.text = v; render(); }
 
 function renderReview() {
-  const f = state.form;
   return `
-    <h1>Review &amp; submit</h1>
-    <div class="summary-row"><span>Name</span><strong>${escapeHtml(f.name) || '—'}</strong></div>
-    <div class="summary-row"><span>Follow-up</span><strong>${escapeHtml(f.preference || '—')}</strong></div>
-    <div class="summary-row"><span>Comment</span><strong>${escapeHtml(f.comment) || '—'}</strong></div>
-    <div class="actions">
-      <button class="btn" onclick="goto('form')">Edit</button>
-      <button class="btn primary" onclick="onConfirmSubmit()">Submit</button>
+    <p class="pattern-name">Confirm / review</p>
+    <p class="pattern-hint">A summary of what was picked, before anything is confirmed.</p>
+    <div class="widget">
+      <div class="summary-row"><span>Scroll selector</span><strong>${state.scrollValue}</strong></div>
+      <div class="summary-row"><span>Card grid</span><strong>${state.cardChoice || '—'}</strong></div>
+      <div class="summary-row"><span>Tab switcher</span><strong>${state.activeTab.toUpperCase()}</strong></div>
+      <div class="summary-row"><span>Free tap</span><strong>${state.tapPoint ? `${state.tapPoint.x.toFixed(0)}%, ${state.tapPoint.y.toFixed(0)}%` : '—'}</strong></div>
+      <div class="summary-row"><span>Text entry</span><strong>${escapeHtml(state.text) || '—'}</strong></div>
     </div>
   `;
-}
-
-function onConfirmSubmit() {
-  // In the real system, this is where the agent fills + submits the
-  // actual Google Form built for the demo (docs/idea/05-scope.md).
-  // Not wired here — Aperture is a UI-only stand-in.
-  goto('done');
-}
-
-function renderDone() {
-  return `
-    <h1>Thanks!</h1>
-    <p class="hint">Your feedback was recorded.</p>
-    <button class="btn primary" onclick="resetForm()">Back to home</button>
-  `;
-}
-
-function resetForm() {
-  state.form = { name: '', preference: null, comment: '' };
-  goto('home');
 }
 
 function escapeHtml(s) {
   return String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 }
 
-const ROUTES = {
-  home: renderHome,
-  videos: renderVideos,
-  player: renderPlayer,
-  settings: renderSettings,
-  form: renderForm,
-  review: renderReview,
-  done: renderDone,
-};
+function nextStep() { state.step = Math.min(STEPS.length - 1, state.step + 1); render(); }
+function prevStep() { state.step = Math.max(0, state.step - 1); render(); }
 
 function render() {
-  document.querySelectorAll('#nav button[data-route]').forEach(b => {
-    b.classList.toggle('active', b.dataset.route === state.route);
-  });
-  document.getElementById('screen').innerHTML = ROUTES[state.route]();
+  const total = STEPS.length;
+  document.getElementById('step-indicator').textContent = `Step ${state.step + 1} of ${total}`;
+  document.getElementById('screen').innerHTML = STEPS[state.step].render();
+  document.getElementById('btn-back').disabled = state.step === 0;
+  document.getElementById('btn-next').textContent = state.step === total - 1 ? 'Done' : 'Next';
+  document.getElementById('btn-next').onclick = state.step === total - 1 ? () => { state.step = 0; render(); } : nextStep;
+  document.getElementById('dots').innerHTML = STEPS.map((_, i) =>
+    `<span class="${i === state.step ? 'active' : ''}"></span>`
+  ).join('');
 }
 
-state.route = routeFromHash();
-if (state.route === 'player' && !state.selectedVideo) state.selectedVideo = VIDEOS[0];
-if (state.route === 'settings') state.settingsTab = (location.hash.split('/')[2]) || 'display';
+const stepParam = Number(new URLSearchParams(location.search).get('step'));
+if (Number.isInteger(stepParam) && stepParam >= 0 && stepParam < STEPS.length) {
+  state.step = stepParam;
+}
 render();

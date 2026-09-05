@@ -3,18 +3,20 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Aperture</title>
+  <title>Mock UI — Interaction Pattern Demo</title>
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
-  <nav id="nav">
-    <span class="brand">Aperture</span>
-    <button data-route="home" onclick="goto('home')">Home</button>
-    <button data-route="videos" onclick="goto('videos')">Videos</button>
-    <button data-route="settings" onclick="goto('settings')">Settings</button>
-    <button data-route="form" onclick="goto('form')">Feedback</button>
-  </nav>
+  <header id="top">
+    <span class="label">Mock UI — Interaction Pattern Demo</span>
+    <span class="step-indicator" id="step-indicator"></span>
+  </header>
   <main id="screen"></main>
+  <footer id="nav">
+    <button class="btn" id="btn-back" onclick="prevStep()">Back</button>
+    <div class="dots" id="dots"></div>
+    <button class="btn primary" id="btn-next" onclick="nextStep()">Next</button>
+  </footer>
   <script src="app.js"></script>
 </body>
 </html>
