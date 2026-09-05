@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Demo form — submit</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div class="glow glow-1" aria-hidden="true"></div>
+  <div class="glow glow-2" aria-hidden="true"></div>
+  <header id="top" role="banner">
+    <span class="label">Demo form</span>
+    <span class="step-indicator">Consequential submit</span>
+  </header>
+  <main id="screen" role="main">
+    <p class="pattern-name" style="text-align:left">Submit answers</p>
+    <p class="pattern-hint" style="text-align:left;margin-bottom:16px">
+      Stand-in for the real Google Form. The agent fills these fields and confirms submit.
+    </p>
+    <form id="demo-form" class="widget" action="#" method="get">
+      <label class="summary-row" for="scroll">
+        <span>Rating (0–10)</span>
+        <input id="scroll" name="scroll" type="number" min="0" max="10" required />
+      </label>
+      <label class="summary-row" for="card">
+        <span>Choice</span>
+        <select id="card" name="card" required>
+          <option value="">—</option>
+          <option>A</option><option>B</option><option>C</option>
+          <option>D</option><option>E</option><option>F</option>
+        </select>
+      </label>
+      <label class="summary-row" for="tab">
+        <span>Section</span>
+        <select id="tab" name="tab" required>
+          <option value="a">One</option>
+          <option value="b">Two</option>
+          <option value="c">Three</option>
+        </select>
+      </label>
+      <label class="summary-row" for="tap">
+        <span>Tap result</span>
+        <input id="tap" name="tap" type="text" />
+      </label>
+      <label class="summary-row" for="text">
+        <span>Message</span>
+        <input id="text" name="text" type="text" />
+      </label>
+      <div style="display:flex;gap:10px;margin-top:16px">
+        <a class="btn" href="index.html?mode=simple&amp;step=5">Back to review</a>
+        <button type="submit" class="btn primary">Submit form</button>
+      </div>
+    </form>
+    <p id="done" class="tap-result hit" hidden>Submitted. This is the real-world action the demo needs to show.</p>
+  </main>
+  <script>
+    const params = new URLSearchParams(location.search);
+    const submitted = params.get('submitted') === '1';
+    ['scroll', 'card', 'tab', 'tap', 'text'].forEach((name) => {
+      const el = document.getElementById(name);
+      const v = params.get(name);
+      if (el && v !== null) el.value = v;
+    });
+    if (submitted) {
+      document.getElementById('done').hidden = false;
+      document.getElementById('demo-form').querySelector('.btn.primary').disabled = true;
+    }
+    document.getElementById('demo-form').addEventListener('submit', (e) => {
+      e.preventDefault();
+      const next = new URLSearchParams(new FormData(e.target));
+      next.set('submitted', '1');
+      location.search = next.toString();
+    });
+  </script>
+</body>
+</html>

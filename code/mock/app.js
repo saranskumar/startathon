@@ -43,16 +43,16 @@ const STEPS = [
 function renderMenu() {
   return `
     <div class="menu-grid">
-      <div class="menu-card" onclick="enterMode('simple')">
+      <button type="button" class="menu-card" onclick="enterMode('simple')">
         <div class="kicker">Option A</div>
         <h3>Simple patterns</h3>
         <p>One isolated UI pattern per step: scroll selector, card grid, tabs, free tap, text entry, confirm/review.</p>
-      </div>
-      <div class="menu-card" onclick="enterMode('complex')">
+      </button>
+      <button type="button" class="menu-card" onclick="enterMode('complex')">
         <div class="kicker">Option B</div>
         <h3>App-like flow</h3>
         <p>A small, generic multi-screen app with persistent navigation — closer to using a real product than one pattern at a time.</p>
-      </div>
+      </button>
     </div>
   `;
 }
@@ -70,11 +70,12 @@ function exitToMenu() { state.mode = 'menu'; render(); }
 
 function renderScroll() {
   return `
-    <p class="pattern-name">Scroll selector</p>
+    <h1 class="pattern-name">Scroll selector</h1>
     <p class="pattern-hint">A continuous, drag-to-adjust control.</p>
     <div class="widget scroll-select">
-      <input type="range" min="0" max="10" value="${state.scrollValue}" oninput="onScroll(this.value)" />
-      <span class="value">${state.scrollValue}</span>
+      <label class="sr-only" for="scroll-range">Value</label>
+      <input id="scroll-range" type="range" min="0" max="10" value="${state.scrollValue}" aria-valuemin="0" aria-valuemax="10" aria-valuenow="${state.scrollValue}" oninput="onScroll(this.value)" />
+      <span class="value" aria-live="polite">${state.scrollValue}</span>
     </div>
   `;
 }
@@ -83,10 +84,10 @@ function onScroll(v) { state.scrollValue = Number(v); render(); }
 function renderCards() {
   const labels = ['A', 'B', 'C', 'D', 'E', 'F'];
   return `
-    <p class="pattern-name">Card grid</p>
+    <h1 class="pattern-name">Card grid</h1>
     <p class="pattern-hint">A discrete choice among several options.</p>
-    <div class="widget card-grid">
-      ${labels.map(l => `<div class="pattern-card ${state.cardChoice === l ? 'selected' : ''}" onclick="onCard('${l}')">${l}</div>`).join('')}
+    <div class="widget card-grid" role="group" aria-label="Choice">
+      ${labels.map(l => `<button type="button" class="pattern-card ${state.cardChoice === l ? 'selected' : ''}" aria-pressed="${state.cardChoice === l}" onclick="onCard('${l}')">${l}</button>`).join('')}
     </div>
   `;
 }
@@ -95,13 +96,13 @@ function onCard(l) { state.cardChoice = l; render(); }
 function renderTabs() {
   const tabs = [{ id: 'a', label: 'One' }, { id: 'b', label: 'Two' }, { id: 'c', label: 'Three' }];
   return `
-    <p class="pattern-name">Tab switcher</p>
+    <h1 class="pattern-name">Tab switcher</h1>
     <p class="pattern-hint">A discrete choice between sections.</p>
     <div class="widget">
-      <div class="tabbar">
-        ${tabs.map(t => `<button class="${state.activeTab === t.id ? 'active' : ''}" onclick="onTab('${t.id}')">${t.label}</button>`).join('')}
+      <div class="tabbar" role="tablist" aria-label="Sections">
+        ${tabs.map(t => `<button type="button" role="tab" aria-selected="${state.activeTab === t.id}" class="${state.activeTab === t.id ? 'active' : ''}" onclick="onTab('${t.id}')">${t.label}</button>`).join('')}
       </div>
-      <div class="tab-panel">Panel content for tab "${tabs.find(t => t.id === state.activeTab).label}".</div>
+      <div class="tab-panel" role="tabpanel">Panel content for tab "${tabs.find(t => t.id === state.activeTab).label}".</div>
     </div>
   `;
 }
@@ -126,13 +127,13 @@ function renderPoint() {
   ensureTapTargets();
   const hitId = state.tapResult && state.tapResult.hitId;
   return `
-    <p class="pattern-name">Free tap</p>
+    <h1 class="pattern-name">Free tap</h1>
     <p class="pattern-hint">Tap the target closest to where you meant to point — this is how a real accuracy check tells an intentional tap from a random one.</p>
-    <div class="widget pointfield" onclick="onPoint(event)">
+    <div class="widget pointfield" role="application" aria-label="Tap targets" onclick="onPoint(event)">
       ${state.tapTargets.map(t => `<div class="target ${hitId === t.id ? 'hit' : ''}" style="left:${t.x}%;top:${t.y}%;">${t.id}</div>`).join('')}
       ${state.tapResult ? `<div class="marker" style="left:${state.tapResult.x}%;top:${state.tapResult.y}%;"></div>` : ''}
     </div>
-    <p class="tap-result ${hitId ? 'hit' : ''}">${tapResultText()}</p>
+    <p class="tap-result ${hitId ? 'hit' : ''}" aria-live="polite">${tapResultText()}</p>
   `;
 }
 
@@ -165,10 +166,11 @@ function onPoint(e) {
 
 function renderText() {
   return `
-    <p class="pattern-name">Text entry</p>
+    <h1 class="pattern-name">Text entry</h1>
     <p class="pattern-hint">Free-form content input.</p>
     <div class="widget field">
-      <input placeholder="Type something" value="${escapeHtml(state.text)}" oninput="onText(this.value)" />
+      <label for="text-entry">Message</label>
+      <input id="text-entry" placeholder="Type something" value="${escapeHtml(state.text)}" oninput="onText(this.value)" />
     </div>
   `;
 }
@@ -176,8 +178,8 @@ function onText(v) { state.text = v; render(); }
 
 function renderReview() {
   return `
-    <p class="pattern-name">Confirm / review</p>
-    <p class="pattern-hint">A summary of what was picked, before anything is confirmed.</p>
+    <h1 class="pattern-name">Confirm / review</h1>
+    <p class="pattern-hint">A summary of what was picked, before anything is submitted. Confirm is the consequential action.</p>
     <div class="widget">
       <div class="summary-row"><span>Scroll selector</span><strong>${state.scrollValue}</strong></div>
       <div class="summary-row"><span>Card grid</span><strong>${state.cardChoice || '—'}</strong></div>
@@ -186,6 +188,21 @@ function renderReview() {
       <div class="summary-row"><span>Text entry</span><strong>${escapeHtml(state.text) || '—'}</strong></div>
     </div>
   `;
+}
+
+function formQuery() {
+  const q = new URLSearchParams({
+    scroll: String(state.scrollValue),
+    card: state.cardChoice || '',
+    tab: state.activeTab,
+    tap: state.tapResult ? tapResultText() : '',
+    text: state.text || '',
+  });
+  return q.toString();
+}
+
+function confirmSubmit() {
+  location.href = `form.html?${formQuery()}`;
 }
 
 function nextStep() { state.step = Math.min(STEPS.length - 1, state.step + 1); render(); }
@@ -217,10 +234,10 @@ function renderComplexList() {
     <p class="pattern-name" style="text-align:left">Directory</p>
     <p class="pattern-hint" style="text-align:left;margin-bottom:16px">Tap an item to open it.</p>
     ${c.items.map(it => `
-      <div class="list-item" onclick="openComplexItem(${it.id})">
+      <button type="button" class="list-item" onclick="openComplexItem(${it.id})">
         <span>${escapeHtml(it.title)}</span>
         <span class="meta">${it.note ? 'edited' : 'no note'}</span>
-      </div>
+      </button>
     `).join('')}
   `;
 }
@@ -312,8 +329,8 @@ function render() {
   backBtn.disabled = false;
   backBtn.textContent = state.step === 0 ? 'Exit to menu' : 'Back';
   backBtn.onclick = state.step === 0 ? exitToMenu : prevStep;
-  document.getElementById('btn-next').textContent = state.step === total - 1 ? 'Done' : 'Next';
-  document.getElementById('btn-next').onclick = state.step === total - 1 ? exitToMenu : nextStep;
+  document.getElementById('btn-next').textContent = state.step === total - 1 ? 'Confirm' : 'Next';
+  document.getElementById('btn-next').onclick = state.step === total - 1 ? confirmSubmit : nextStep;
   document.getElementById('dots').innerHTML = STEPS.map((_, i) =>
     `<span class="${i === state.step ? 'active' : ''}"></span>`
   ).join('');

@@ -10,15 +10,15 @@
   <div class="glow glow-1" aria-hidden="true"></div>
   <div class="glow glow-2" aria-hidden="true"></div>
   <div class="glow glow-3" aria-hidden="true"></div>
-  <header id="top">
+  <header id="top" role="banner">
     <span class="label">Mock UI — Interaction Pattern Demo</span>
     <span class="step-indicator" id="step-indicator"></span>
   </header>
-  <main id="screen"></main>
-  <footer id="nav">
-    <button class="btn" id="btn-back" onclick="prevStep()">Back</button>
-    <div class="dots" id="dots"></div>
-    <button class="btn primary" id="btn-next" onclick="nextStep()">Next</button>
+  <main id="screen" role="main" aria-live="polite"></main>
+  <footer id="nav" role="navigation" aria-label="Step navigation">
+    <button type="button" class="btn" id="btn-back">Back</button>
+    <div class="dots" id="dots" aria-hidden="true"></div>
+    <button type="button" class="btn primary" id="btn-next">Next</button>
   </footer>
   <script src="app.js"></script>
 </body>
