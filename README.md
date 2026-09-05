@@ -1,46 +1,31 @@
 # Adaptive Capability-Profile Access Layer
 
-Startathon submission — accessibility as a continuous capability profile, not a set of disability labels. See [docs/idea/](docs/idea/README.md) for the full concept, and [docs/tech/](docs/tech/README.md) for implementation notes.
+Startathon submission.
 
-## Repo layout
+## Core idea
 
-- [`docs/idea/`](docs/idea/README.md) — the product idea: problem, model, calibration design, scope, risks, event submission answers.
-- [`docs/tech/`](docs/tech/README.md) — implementation notes: what's decided vs. still open on the tech stack.
-- [`code/app/`](code/app/) — the Flutter phone/remote-control app.
-- [`code/mock/`](code/mock/) — a mock UI: a home menu offering either an isolated pattern gallery or a small app-like flow. This is the *target application* the real adaptive system will eventually operate on — see below.
+Most accessibility tools force a user into one fixed, pre-labeled bucket — "screen reader user," "switch user," "voice user" — and make them adopt a single input method wholesale. This project instead treats accessibility as a **continuous capability profile**: every user is measured (via short calibration tests, not a self-reported disability label) on a handful of ability axes — touch precision, speech clarity, vision — and the interface is assembled from whatever *combination* of partial abilities that person actually has, rather than picking the one modality they're "supposed" to use.
 
-## Mock UI (`code/mock/`)
+Two ideas make this work:
 
-Deliberately **not** dressed up as a real app — it doesn't hide that it's a mock. The home screen offers two honestly-labeled options rather than pretending to be a product; this is also the *target application* the real adaptive system will operate on later, not the accessibility layer itself — that profile-switching logic belongs on the phone/remote-control side ([docs/idea/07-architecture.md](docs/idea/07-architecture.md)).
+1. **Composition, not selection.** Two weak input channels used together (e.g. imprecise touch + unclear-but-detectable speech) beat forcing a user to rely on one weak channel alone. The system fuses whatever partial signal is available instead of demanding one clean one.
+2. **Composition is two-layered.** It happens *per-user* (calibration decides what this person can actually operate, scored per input method rather than pass/fail) **and** *per-task* (each task/screen has a design-time ideal input type — discrete choice, continuous/directional, free pointing — and the system falls back to a user's best-scoring method, using that method's own native interaction pattern, only when it scores meaningfully better than the task's ideal).
 
-| Home — choose a mode |
-|---|
-| ![Home menu](code/mock/screenshots/00-menu.png) |
+An AI agent sits underneath this to fill inference gaps — e.g. matching fused, imprecise multi-modal input to a real action — but it's infrastructure, not the product: it's used narrowly (matching intent to a tree node, or simplifying a complex UI tree) and always under a confirmation gate, not as a general orchestrator interpreting everything.
 
-**Option A — Simple patterns**: one isolated UI pattern per step (Back/Next, "Step X of N"), matching the task shapes in [docs/idea/03-input-calibration.md](docs/idea/03-input-calibration.md): a continuous scroll selector, a discrete card grid, a discrete tab switcher, free 2D pointing (scored against randomly-placed targets, so a tap can be judged as a hit or a miss rather than being ambiguous), free-text entry, and a confirm/review summary.
+See [docs/idea/](docs/idea/README.md) for the full concept (problem, model, calibration design, scope, risks, event-submission answers) and [docs/tech/](docs/tech/README.md) for implementation notes and research briefs. [`code/app/`](code/app/) is the Flutter phone/remote-control app; [`code/mock/`](code/mock/) is the mock target application the adaptive layer operates on; [`presentation/`](presentation/README.md) is the pitch deck.
 
-| 1 — Scroll selector | 2 — Card grid |
-|---|---|
-| ![Scroll selector](code/mock/screenshots/01-scroll.png) | ![Card grid](code/mock/screenshots/02-cards.png) |
+---
 
-| 3 — Tab switcher | 4 — Free tap |
-|---|---|
-| ![Tab switcher](code/mock/screenshots/03-tabs.png) | ![Free tap](code/mock/screenshots/04-tap.png) |
+## Latest changes
 
-| 5 — Text entry | 6 — Confirm / review |
-|---|---|
-| ![Text entry](code/mock/screenshots/05-text.png) | ![Confirm / review](code/mock/screenshots/06-review.png) |
+Reverse-chronological log of changes to the idea/project — most recent first. Each entry links to the doc(s) that carry the full detail; this is a pointer trail, not a duplicate of their content.
 
-**Option B — App-like flow**: a small, generic multi-screen app with persistent navigation (a directory list, an item detail/edit screen, settings tabs) — closer to using a real product than one isolated pattern at a time.
-
-| App-like flow — Directory |
-|---|
-| ![App-like flow](code/mock/screenshots/07-complex.png) |
-
-Run it locally:
-
-```bash
-npx serve code/mock
-```
-
-Deep-link directly into a screen for testing/screenshots: `?mode=simple&step=N` (0-indexed) or `?mode=complex`.
+- **Researched input modes beyond touch/speech/switch-scanning, and captured the meeting behind it.** Web-researched gaze/eye-tracking, head-tracking, sip-and-puff, EMG, and non-invasive BCI (all roadmap, not build-scope — mostly need hardware a phone doesn't have), confirmed Android Voice Access's "show grid" already ships the meeting's "grid-based voice input" idea, and followed up on four calibration-primitive gaps the meeting raised (touch-and-hold, pattern/per-axis swipes, a sound-count voice vocabulary, predictive-text-with-minimal-confirm). See [docs/idea/20-meeting-notes-input-modes.md](docs/idea/20-meeting-notes-input-modes.md) and [docs/tech/research/10-additional-input-modes.md](docs/tech/research/10-additional-input-modes.md).
+- **Resolved the open questions raised in the tree-simplification and feature-ranking meetings.** Two were externally researched (tree-node importance ranking, vision calibration method); the rest reasoned through directly, including a unified statement of the project's riskiest assumption and one real build-order tension flagged for a team call. See [docs/idea/19-open-questions-resolved.md](docs/idea/19-open-questions-resolved.md).
+- **Narrowed AI's role to tree-simplification, not the orchestrating agent.** Captured the actual meeting behind this decision, added canvas-submission answers, and filled in the remaining tech research briefs (agent execution layer, mobile/remote architecture, feature ranking, vision calibration). See [docs/idea/16-canvas-submission.md](docs/idea/16-canvas-submission.md) and [docs/idea/17-meeting-notes-tree-simplification.md](docs/idea/17-meeting-notes-tree-simplification.md).
+- **Added the pitch narrative brain dump** — origin story, "who's already served" framing, worked input/output examples. See [docs/idea/15-brain-dump.md](docs/idea/15-brain-dump.md).
+- **Locked the agent's target automation surface and build order**: browser accessibility tree (Playwright-driven Chromium), not native OS apps — native desktop control is explicitly out of scope for this event. See [docs/tech/README.md](docs/tech/README.md).
+- **Added India market research** — market size, userbase, adoption barriers, and which competitive claims are actually pitch-safe. See [docs/idea/14-market-research.md](docs/idea/14-market-research.md).
+- **v3 → v4: composition became two-layered.** Split the single "fuse whatever the user can do" idea into per-user calibration *and* per-task ideal-vs-fallback input selection. See [docs/idea/03-input-calibration.md](docs/idea/03-input-calibration.md).
+- **v1/v2 → v3: dropped disability-category labels for continuous ability axes**, and introduced modality composition/fusion as the core mechanism instead of single-modality selection. See [docs/idea/README.md](docs/idea/README.md) §0.
