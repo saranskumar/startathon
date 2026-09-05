@@ -1,17 +1,17 @@
 :root {
-  --bg: #1c1830;
-  --surface: #262140;
-  --surface-2: #322c4e;
-  --text: #f0eef8;
-  --muted: #a89fc9;
-  --accent: #9384f0;
+  --bg: #f6f5fb;
+  --surface: #ffffff;
+  --surface-2: #eeecf7;
+  --text: #211d38;
+  --muted: #716a94;
+  --accent: #6f5fd8;
   --accent-contrast: #ffffff;
-  --border: #4a4370;
-  --shine: rgba(255, 255, 255, 0.35);
-  --shine-dim: rgba(255, 255, 255, 0.06);
+  --border: #e1ddf4;
+  --shine: rgba(255, 255, 255, 0.9);
+  --shine-dim: rgba(111, 95, 216, 0.1);
   --surface-shine: linear-gradient(var(--surface), var(--surface)) padding-box,
     linear-gradient(135deg, var(--shine), var(--shine-dim) 45%, var(--shine) 100%) border-box;
-  --danger: #ff6b8a;
+  --danger: #c93b56;
   --radius: 10px;
 }
 
@@ -27,21 +27,21 @@
   width: 440px; height: 440px;
   top: -140px; left: -120px;
   background: var(--accent);
-  opacity: 0.35;
+  opacity: 0.14;
   animation: glow-float-1 16s ease-in-out infinite;
 }
 .glow-2 {
   width: 380px; height: 380px;
   bottom: -160px; right: -100px;
-  background: #6f5fd8;
-  opacity: 0.3;
+  background: #c9a8ff;
+  opacity: 0.16;
   animation: glow-float-2 20s ease-in-out infinite;
 }
 .glow-3 {
   width: 260px; height: 260px;
   top: 40%; left: 60%;
   background: var(--accent);
-  opacity: 0.18;
+  opacity: 0.09;
   animation: glow-float-1 24s ease-in-out infinite reverse;
 }
 
@@ -183,7 +183,39 @@ button, input, textarea {
   min-width: 3ch;
 }
 
-input[type="range"] { flex: 1; accent-color: var(--accent); }
+input[type="range"] {
+  flex: 1;
+  -webkit-appearance: none;
+  appearance: none;
+  height: 6px;
+  border-radius: 999px;
+  background: var(--border);
+  outline: none;
+}
+input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: var(--accent);
+  cursor: pointer;
+  border: 3px solid var(--surface);
+  box-shadow: 0 0 0 1px var(--accent);
+}
+input[type="range"]::-moz-range-track {
+  height: 6px;
+  border-radius: 999px;
+  background: var(--border);
+}
+input[type="range"]::-moz-range-thumb {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: var(--accent);
+  cursor: pointer;
+  border: 3px solid var(--surface);
+  box-shadow: 0 0 0 1px var(--accent);
+}
 
 /* Card grid */
 .card-grid {
