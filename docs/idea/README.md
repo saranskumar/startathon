@@ -39,3 +39,4 @@ The rest of this directory is written around those three ideas. The AI agent is 
 | [11 — Risks](11-risks.md) | Risk table incl. the pinned riskiest assumption |
 | [12 — Roadmap](12-roadmap.md) | Pitch narrative only — not build scope |
 | [13 — Event Submission](13-event-submission.md) | Finalized answers to the event's application questions |
+| [14 — Market Research](14-market-research.md) | India market size, userbase, barriers, and pitch-safe claims |
