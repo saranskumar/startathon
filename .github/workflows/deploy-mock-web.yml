@@ -5,12 +5,13 @@
 # deploys the directory as-is.
 #
 # Secrets (GitHub → Settings → Secrets and variables → Actions):
-#   VERCEL_TOKEN — same token already on the repo (used by Flutter too)
+#   VERCEL_TOKEN            — https://vercel.com/account/tokens (scope = owning team)
+#   VERCEL_ORG_ID           — Team/Org ID (shared with the other Vercel project)
+#   VERCEL_PROJECT_ID_MOCK  — Project ID for THIS site (a separate Vercel
+#                             project from code/app, since each Vercel
+#                             project maps to one root directory)
 #
-# Do not set VERCEL_ORG_ID / VERCEL_PROJECT_ID here. Those IDs belong to
-# the Flutter project; pairing them with a different project id fails, and
-# org-without-project is rejected by the CLI. Token-only --yes lets Vercel
-# attach a project this token can actually deploy to.
+# In the Vercel project, set Root Directory to: code/mock
 #
 # Repo → Settings → Actions → General → Workflow permissions → Read and write
 
@@ -29,6 +30,8 @@ on:
   workflow_dispatch:
 
 env:
+  VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+  VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID_MOCK }}
   WORKING_DIR: code/mock
   REPO_OWNER: saranskumar
   REPO_OWNER_EMAIL: saranskumarwh@gmail.com
@@ -145,13 +148,14 @@ jobs:
         id: deploy
         working-directory: ${{ env.WORKING_DIR }}
         run: |
-          unset VERCEL_ORG_ID VERCEL_PROJECT_ID
           url=$(npx vercel --yes --token="$VERCEL_TOKEN")
           echo "url=$url" >> "$GITHUB_OUTPUT"
           echo "### Preview URL" >> "$GITHUB_STEP_SUMMARY"
           echo "$url" >> "$GITHUB_STEP_SUMMARY"
         env:
           VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID_MOCK }}
 
       - name: Comment preview URL on PR
         if: github.event_name == 'pull_request'
@@ -268,16 +272,11 @@ jobs:
         id: deploy
         working-directory: ${{ env.WORKING_DIR }}
         run: |
-          unset VERCEL_ORG_ID VERCEL_PROJECT_ID
           url=$(npx vercel --prod --yes --token="$VERCEL_TOKEN")
           echo "url=$url" >> "$GITHUB_OUTPUT"
-          {
-            echo "## Live site"
-            echo ""
-            echo "$url"
-            echo ""
-            echo "### Production URL"
-            echo "$url"
-          } >> "$GITHUB_STEP_SUMMARY"
+          echo "### Production URL" >> "$GITHUB_STEP_SUMMARY"
+          echo "$url" >> "$GITHUB_STEP_SUMMARY"
         env:
           VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID_MOCK }}
