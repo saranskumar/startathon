@@ -4,14 +4,14 @@
 # build step — this is a plain static HTML/CSS/JS site, so `vercel`
 # deploys the directory as-is.
 #
-# Secrets already on the repo (same as Flutter):
-#   VERCEL_TOKEN
-#   VERCEL_ORG_ID
+# Secrets (GitHub → Settings → Secrets and variables → Actions):
+#   VERCEL_TOKEN            — https://vercel.com/account/tokens (scope = owning team)
+#   VERCEL_ORG_ID           — Team/Org ID (shared with the other Vercel project)
+#   VERCEL_PROJECT_ID_MOCK  — Project ID for THIS site (a separate Vercel
+#                             project from code/app, since each Vercel
+#                             project maps to one root directory)
 #
-# Does not use VERCEL_PROJECT_ID (Flutter) or VERCEL_PROJECT_ID_MOCK
-# (that mock project was created with a different Vercel login, so this
-# token cannot see it). The job creates/uses `startathon-code-mock` with
-# the token that is already in secrets.
+# In the Vercel project, set Root Directory to: code/mock
 #
 # Repo → Settings → Actions → General → Workflow permissions → Read and write
 
@@ -31,8 +31,8 @@ on:
 
 env:
   VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+  VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID_MOCK }}
   WORKING_DIR: code/mock
-  MOCK_PROJECT_NAME: startathon-code-mock
   REPO_OWNER: saranskumar
   REPO_OWNER_EMAIL: saranskumarwh@gmail.com
 
@@ -148,13 +148,6 @@ jobs:
         id: deploy
         working-directory: ${{ env.WORKING_DIR }}
         run: |
-          set -euo pipefail
-          unset VERCEL_PROJECT_ID
-          npx vercel project add "$MOCK_PROJECT_NAME" --token="$VERCEL_TOKEN" || true
-          inspect=$(npx vercel project inspect "$MOCK_PROJECT_NAME" --token="$VERCEL_TOKEN")
-          echo "$inspect"
-          export VERCEL_PROJECT_ID=$(printf '%s\n' "$inspect" | grep -oE 'prj_[A-Za-z0-9]+' | head -1)
-          test -n "$VERCEL_PROJECT_ID"
           url=$(npx vercel --yes --token="$VERCEL_TOKEN")
           echo "url=$url" >> "$GITHUB_OUTPUT"
           echo "### Preview URL" >> "$GITHUB_STEP_SUMMARY"
@@ -162,6 +155,7 @@ jobs:
         env:
           VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
           VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID_MOCK }}
 
       - name: Comment preview URL on PR
         if: github.event_name == 'pull_request'
@@ -278,23 +272,11 @@ jobs:
         id: deploy
         working-directory: ${{ env.WORKING_DIR }}
         run: |
-          set -euo pipefail
-          unset VERCEL_PROJECT_ID
-          npx vercel project add "$MOCK_PROJECT_NAME" --token="$VERCEL_TOKEN" || true
-          inspect=$(npx vercel project inspect "$MOCK_PROJECT_NAME" --token="$VERCEL_TOKEN")
-          echo "$inspect"
-          export VERCEL_PROJECT_ID=$(printf '%s\n' "$inspect" | grep -oE 'prj_[A-Za-z0-9]+' | head -1)
-          test -n "$VERCEL_PROJECT_ID"
           url=$(npx vercel --prod --yes --token="$VERCEL_TOKEN")
           echo "url=$url" >> "$GITHUB_OUTPUT"
-          {
-            echo "## Live site"
-            echo ""
-            echo "$url"
-            echo ""
-            echo "### Production URL"
-            echo "$url"
-          } >> "$GITHUB_STEP_SUMMARY"
+          echo "### Production URL" >> "$GITHUB_STEP_SUMMARY"
+          echo "$url" >> "$GITHUB_STEP_SUMMARY"
         env:
           VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
           VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID_MOCK }}
