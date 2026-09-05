@@ -1,5 +1,5 @@
 :root {
-  --bg: #211d38;
+  --bg: #322c4e;
   --surface: #3d385e;
   --surface-2: #4a4470;
   --text: #f0eef8;
@@ -7,9 +7,54 @@
   --accent: #9384f0;
   --accent-contrast: #ffffff;
   --border: #4a4370;
+  --shine: rgba(255, 255, 255, 0.35);
+  --shine-dim: rgba(255, 255, 255, 0.06);
+  --surface-shine: linear-gradient(var(--surface), var(--surface)) padding-box,
+    linear-gradient(135deg, var(--shine), var(--shine-dim) 45%, var(--shine) 100%) border-box;
   --danger: #ff6b8a;
   --radius: 10px;
 }
+
+/* Ambient glow blobs — decorative, fixed behind all content. */
+.glow {
+  position: fixed;
+  border-radius: 50%;
+  filter: blur(90px);
+  pointer-events: none;
+  z-index: 0;
+}
+.glow-1 {
+  width: 440px; height: 440px;
+  top: -140px; left: -120px;
+  background: var(--accent);
+  opacity: 0.35;
+  animation: glow-float-1 16s ease-in-out infinite;
+}
+.glow-2 {
+  width: 380px; height: 380px;
+  bottom: -160px; right: -100px;
+  background: #6f5fd8;
+  opacity: 0.3;
+  animation: glow-float-2 20s ease-in-out infinite;
+}
+.glow-3 {
+  width: 260px; height: 260px;
+  top: 40%; left: 60%;
+  background: var(--accent);
+  opacity: 0.18;
+  animation: glow-float-1 24s ease-in-out infinite reverse;
+}
+
+@keyframes glow-float-1 {
+  0%, 100% { transform: translate(0, 0); }
+  50% { transform: translate(40px, 30px); }
+}
+@keyframes glow-float-2 {
+  0%, 100% { transform: translate(0, 0); }
+  50% { transform: translate(-30px, -40px); }
+}
+
+#top, main, #nav { position: relative; z-index: 1; }
 
 * { box-sizing: border-box; }
 
@@ -25,6 +70,7 @@ html, body {
 body {
   display: flex;
   flex-direction: column;
+  overflow-x: hidden;
 }
 
 #top {
@@ -84,8 +130,8 @@ button, input, textarea {
 
 .btn {
   border-radius: 8px;
-  border: 1px solid var(--border);
-  background: var(--surface);
+  border: 1px solid transparent;
+  background: var(--surface-shine);
   padding: 10px 20px;
   cursor: pointer;
   color: var(--text);
@@ -109,9 +155,9 @@ button, input, textarea {
 }
 
 .menu-card {
-  border: 1px solid var(--border);
-  background: var(--surface);
   border-radius: var(--radius);
+  border: 1px solid transparent;
+  background: var(--surface-shine);
   padding: 28px 20px;
   cursor: pointer;
   text-align: left;
@@ -149,8 +195,8 @@ input[type="range"] { flex: 1; accent-color: var(--accent); }
 .pattern-card {
   aspect-ratio: 1;
   border-radius: var(--radius);
-  border: 2px solid var(--border);
-  background: var(--surface);
+  border: 1px solid transparent;
+  background: var(--surface-shine);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -191,8 +237,9 @@ input[type="range"] { flex: 1; accent-color: var(--accent); }
 }
 
 .tab-panel {
-  border: 1px dashed var(--border);
   border-radius: var(--radius);
+  border: 1px solid transparent;
+  background: var(--surface-shine);
   padding: 24px;
   color: var(--muted);
   width: 100%;
@@ -204,8 +251,8 @@ input[type="range"] { flex: 1; accent-color: var(--accent); }
   width: 100%;
   height: 220px;
   border-radius: var(--radius);
-  border: 1px dashed var(--border);
-  background: var(--surface);
+  border: 1px solid transparent;
+  background: var(--surface-shine);
 }
 
 .pointfield .marker {
@@ -250,9 +297,9 @@ input[type="range"] { flex: 1; accent-color: var(--accent); }
 .field input, .field textarea {
   width: 100%;
   border-radius: 8px;
-  border: 1px solid var(--border);
+  border: 1px solid transparent;
+  background: var(--surface-shine);
   padding: 12px 14px;
-  background: var(--surface);
   color: var(--text);
 }
 
@@ -300,9 +347,9 @@ input[type="range"] { flex: 1; accent-color: var(--accent); }
   justify-content: space-between;
   align-items: center;
   padding: 14px 16px;
-  border: 1px solid var(--border);
   border-radius: var(--radius);
-  background: var(--surface);
+  border: 1px solid transparent;
+  background: var(--surface-shine);
   margin-bottom: 10px;
   cursor: pointer;
 }
