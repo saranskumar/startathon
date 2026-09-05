@@ -5,13 +5,11 @@
 # deploys the directory as-is.
 #
 # Secrets (GitHub → Settings → Secrets and variables → Actions):
-#   VERCEL_TOKEN            — https://vercel.com/account/tokens (scope = owning team)
-#   VERCEL_ORG_ID           — Team/Org ID (shared with the other Vercel project)
-#   VERCEL_PROJECT_ID_MOCK  — Project ID for THIS site (a separate Vercel
-#                             project from code/app, since each Vercel
-#                             project maps to one root directory)
+#   VERCEL_TOKEN   — same token as the Flutter deploy
+#   VERCEL_ORG_ID  — same team/org as the Flutter deploy
 #
-# In the Vercel project, set Root Directory to: code/mock
+# Does not use VERCEL_PROJECT_ID (that ID is the Flutter app).
+# `vercel --name startathon-mock` creates/uses a separate project the token can see.
 #
 # Repo → Settings → Actions → General → Workflow permissions → Read and write
 
@@ -31,7 +29,6 @@ on:
 
 env:
   VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
-  VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID_MOCK }}
   WORKING_DIR: code/mock
   REPO_OWNER: saranskumar
   REPO_OWNER_EMAIL: saranskumarwh@gmail.com
@@ -148,14 +145,13 @@ jobs:
         id: deploy
         working-directory: ${{ env.WORKING_DIR }}
         run: |
-          url=$(npx vercel --yes --token="$VERCEL_TOKEN")
+          url=$(npx vercel --yes --token="$VERCEL_TOKEN" --name startathon-mock)
           echo "url=$url" >> "$GITHUB_OUTPUT"
           echo "### Preview URL" >> "$GITHUB_STEP_SUMMARY"
           echo "$url" >> "$GITHUB_STEP_SUMMARY"
         env:
           VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
           VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
-          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID_MOCK }}
 
       - name: Comment preview URL on PR
         if: github.event_name == 'pull_request'
@@ -272,11 +268,16 @@ jobs:
         id: deploy
         working-directory: ${{ env.WORKING_DIR }}
         run: |
-          url=$(npx vercel --prod --yes --token="$VERCEL_TOKEN")
+          url=$(npx vercel --prod --yes --token="$VERCEL_TOKEN" --name startathon-mock)
           echo "url=$url" >> "$GITHUB_OUTPUT"
-          echo "### Production URL" >> "$GITHUB_STEP_SUMMARY"
-          echo "$url" >> "$GITHUB_STEP_SUMMARY"
+          {
+            echo "## Live site"
+            echo ""
+            echo "$url"
+            echo ""
+            echo "### Production URL"
+            echo "$url"
+          } >> "$GITHUB_STEP_SUMMARY"
         env:
           VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
           VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
-          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID_MOCK }}
