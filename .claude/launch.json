@@ -6,6 +6,21 @@
       "runtimeExecutable": "npx",
       "runtimeArgs": ["serve", "code/mock", "-l", "4173"],
       "port": 4173
+    },
+    {
+      "name": "app-web",
+      "runtimeExecutable": "flutter",
+      "runtimeArgs": [
+        "run",
+        "-d",
+        "web-server",
+        "--web-port",
+        "5599",
+        "--web-hostname",
+        "127.0.0.1"
+      ],
+      "cwd": "code/app",
+      "port": 5599
     }
   ]
 }

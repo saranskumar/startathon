@@ -25,6 +25,12 @@ Most implementation decisions haven't been made yet — this is a short, honest 
 - `code/mock/` — Aperture, the mock target-website (plain HTML/CSS/JS). Auto-deploys to Vercel via [.github/workflows/deploy-mock-web.yml](../../.github/workflows/deploy-mock-web.yml) on every push to that folder. **Needs a Vercel project created (Root Directory: `code/mock`) and a `VERCEL_PROJECT_ID_MOCK` repo secret before this workflow will succeed** — it reuses the existing `VERCEL_ORG_ID`/`VERCEL_TOKEN`.
 - `code/app/` — the Flutter phone/remote-control app, deployed the same way via [.github/workflows/deploy-flutter-web.yml](../../.github/workflows/deploy-flutter-web.yml).
 
+## Built so far (phone side)
+
+`code/app/` is no longer a placeholder: the **input layer is implemented end to end** — the seven calibration steps, the capability profile they produce, and all four touch methods driving all four task shapes, plus touch+voice fusion. It runs standalone: intents stop at an on-screen output strip instead of going to an agent. Flutter SDK only, no packages. See [code/app/README.md](../../code/app/README.md) for what is real, what is stubbed (speech recognition, behind one `SpeechSource` interface) and the design decisions behind the calibration flow.
+
+This covers build-order step (2). Step (1) — browser/agent automation — and the phone↔agent transport are still unstarted; when they land, the seam is `AppState.emit` in `lib/model/session.dart`, which is where every resolved intent already passes through.
+
 ## Next steps
 Once tech choices are made, add one doc per component (client, agent, speech, TTS) here rather than expanding this file further.
 
