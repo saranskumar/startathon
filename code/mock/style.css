@@ -1,12 +1,13 @@
 :root {
-  --bg: #f4f5f7;
-  --surface: #ffffff;
-  --text: #16213e;
-  --muted: #6b7280;
-  --accent: #16213e;
+  --bg: #0d1b2e;
+  --surface: #16283f;
+  --surface-2: #1d3350;
+  --text: #eef1f8;
+  --muted: #93a0c2;
+  --accent: #5b7fff;
   --accent-contrast: #ffffff;
-  --border: #e2e4ea;
-  --danger: #9b2c2c;
+  --border: #2a3a5c;
+  --danger: #ff6b6b;
   --radius: 10px;
 }
 
@@ -98,6 +99,30 @@ button, input, textarea {
 
 .btn:disabled { opacity: 0.4; cursor: default; }
 
+/* Menu */
+.menu-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 16px;
+  max-width: 560px;
+  width: 100%;
+}
+
+.menu-card {
+  border: 1px solid var(--border);
+  background: var(--surface);
+  border-radius: var(--radius);
+  padding: 28px 20px;
+  cursor: pointer;
+  text-align: left;
+  color: var(--text);
+}
+
+.menu-card:hover { background: var(--surface-2); }
+.menu-card .kicker { color: var(--muted); font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.04em; }
+.menu-card h3 { margin: 6px 0 6px; }
+.menu-card p { margin: 0; color: var(--muted); font-size: 0.9rem; }
+
 /* Scroll selector */
 .scroll-select {
   display: flex;
@@ -138,7 +163,7 @@ input[type="range"] { flex: 1; accent-color: var(--accent); }
 .pattern-card.selected {
   border-color: var(--accent);
   color: var(--accent);
-  background: color-mix(in srgb, var(--accent) 8%, var(--surface));
+  background: color-mix(in srgb, var(--accent) 15%, var(--surface));
 }
 
 /* Tabs */
@@ -173,11 +198,11 @@ input[type="range"] { flex: 1; accent-color: var(--accent); }
   width: 100%;
 }
 
-/* Free tap / pointing */
+/* Free tap */
 .pointfield {
   position: relative;
   width: 100%;
-  height: 180px;
+  height: 220px;
   border-radius: var(--radius);
   border: 1px dashed var(--border);
   background: var(--surface);
@@ -185,13 +210,41 @@ input[type="range"] { flex: 1; accent-color: var(--accent); }
 
 .pointfield .marker {
   position: absolute;
-  width: 16px;
-  height: 16px;
+  width: 14px;
+  height: 14px;
   border-radius: 50%;
-  background: var(--accent);
+  background: var(--accent-contrast);
+  border: 2px solid var(--bg);
   transform: translate(-50%, -50%);
-  display: none;
 }
+
+.pointfield .target {
+  position: absolute;
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  border: 2px dashed var(--muted);
+  transform: translate(-50%, -50%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.7rem;
+  color: var(--muted);
+}
+
+.pointfield .target.hit {
+  border-style: solid;
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.tap-result {
+  color: var(--muted);
+  font-size: 0.9rem;
+  min-height: 1.4em;
+}
+
+.tap-result.hit { color: var(--accent); }
 
 /* Text entry */
 .field input, .field textarea {
@@ -199,7 +252,11 @@ input[type="range"] { flex: 1; accent-color: var(--accent); }
   border-radius: 8px;
   border: 1px solid var(--border);
   padding: 12px 14px;
+  background: var(--surface);
+  color: var(--text);
 }
+
+.field input::placeholder, .field textarea::placeholder { color: var(--muted); }
 
 /* Confirm / review */
 .summary-row {
@@ -231,3 +288,27 @@ input[type="range"] { flex: 1; accent-color: var(--accent); }
 }
 
 .dots span.active { background: var(--accent); }
+
+/* App-like flow */
+.app-shell { width: 100%; max-width: 480px; text-align: left; }
+.app-nav { display: flex; gap: 4px; border-bottom: 1px solid var(--border); margin-bottom: 20px; }
+.app-nav button { background: none; border: none; padding: 10px 14px; color: var(--muted); cursor: pointer; border-bottom: 2px solid transparent; }
+.app-nav button.active { color: var(--accent); border-bottom-color: var(--accent); font-weight: 600; }
+
+.list-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 14px 16px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+  margin-bottom: 10px;
+  cursor: pointer;
+}
+
+.list-item:hover { background: var(--surface-2); }
+.list-item .meta { color: var(--muted); font-size: 0.8rem; }
+
+.back-link { background: none; border: none; color: var(--muted); cursor: pointer; padding: 0; margin-bottom: 16px; font-size: 0.9rem; }
+.back-link:hover { color: var(--text); }
