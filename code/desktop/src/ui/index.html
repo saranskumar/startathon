@@ -1,0 +1,75 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>DOM tree engine — inspector</title>
+  <link rel="stylesheet" href="/style.css" />
+</head>
+<body>
+  <header class="bar">
+    <span class="brand">DOM tree engine</span>
+    <form id="go-form" class="go">
+      <input id="url" type="text" spellcheck="false" placeholder="https://… or a local path" />
+      <button type="submit">Open</button>
+    </form>
+    <button id="rescan" type="button" class="ghost">Re-scan</button>
+    <div class="modes" role="group" aria-label="View">
+      <button type="button" id="mode-list" class="mode on">List</button>
+      <button type="button" id="mode-dasher" class="mode">Slider</button>
+    </div>
+    <div class="stats" id="stats"></div>
+    <span class="conn" id="conn" title="live event stream">●</span>
+  </header>
+
+  <div id="ambiguity" class="ambiguity" hidden></div>
+
+  <main class="panes">
+    <section class="pane pane-page">
+      <div class="pane-head">
+        <h2>Page</h2>
+        <label class="toggle"><input type="checkbox" id="show-boxes" checked /> ranked overlay</label>
+      </div>
+      <div class="shot-wrap" id="shot-wrap">
+        <img id="shot" alt="live screenshot of the controlled browser page" />
+        <div class="overlay" id="overlay"></div>
+      </div>
+      <div class="pane-head">
+        <h2>Events</h2>
+        <span class="hint">why the tree regenerated</span>
+      </div>
+      <ul class="log" id="log"></ul>
+    </section>
+
+    <section class="pane pane-raw">
+      <div class="pane-head">
+        <h2>Accessibility tree</h2>
+        <label class="toggle"><input type="checkbox" id="show-pruned" /> show pruned</label>
+      </div>
+      <input id="filter" class="filter" type="text" placeholder="filter by role or name" spellcheck="false" />
+      <div class="tree" id="tree"></div>
+    </section>
+
+    <section class="pane pane-dasher" id="dasher-pane" hidden>
+      <div class="pane-head">
+        <h2>Zooming navigator</h2>
+        <span class="hint">steer with one slider; targets are sized by prediction</span>
+      </div>
+      <div class="dasher" id="dasher"></div>
+    </section>
+
+    <section class="pane pane-aux">
+      <div class="pane-head">
+        <h2>Auxiliary tree</h2>
+        <span class="hint">ranked, two buckets</span>
+      </div>
+      <h3 class="bucket-head">Navigation<span id="nav-count"></span></h3>
+      <ol class="features" id="navigation"></ol>
+      <h3 class="bucket-head">Information<span id="info-count"></span></h3>
+      <ol class="features" id="information"></ol>
+    </section>
+  </main>
+
+  <script type="module" src="/app.js"></script>
+</body>
+</html>

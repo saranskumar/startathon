@@ -4,6 +4,7 @@ import '../inputs/voice.dart';
 import '../inputs/voice_modes.dart';
 import '../model/profile.dart';
 import 'discrete_view.dart';
+import 'dock.dart';
 
 /// Free text: the one screen where two weak channels are used together.
 ///
@@ -222,53 +223,52 @@ class _TextTaskViewState extends State<TextTaskView> {
   Widget _contentInput(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
 
+    // Both voice-input branches dock the control in the reachable zone the
+    // reach test found, same as every touch surface -- a prompt can sit
+    // wherever there is room, but the thing you actually press cannot.
     if (_canDictate) {
-      return Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          children: [
-            HoldToSpeak(
-              height: 150,
-              label: 'Hold and say the note',
-              onUtterance: _onUtterance,
+      return InputOverlay(
+        profile: widget.profile,
+        content: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Text(
+            'Touch picks the field, voice fills it. '
+            'Nothing is entered until you confirm it.',
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              fontSize: 13 * _scale,
+              color: scheme.onSurfaceVariant,
             ),
-            const SizedBox(height: 12),
-            Text(
-              'Touch picks the field, voice fills it. '
-              'Nothing is entered until you confirm it.',
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                fontSize: 13 * _scale,
-                color: scheme.onSurfaceVariant,
-              ),
-            ),
-          ],
+          ),
+        ),
+        dock: HoldToSpeak(
+          height: 150,
+          label: 'Hold and say the note',
+          onUtterance: _onUtterance,
         ),
       );
     }
 
     if (_soundsOnly) {
-      return Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          children: [
-            HoldToSpeak(
-              height: 130,
-              label: 'Nod, sound, or hum = yes · two sounds = next',
-              onUtterance: _onUtterance,
+      return InputOverlay(
+        profile: widget.profile,
+        content: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Text(
+            'Suggestion ${_suggestion + 1} of ${_suggestions.length}. '
+            'A short nod or sound, or a longer hum, accepts. '
+            'Two sounds skips to the next phrase.',
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              fontSize: 13 * _scale,
+              color: scheme.onSurfaceVariant,
             ),
-            const SizedBox(height: 12),
-            Text(
-              'Suggestion ${_suggestion + 1} of ${_suggestions.length}. '
-              'A short nod or sound, or a longer hum, accepts. '
-              'Two sounds skips to the next phrase.',
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                fontSize: 13 * _scale,
-                color: scheme.onSurfaceVariant,
-              ),
-            ),
-          ],
+          ),
+        ),
+        dock: HoldToSpeak(
+          height: 130,
+          label: 'Nod, sound, or hum = yes · two sounds = next',
+          onUtterance: _onUtterance,
         ),
       );
     }

@@ -5,6 +5,7 @@ import '../inputs/voice.dart';
 import '../inputs/voice_modes.dart';
 import '../model/profile.dart';
 import '../model/session.dart';
+import 'dock.dart';
 import 'output_bar.dart';
 
 /// After calibration (or a preset), show the actual controllers and the
@@ -273,37 +274,37 @@ class _VoicePad extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final mode = textComposeModeFor(profile.clarity);
-    return Column(
-      children: [
-        Expanded(
-          child: Center(
-            child: Text(
-              mode.title,
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                fontSize: 18 * profile.vision.textScale,
-                fontWeight: FontWeight.w700,
-              ),
-            ),
+    return InputOverlay(
+      profile: profile,
+      content: Center(
+        child: Text(
+          mode.title,
+          textAlign: TextAlign.center,
+          style: TextStyle(
+            fontSize: 18 * profile.vision.textScale,
+            fontWeight: FontWeight.w700,
           ),
         ),
-        HoldToSpeak(
-          enabled: profile.clarity != SpeechClarity.none,
-          onUtterance: (sounds, heldMs) {
-            final kind = VocalClassifier.classify(
-              soundCount: sounds,
-              heldMs: heldMs,
-              clarity: profile.clarity,
-            );
-            state.emitRaw('${kind.label}: $sounds burst(s), ${heldMs}ms');
-            state.emit(InputEvent(
-              kind: 'VOICE',
-              method: profile.bestMethod,
-              text: 'preview ${kind.label} ($sounds, ${heldMs}ms)',
-            ));
-          },
-        ),
-      ],
+      ),
+      // Prompts can sit anywhere; the control itself docks inside the
+      // reachable zone the calibration reach test actually found, same as
+      // every other input surface in this app.
+      dock: HoldToSpeak(
+        enabled: profile.clarity != SpeechClarity.none,
+        onUtterance: (sounds, heldMs) {
+          final kind = VocalClassifier.classify(
+            soundCount: sounds,
+            heldMs: heldMs,
+            clarity: profile.clarity,
+          );
+          state.emitRaw('${kind.label}: $sounds burst(s), ${heldMs}ms');
+          state.emit(InputEvent(
+            kind: 'VOICE',
+            method: profile.bestMethod,
+            text: 'preview ${kind.label} ($sounds, ${heldMs}ms)',
+          ));
+        },
+      ),
     );
   }
 }

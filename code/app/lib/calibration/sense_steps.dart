@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 
 import '../inputs/voice.dart';
 import '../model/profile.dart';
+import '../runtime/dock.dart';
 import 'step_frame.dart';
 import 'touch_steps.dart' show CalibrationStep;
 
@@ -106,23 +107,29 @@ class _VoiceStepState extends State<VoiceStep> {
                 child: Text('Use "${_derived.label}" and continue'),
               ),
             ),
-      child: SingleChildScrollView(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            HoldToSpeak(onUtterance: _onUtterance),
-            const SizedBox(height: 14),
-            if (_busy)
-              const Padding(
-                padding: EdgeInsets.symmetric(vertical: 12),
-                child: LinearProgressIndicator(),
-              ),
-            if (r != null) _resultCard(scheme, r),
-            const SizedBox(height: 18),
-            _simulationControls(scheme),
-          ],
+      // Prompts and readouts scroll; the microphone itself docks in the
+      // reachable zone the reach test already found, like every other
+      // control -- speech-only sessions (no reach step at all) fall back to
+      // reachableRect's own lower-half default.
+      child: InputOverlay(
+        profile: widget.draft.build(),
+        content: SingleChildScrollView(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              if (_busy)
+                const Padding(
+                  padding: EdgeInsets.symmetric(vertical: 12),
+                  child: LinearProgressIndicator(),
+                ),
+              if (r != null) _resultCard(scheme, r),
+              const SizedBox(height: 18),
+              _simulationControls(scheme),
+            ],
+          ),
         ),
+        dock: HoldToSpeak(onUtterance: _onUtterance),
       ),
     );
   }

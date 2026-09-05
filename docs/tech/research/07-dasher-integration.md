@@ -67,6 +67,52 @@ Reasoning:
 
 ---
 
+## 7.5 Amendment — what was actually built (revisited after the DOM tree engine landed)
+
+§7.4 recommended **(c)**: cite Dasher as prior art, integrate nothing, and do not build a Dasher clone
+in the hackathon window. That recommendation has been partly overturned, and this section records why
+rather than quietly rewriting the verdict above.
+
+**Still holds:** no Dasher code is used. The library assessment in §7.1/§7.2(c) is unchanged — no Dart
+binding exists, the WASM port is disclaimed by its own maintainers, and neither integration path
+touches the calibration mechanics. Nothing was vendored, embedded, or wrapped.
+
+**What changed:** §7.2(a) had already identified option (ii) — borrow the *mechanism* (probability-
+sized nested regions, continuous steer-and-commit) and hand-build a purpose-specific widget — as "far
+more tractable" than repurposing DasherCore. The single objection raised against it was that sizing
+regions for non-alphabet choices would mean "awkwardly encoding [options] as a fake alphabet/corpus."
+
+That objection stopped applying once `code/desktop/src/domTreeEngine.js` existed. It produces a real
+score per feature, and `usageStore.js` counts how often each has been picked. Those are genuine
+probabilities over exactly the options being navigated — no corpus to fake, because the ranking that
+the rest of the system already needed *is* the model. The cost estimate in §7.4(3) was made assuming
+that ranking did not exist yet.
+
+**What was built:** `code/desktop/src/dasherModel.js` — a zooming navigator over the auxiliary tree,
+steered by one continuous 1D axis, with the dynamics ported from DasherCore's `DasherModel.cpp` (same
+coordinate space, same arithmetic-coding interval nesting, same one-step interpolation) rather than
+approximated. See [code/desktop/README.md](../../../code/desktop/README.md) for the mechanism and for
+the four places it deliberately departs from Dasher — most importantly that a real action sits behind
+its own confirm box, because Dasher's model of "entering a node outputs, backing out un-outputs"
+assumes a retractable output, and a click on a live page is not retractable.
+
+**§7.2(b) is addressed, not just cited.** Steering into a text field opens an alphabet sized by letter
+frequency, so the same single axis that picks options also spells words. That is the free-text-without-
+speech-or-tapping gap this doc identified as the strongest Dasher fit and as currently unaddressed by
+the project's model. It is an order-0 frequency model, not a reimplementation of PPM.
+
+**§7.4(1) still stands as a caution.** This is a second interface onto the same ranking, not the
+judged deliverable, and it does not replace the two interactions the locked scope requires
+([05-scope.md](../../idea/05-scope.md), [03-input-calibration.md](../../idea/03-input-calibration.md)
+§3.4). It earns its place because it needed no new model and no new input channel: it runs on
+`TaskShape.continuous`, which the phone already calibrates for.
+
+**§7.2(d) is unchanged and still the better pitch line.** The speed control here is Dasher's own
+three-way manual preset (beginner/intermediate/advanced), precisely because this project's measured
+`score(method)` calibration is the more sophisticated mechanism — the contrast is the point.
+
+---
+
 ## Sources
 - [github.com/dasher-project/dasher](https://github.com/dasher-project/dasher) — user-linked repo; confirmed to be a fork of GNOME/dasher, last pushed 2023-05-22 (via `gh api repos/dasher-project/dasher`)
 - [github.com/GNOME/dasher](https://github.com/GNOME/dasher) — canonical upstream mirror (GPL-2.0, C, actively pushed as of 2026-03)

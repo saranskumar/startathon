@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../inputs/voice_modes.dart';
 import '../model/profile.dart';
 import '../runtime/task_spec.dart';
+import '../theme/haiku_theme.dart';
 import 'step_frame.dart';
 
 /// What calibration produced, in the user's terms and in the system's.
@@ -28,38 +29,53 @@ class CalibrationResults extends StatelessWidget {
     final profile = draft.build();
     final scheme = Theme.of(context).colorScheme;
     final scale = profile.vision.textScale;
+    final haiku = profile.haikuTheme;
 
     return SafeArea(
       child: Column(
         children: [
-          Padding(
-            padding: const EdgeInsets.fromLTRB(20, 16, 20, 8),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'Your setup',
-                  style: TextStyle(
-                    fontSize: 26 * scale,
-                    fontWeight: FontWeight.w700,
-                  ),
+          Stack(
+            children: [
+              Positioned.fill(child: HaikuMotif(color: haiku.seedColor)),
+              Padding(
+                padding: const EdgeInsets.fromLTRB(20, 16, 20, 8),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Your setup',
+                      style: TextStyle(
+                        fontSize: 26 * scale,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      'Nothing here is a diagnosis. It is what the tests measured, '
+                      'and it can be redone at any time.',
+                      style: TextStyle(
+                        fontSize: 13 * scale,
+                        color: scheme.onSurfaceVariant,
+                      ),
+                    ),
+                  ],
                 ),
-                const SizedBox(height: 4),
-                Text(
-                  'Nothing here is a diagnosis. It is what the tests measured, '
-                  'and it can be redone at any time.',
-                  style: TextStyle(
-                    fontSize: 13 * scale,
-                    color: scheme.onSurfaceVariant,
-                  ),
-                ),
-              ],
-            ),
+              ),
+            ],
           ),
           Expanded(
             child: ListView(
               padding: const EdgeInsets.fromLTRB(20, 8, 20, 8),
               children: [
+                _section(scheme, scale, 'Measured environments'),
+                _axesRow(scheme, scale, profile),
+                if (draft.helperChoseAxes)
+                  _fact(scheme, scale, 'Chosen by',
+                      'someone helping, not the person tested'),
+                const SizedBox(height: 18),
+                _section(scheme, scale, 'This mix'),
+                _haikuCard(scheme, scale, haiku),
+                const SizedBox(height: 18),
                 _section(scheme, scale, 'Touch methods'),
                 for (final m in TouchMethod.values)
                   _scoreRow(scheme, scale, m, profile),
@@ -68,6 +84,11 @@ class CalibrationResults extends StatelessWidget {
                 _fact(scheme, scale, 'Reachable area',
                     '${profile.reachableCells.length} of '
                     '${CapabilityProfile.reachCellCount} zones'),
+                _fact(scheme, scale, 'Joystick home',
+                    profile.joystickHomeCell == null
+                        ? 'not placed'
+                        : 'zone ${profile.joystickHomeCell} -- '
+                            '${draft.joystickOctants[profile.joystickHomeCell] ?? 0} of 8 directions'),
                 _fact(scheme, scale, 'Smallest reliable target',
                     '${profile.minTargetSize.round()} dp'),
                 _fact(scheme, scale, 'Steadiness',
@@ -132,6 +153,92 @@ class CalibrationResults extends StatelessWidget {
       ),
     );
   }
+
+  Widget _axesRow(ColorScheme scheme, double scale, CapabilityProfile profile) {
+    Widget chip(String label, Color color, bool on) => Container(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+          decoration: BoxDecoration(
+            color: on
+                ? color.withValues(alpha: 0.18)
+                : scheme.surfaceContainerHighest.withValues(alpha: 0.4),
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(color: on ? color : scheme.outlineVariant),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 10,
+                height: 10,
+                decoration: BoxDecoration(shape: BoxShape.circle, color: color),
+              ),
+              const SizedBox(width: 6),
+              Text(
+                on ? label : '$label (not measured)',
+                style: TextStyle(
+                  fontSize: 12 * scale,
+                  fontWeight: FontWeight.w700,
+                  color: on ? scheme.onSurface : scheme.onSurfaceVariant,
+                ),
+              ),
+            ],
+          ),
+        );
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 4),
+      child: Wrap(
+        spacing: 8,
+        runSpacing: 8,
+        children: [
+          chip('Motor', HaikuTheme.motorSeed, profile.measureMotor),
+          chip('Speech', HaikuTheme.speechSeed, profile.measureSpeech),
+          chip('Vision', HaikuTheme.visionSeed, profile.measureVision),
+        ],
+      ),
+    );
+  }
+
+  /// Score, emotion, value, and a decorative blessing -- four different ways
+  /// of saying the same measured mix, never a verdict.
+  Widget _haikuCard(ColorScheme scheme, double scale, HaikuTheme haiku) =>
+      Container(
+        width: double.infinity,
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(16),
+          color: haiku.seedColor.withValues(alpha: 0.10),
+          border: Border.all(color: haiku.seedColor.withValues(alpha: 0.4)),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              haiku.emotion.toUpperCase(),
+              style: TextStyle(
+                fontSize: 12 * scale,
+                letterSpacing: 1.3,
+                fontWeight: FontWeight.w800,
+                color: haiku.seedColor,
+              ),
+            ),
+            const SizedBox(height: 6),
+            Text(
+              haiku.value,
+              style: TextStyle(fontSize: 14 * scale, fontWeight: FontWeight.w600),
+            ),
+            const SizedBox(height: 12),
+            Text(
+              haiku.blessing,
+              style: TextStyle(
+                fontSize: 13 * scale,
+                fontStyle: FontStyle.italic,
+                height: 1.5,
+                color: scheme.onSurfaceVariant,
+              ),
+            ),
+          ],
+        ),
+      );
 
   Widget _section(ColorScheme scheme, double scale, String title) => Padding(
         padding: const EdgeInsets.only(bottom: 8),

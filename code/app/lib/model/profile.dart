@@ -1,6 +1,8 @@
 import 'dart:math' as math;
 import 'package:flutter/painting.dart';
 
+import '../theme/haiku_theme.dart';
+
 /// The four touch input methods the system can drive a task with.
 ///
 /// `switchScan` is the floor case from docs/idea/03-input-calibration.md 3.5 --
@@ -107,6 +109,10 @@ class CapabilityProfile {
     required this.holdCapable,
     required this.clarity,
     required this.vision,
+    this.measureMotor = true,
+    this.measureSpeech = true,
+    this.measureVision = true,
+    this.joystickHomeCell,
     this.label = 'Calibrated',
   });
 
@@ -136,6 +142,18 @@ class CapabilityProfile {
   final bool holdCapable;
   final SpeechClarity clarity;
   final VisionMode vision;
+
+  /// Which environments this session measured -- chosen on the calibration
+  /// intro, at least one always true. An axis left off stays untested, the
+  /// same status as any other skipped step; it never reads as a failure.
+  final bool measureMotor;
+  final bool measureSpeech;
+  final bool measureVision;
+
+  /// Reachable-cell index the joystick swing test found steadiest, or null
+  /// when untested / nothing reached 6 of 8 octants anywhere.
+  final int? joystickHomeCell;
+
   final String label;
 
   static const int reachGridCols = 3;
@@ -230,6 +248,50 @@ class CapabilityProfile {
 
   bool get outputAtBottom => outputRow >= reachGridRows - 1;
 
+  /// Where the joystick overlay should float: the swing test's own home cell
+  /// when it found one, otherwise the reachable area's centroid.
+  Alignment get joystickAnchor {
+    final cell = joystickHomeCell;
+    if (cell == null) return reachAnchor;
+    final col = cell % reachGridCols, row = cell ~/ reachGridCols;
+    return Alignment(
+      ((col + 0.5) / reachGridCols) * 2 - 1,
+      ((row + 0.5) / reachGridRows) * 2 - 1,
+    );
+  }
+
+  /// 0..1 versions of the three measured axes, for the haiku theme blend --
+  /// a depiction of the measured mix, not a diagnosis.
+  double get motorScore01 => measureMotor
+      ? TouchMethod.values.map(scoreOf).reduce(math.max).clamp(0.0, 1.0)
+      : 0.0;
+  double get speechScore01 => measureSpeech
+      ? switch (clarity) {
+          SpeechClarity.full => 1.0,
+          SpeechClarity.partial => 0.65,
+          SpeechClarity.sounds => 0.35,
+          SpeechClarity.none => 0.0,
+        }
+      : 0.0;
+  double get visionScore01 => measureVision
+      ? switch (vision) {
+          VisionMode.screen => 1.0,
+          VisionMode.large => 0.55,
+          VisionMode.none => 0.2,
+        }
+      : 0.0;
+
+  /// The measured mix, as a theme. See [HaikuTheme] for what this is and
+  /// (deliberately) is not.
+  HaikuTheme get haikuTheme => HaikuTheme.compute(
+        motor: measureMotor,
+        speech: measureSpeech,
+        vision: measureVision,
+        motorScore: motorScore01,
+        speechScore: speechScore01,
+        visionScore: visionScore01,
+      );
+
   CapabilityProfile copyWith({
     Map<TouchMethod, MethodScore>? methodScores,
     Set<int>? reachableCells,
@@ -238,6 +300,10 @@ class CapabilityProfile {
     bool? holdCapable,
     SpeechClarity? clarity,
     VisionMode? vision,
+    bool? measureMotor,
+    bool? measureSpeech,
+    bool? measureVision,
+    int? joystickHomeCell,
     String? label,
   }) =>
       CapabilityProfile(
@@ -248,6 +314,10 @@ class CapabilityProfile {
         holdCapable: holdCapable ?? this.holdCapable,
         clarity: clarity ?? this.clarity,
         vision: vision ?? this.vision,
+        measureMotor: measureMotor ?? this.measureMotor,
+        measureSpeech: measureSpeech ?? this.measureSpeech,
+        measureVision: measureVision ?? this.measureVision,
+        joystickHomeCell: joystickHomeCell ?? this.joystickHomeCell,
         label: label ?? this.label,
       );
 

@@ -5,6 +5,7 @@ import 'model/profile.dart';
 import 'model/session.dart';
 import 'runtime/demo_screen.dart';
 import 'runtime/preview_screen.dart';
+import 'theme/haiku_theme.dart';
 
 /// Adaptive Capability-Profile Access Layer -- input layer only.
 ///
@@ -29,6 +30,10 @@ class _AccessLayerAppState extends State<AccessLayerApp> {
   final AppState _state = AppState();
   _Screen _screen = _Screen.home;
 
+  /// Live during calibration: updated the moment the intro's axis toggles
+  /// change, so the theme reacts before any test has produced a score.
+  HaikuTheme _liveTheme = HaikuTheme.fallback;
+
   @override
   void dispose() {
     _state.dispose();
@@ -37,21 +42,30 @@ class _AccessLayerAppState extends State<AccessLayerApp> {
 
   void _use(CapabilityProfile p) {
     _state.setProfile(p);
-    setState(() => _screen = _Screen.preview);
+    setState(() {
+      _liveTheme = p.haikuTheme;
+      _screen = _Screen.preview;
+    });
+  }
+
+  void _onAxesChanged(bool motor, bool speech, bool vision) {
+    setState(() {
+      _liveTheme = HaikuTheme.compute(motor: motor, speech: speech, vision: vision);
+    });
   }
 
   @override
   Widget build(BuildContext context) {
+    final theme = _screen == _Screen.home && !_state.isCalibrated
+        ? HaikuTheme.fallback
+        : _liveTheme;
     return AppScope(
       state: _state,
       child: MaterialApp(
         title: 'Access Layer',
         debugShowCheckedModeBanner: false,
         theme: ThemeData(
-          colorScheme: ColorScheme.fromSeed(
-            seedColor: const Color(0xFF2F5BEA),
-            brightness: Brightness.light,
-          ),
+          colorScheme: theme.colorScheme,
           useMaterial3: true,
         ),
         home: Builder(
@@ -62,7 +76,10 @@ class _AccessLayerAppState extends State<AccessLayerApp> {
               ),
             _Screen.calibrate => Scaffold(
                 body: SafeArea(
-                  child: CalibrationFlow(onComplete: _use),
+                  child: CalibrationFlow(
+                    onComplete: _use,
+                    onAxesChanged: _onAxesChanged,
+                  ),
                 ),
               ),
             _Screen.preview => InputPreviewScreen(

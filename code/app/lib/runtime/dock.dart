@@ -53,7 +53,10 @@ class InputOverlay extends StatelessWidget {
             if (overlay != null)
               Positioned.fill(
                 child: Align(
-                  alignment: profile.reachAnchor,
+                  // The joystick swing test (if it ran) knows exactly which
+                  // reachable cell the stick is steadiest at; fall back to the
+                  // reachable area's centroid otherwise.
+                  alignment: profile.joystickAnchor,
                   child: overlay!,
                 ),
               ),

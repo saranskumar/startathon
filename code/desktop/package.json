@@ -1,0 +1,16 @@
+{
+  "name": "startathon-desktop",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Playwright-driven browser backend: reads a page accessibility tree, ranks it into the auxiliary tree, and serves a desktop inspector for both (build order step 1 in docs/tech/README.md).",
+  "type": "module",
+  "scripts": {
+    "ui": "node src/server.js",
+    "aux": "node src/auxCli.js",
+    "snapshot": "node src/snapshot.js",
+    "test": "node --test test/*.test.js"
+  },
+  "dependencies": {
+    "playwright": "^1.48.0"
+  }
+}
