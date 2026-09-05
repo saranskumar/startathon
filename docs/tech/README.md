@@ -27,3 +27,7 @@ Most implementation decisions haven't been made yet — this is a short, honest 
 
 ## Next steps
 Once tech choices are made, add one doc per component (client, agent, speech, TTS) here rather than expanding this file further.
+
+## Research
+
+Deep-dive research briefs (viability, existing solutions, implementation options) for each major component — see [research/README.md](research/README.md).

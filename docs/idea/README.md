@@ -41,3 +41,6 @@ The rest of this directory is written around those three ideas. The AI agent is 
 | [13 — Event Submission](13-event-submission.md) | Finalized answers to the event's application questions |
 | [14 — Market Research](14-market-research.md) | India market size, userbase, barriers, and pitch-safe claims |
 | [15 — Brain Dump](15-brain-dump.md) | Pitch narrative (origin story, "who's already served" framing, worked output/input examples), raw — not yet folded into the other docs |
+| [16 — Canvas Submission](16-canvas-submission.md) | Current, filled-in answers to the event's Canvas V1 form — most up-to-date statement of scope; flags where it now diverges from earlier docs (esp. the "not unnecessarily agentic" decision) |
+| [17 — Meeting Notes: Tree Simplification](17-meeting-notes-tree-simplification.md) | Unverified auto-transcript of the actual discussion behind the "not unnecessarily agentic" decision — narrows it to "AI only for tree simplification, not as the orchestrating agent" |
+| [18 — Meeting Notes: Feature Ranking](18-meeting-notes-feature-ranking.md) | Unverified auto-transcript, direct continuation of 17 — the "auxiliary tree" concept, ranking, per-page regeneration, and the navigation/information display split |
