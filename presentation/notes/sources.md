@@ -4,7 +4,10 @@ Traceability map. Every fact pulled into `outline.md` or `demo-clips.md` is a **
 
 | Claim / material | Source of truth | Used in |
 |---|---|---|
-| Origin story (Shreevardhan's brother, cerebral palsy, WhatsApp + Google Assistant anecdote) | [docs/idea/15-brain-dump.md](../../docs/idea/15-brain-dump.md) §15.1 | `outline.md` opening slide |
+| Origin story (Shreevardhan's brother, cerebral palsy, WhatsApp + Google Assistant anecdote) | [docs/idea/15-brain-dump.md](../../docs/idea/15-brain-dump.md) §15.1 | `outline.md` context slide |
+| 15-minute total time limit and demo-first running order | [docs/idea/21-meeting-notes-presentation-prep.md](../../docs/idea/21-meeting-notes-presentation-prep.md) | `outline.md` header note and slide order, `demo-clips.md` budget note |
+| Hardware analogy for adaptive input (foot trackball, tongue mouse vs. our software-only approach) | [docs/idea/21-meeting-notes-presentation-prep.md](../../docs/idea/21-meeting-notes-presentation-prep.md), cost framing corroborated by [docs/idea/14-market-research.md](../../docs/idea/14-market-research.md) §on dedicated AAC/access hardware | `outline.md` gap slide |
+| "Not an AI product" correction (adaptive input is the core; AI only closes narrow inference gaps under confirmation) | [docs/idea/17-meeting-notes-tree-simplification.md](../../docs/idea/17-meeting-notes-tree-simplification.md), restated for the pitch in [docs/idea/21-meeting-notes-presentation-prep.md](../../docs/idea/21-meeting-notes-presentation-prep.md) | `outline.md` defensibility slide |
 | "Who's already served" framing (screen reader / Voice Access / general AI agents each assume one clean channel) | [docs/idea/15-brain-dump.md](../../docs/idea/15-brain-dump.md) §15.2 | `outline.md` problem slide |
 | Output-side worked examples (WhatsApp proactive narration, Bluetooth settings minimal-choice narration) | [docs/idea/15-brain-dump.md](../../docs/idea/15-brain-dump.md) §15.3 | `outline.md` solution slide |
 | "Input is a fixed state machine, not AI" framing | [docs/idea/15-brain-dump.md](../../docs/idea/15-brain-dump.md) §15.4 | `outline.md` how-it-works slide |
