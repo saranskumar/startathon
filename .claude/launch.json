@@ -1,0 +1,11 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "mock-web",
+      "runtimeExecutable": "npx",
+      "runtimeArgs": ["serve", "code/mock", "-l", "4173"],
+      "port": 4173
+    }
+  ]
+}

@@ -1,0 +1,20 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Aperture</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <nav id="nav">
+    <span class="brand">Aperture</span>
+    <button data-route="home" onclick="goto('home')">Home</button>
+    <button data-route="videos" onclick="goto('videos')">Videos</button>
+    <button data-route="settings" onclick="goto('settings')">Settings</button>
+    <button data-route="form" onclick="goto('form')">Feedback</button>
+  </nav>
+  <main id="screen"></main>
+  <script src="app.js"></script>
+</body>
+</html>
