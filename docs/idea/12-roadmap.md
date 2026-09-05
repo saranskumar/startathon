@@ -8,5 +8,6 @@ If two points on the spectrum prove the model, the same profile-driven architect
 - **The full task-shape × input-method matrix** ([03 — Input & Calibration](03-input-calibration.md) §3.4) — every task type gets both its ideal and fallback interaction pattern for every method, not just the one pair built for the demo.
 - **Live, agent-decided task-aware switching** — the version of Thesis C that was considered and deliberately deferred (a fixed mapping was chosen for the event build instead).
 - **More tasks/apps** beyond the single demo workflow (email, shopping, banking) — the agent layer already generalizes; only the profile-driven I/O is the moat.
+- **Native desktop/OS app control**, not just browser pages — Windows UI Automation, macOS AXUIElement, Linux AT-SPI. The event build deliberately stays browser-only (Playwright + accessibility tree, see [docs/tech/README.md](../tech/README.md)); this is the natural next surface once that's proven.
 
 The through-line for every extension: **accessibility as coordinates + composition, not labels + fixed tools.**

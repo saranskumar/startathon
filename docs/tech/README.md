@@ -8,13 +8,18 @@ Most implementation decisions haven't been made yet — this is a short, honest 
 - Voice output: some TTS engine, not yet chosen, for narration.
 - Intent/inference: an LLM API, not yet chosen, for parsing fused touch+voice input and filling inference gaps.
 
+## Decided
+- **Target automation = browser accessibility tree, not native OS apps.** The agent drives a dedicated Playwright-controlled browser instance (Chromium), reading each page's accessibility tree (role/name/value/children) and dispatching actions (click/fill/selectOption) on the node the LLM matches against the fused user intent. The LLM reasons over the raw tree directly — no separate matching/search layer.
+- This is not a limitation for the demo: neither Aperture nor the Google Form need the disabled user's own personal browser session/login, so a dedicated agent-controlled browser window (visible on a monitor for the demo) is the right shape, not a workaround.
+- Playwright is cross-platform for the agent backend itself (Node/Python/Java/.NET bindings, bundles its own Chromium/Firefox/WebKit) — no OS-specific backend work needed.
+- **Native desktop app control (Windows UI Automation / macOS AXUIElement / Linux AT-SPI) is explicitly out of scope for this event** — browser automation covers both demo surfaces entirely. See [idea/12-roadmap.md](../idea/12-roadmap.md).
+- **Build order:** (1) browser/agent automation against Aperture + the Google Form, (2) perfect the Flutter phone interface (calibration + adaptive rendering), (3) native-app control is future work, not attempted this event.
+
 ## Not yet decided
-- Native mobile app vs. web/React view for the touch surface — matters for how raw touch coordinates/timing are captured for calibration scoring ([idea/03-input-calibration.md](../idea/03-input-calibration.md)).
 - Which speech-to-text API, and whether it exposes per-utterance confidence directly or needs a self-computed word-error-rate.
 - Which TTS engine/voice for narration output.
 - Which LLM provider/model for intent inference.
 - How calibration scores and the capability profile are persisted (local storage vs. a backend).
-- How the agent connects to the actual target app being controlled (e.g. WhatsApp) — official API vs. accessibility-tree automation vs. screen-scraping.
 
 ## Deployed pieces
 - `code/mock/` — Aperture, the mock target-website (plain HTML/CSS/JS). Auto-deploys to Vercel via [.github/workflows/deploy-mock-web.yml](../../.github/workflows/deploy-mock-web.yml) on every push to that folder. **Needs a Vercel project created (Root Directory: `code/mock`) and a `VERCEL_PROJECT_ID_MOCK` repo secret before this workflow will succeed** — it reuses the existing `VERCEL_ORG_ID`/`VERCEL_TOKEN`.
