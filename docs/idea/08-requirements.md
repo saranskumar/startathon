@@ -18,8 +18,10 @@
 | FR13 | System runs a per-method calibration test (buttons, joystick, trackpad) and produces a normalized score per method | P0 |
 | FR14 | System runs a reachable-zone calibration test independent of method choice | P0 |
 | FR15 | System runs a voice-clarity calibration test and buckets the result | P0 |
-| FR16 | For the demo task, the ideal input method renders when the user's calibration score for it clears the viability threshold; otherwise the fallback method renders using its own native interaction pattern for the same task | P0 |
+| FR16 | For the demo task, the ideal input method renders unless a different calibrated method scores meaningfully higher for this user (relative comparison, not a fixed threshold); otherwise the fallback method renders using its own native interaction pattern for the same task | P0 |
 | FR17 | Task-to-ideal-input mapping is fixed at design time (not decided live by the agent) | P0 |
+| FR18 | A discrete-choice task with a large option count is narrowed to a small N via agent-assisted voice/text filtering before the normal per-method selection pattern applies | P1 |
+| FR19 | The `sounds` speech-clarity tier is usable as a binary confirm/cancel signal (presence of vocalization), not treated as equivalent to `none` | P1 |
 
 See [03 — Input & Calibration](03-input-calibration.md) for the full design behind FR13–FR17.
 

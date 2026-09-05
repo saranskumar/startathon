@@ -17,6 +17,7 @@ The product is **not the AI agent** — agents that take instructions and act on
 - Perfect free-form transcription. Coarse, patient intent recognition is enough for v1 when speech is unclear.
 - Every app/workflow. One bounded task for the demo.
 - The full task-shape × input-method matrix from [03 — Input & Calibration](03-input-calibration.md) §3.4 — only the two interactions the demo actually needs.
+- Single-switch scanning as a fourth input method ([03 — Input & Calibration](03-input-calibration.md) §3.5) — kept as a ready pitch answer for the "what about someone who can't use any of your three methods" question, not built.
 
 ## 4.4 Success metric (north star)
 The system, **unchanged**, serves **two different capability profiles** on the same task — producing two different composed interfaces, both of which let the user complete the task using only the abilities they actually have.

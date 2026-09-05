@@ -8,6 +8,10 @@
 | Should touch method calibration test one method at a time (ordered fallback) or all methods (pick best score)? | Test all three (buttons, joystick, trackpad), pick by normalized score. See [03 — Input & Calibration](03-input-calibration.md) §3.1. |
 | Should task-aware input switching be a live agent/LLM decision, or a fixed mapping? | Fixed mapping per task, decided at design time — not live. See [03 — Input & Calibration](03-input-calibration.md) §3.2. |
 | Should the multi-input calibration be scripted/staged or genuinely functional? | Team decided: fully functional across all inputs, not staged. Flagged in [05 — Locked Scope](05-scope.md) as a real scope expansion with a scripted fallback available if time runs out. |
+| What happens if a user scores low on every touch method and has no usable speech? | A fourth input method, single-switch scanning, is the answer — but it's a prepared pitch answer, not built or demoed. See [03 — Input & Calibration](03-input-calibration.md) §3.5. |
+| Should the fallback rule use an absolute score threshold or a relative comparison? | Relative: use the task's ideal method unless a different method scores meaningfully higher for this user. See [03 — Input & Calibration](03-input-calibration.md) §3.3. |
+| Should task-to-method mapping account for item count (long lists)? | Yes — large-N discrete choice gets agent-assisted voice/text filtering down to a small N first, then the normal per-method pattern applies. See [03 — Input & Calibration](03-input-calibration.md) §3.2. |
+| What does the "sounds" speech-clarity tier actually enable? | Binary confirm/cancel only (presence of vocalization) — not treated as equivalent to `none`. See [03 — Input & Calibration](03-input-calibration.md) §3.1. |
 
 ## Still open
 | Question | Why it matters |
@@ -17,3 +21,4 @@
 | Does "fully functional calibration" replace the preset-toggle plan, or do both coexist (real per-method scoring, but the demo is still steered to land on preset A/B for reliability)? | Affects how much of the calibration engine's *output* actually drives the live demo vs. how much is a reliability safety net |
 | Which narration approach for the "no vision" output — TTS of agent summaries, at minimum? | Output composition needs at least one working non-visual mode |
 | How exactly is vision calibrated? | [03 — Input & Calibration](03-input-calibration.md) §3.1 flags this as unresolved — direct question vs. shrinking-text test |
+| `steadiness` is in the capability profile schema ([02 — Core Model](02-core-model.md) §2.3) but no calibration test currently produces it | Either add a cheap measurement (e.g. count accidental/extra taps during the existing target tests) or drop the field for MVP so the schema doesn't overpromise |

@@ -35,6 +35,11 @@ Separate from method choice — ask the user to tap a grid of points spread acro
 ### Voice
 Ask the user to say one short fixed phrase. Score via whatever the speech API returns (per-utterance confidence, or a self-computed word-error-rate against the expected phrase). Bucket into `clarity_level`: `full / partial / sounds / none`.
 
+Each tier enables a defined amount of interaction, not just a label:
+- `full` / `partial` — used for free-text content per Thesis B (e.g. dictating a message).
+- `sounds` — words aren't reliably parseable, but **presence of any vocalization** is still detected and used as a binary confirm/cancel signal (a yes-equivalent), so this tier still gets a real, if minimal, voice interaction rather than being silently dropped.
+- `none` — voice is not offered at all.
+
 ### Vision
 *(Open — see [09 — Open Questions](09-open-questions.md).)* Likely a direct question ("can you read this? yes/no") or a shrinking-font-size check until the user can no longer confirm, mapping to `mode: screen | large | none`.
 
@@ -50,9 +55,13 @@ Each task/screen is pre-designed with an **ideal** input type, based on the shap
 | Continuous/directional (scroll, adjust) | Joystick |
 | Free 2D pointing (tap anywhere) | Trackpad |
 
+**Item count (large N):** a discrete choice among 50 options doesn't get its own paging/scanning mechanics per method — instead, when N is large, the agent first uses voice/text to **filter down to a small N** (e.g. "say part of the name"), then the normal small-N pattern (buttons / joystick-cycle / trackpad-hover) applies for the final selection. This reuses the existing per-method patterns instead of inventing large-list variants of each, and it's a natural extension of the agent's existing inference role (§2.4) rather than new UI surface.
+
 ## 3.3 The fallback rule: calibration sets the ceiling, task sets the preference
 
-> Use the task's ideal input type **if** the user's calibration score for it clears a viability threshold. Otherwise, fall back to the user's next-best scored method — using **that method's own native interaction pattern** for the same task outcome, not a degraded copy of the ideal method's pattern.
+> Use the task's ideal input type **unless a different method scores meaningfully higher for this user**. Otherwise, fall back to the user's best-scoring method — using **that method's own native interaction pattern** for the same task outcome, not a degraded copy of the ideal method's pattern.
+
+This is a relative comparison, not a fixed cutoff: there's no single "viability threshold" number to tune, and it doesn't break for a user whose best score is mediocre across the board (an absolute threshold would call everything non-viable for them; a relative one still picks their genuine best).
 
 This is the key refinement: a fallback isn't "the same widget, just worse." It's a different, appropriate interaction that achieves the same task:
 
@@ -74,3 +83,11 @@ This is the key refinement: a fallback isn't "the same widget, just worse." It's
 ## 3.4 Build-scope note
 
 The full picture is a 3-task-shapes × 3-methods matrix (9 interaction implementations). **The locked demo scope ([05 — Locked Scope](05-scope.md)) only needs two of these**: the ideal interaction for whichever method Profile A uses, and the fallback interaction for whichever method Profile B falls back to, for the one task actually demoed. Building the full matrix is roadmap, not event scope — see [12 — Roadmap](12-roadmap.md).
+
+## 3.5 The floor case: someone who scores low on every touch method
+
+If a user scores low on buttons, joystick, *and* trackpad alike (and has no/unusable speech), none of the fallback patterns in §3.3 apply — every one of them still assumes *some* residual motor precision. This is exactly the person the pitch claims to serve, so it's worth having a real answer even though it isn't demoed.
+
+**The answer, not built:** a fourth, most-degraded input method — **single-switch scanning**. One always-reachable trigger (a large zone, or even a single physical/virtual button); the system auto-highlights options on a timer, and the user presses whenever the right one is highlighted. This is the same technique existing switch-access tools already use ([01 — Problem](01-problem.md)) — the point isn't to reinvent it, it's that it becomes *one more composable method inside this system* rather than a separate tool the user has to stitch in themselves. It would need its own calibration test (can the user reliably time a single press against a moving highlight?) and its own fallback interaction pattern per task shape, same shape as §3.3.
+
+Explicitly **not built or demoed** for this event — this is a prepared answer for if a judge asks "what about someone who can't use any of your three methods," not a build target. See [12 — Roadmap](12-roadmap.md).

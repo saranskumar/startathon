@@ -2,6 +2,7 @@
 
 If two points on the spectrum prove the model, the same profile-driven architecture extends to:
 - **More axes** (steadiness/tremor, cognitive load, hearing) — richer coordinates, same engine.
+- **Single-switch scanning as a fourth input method** ([03 — Input & Calibration](03-input-calibration.md) §3.5) — the floor for someone who scores low on every other touch method; prepared as a pitch answer, not built for the event.
 - **More of the continuum** — not two presets but a real calibration that places a user anywhere on each axis.
 - **Fuller composition** — both output modes simultaneously, more input modalities fused, per-context resolution.
 - **The full task-shape × input-method matrix** ([03 — Input & Calibration](03-input-calibration.md) §3.4) — every task type gets both its ideal and fallback interaction pattern for every method, not just the one pair built for the demo.
