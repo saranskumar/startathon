@@ -40,3 +40,4 @@ The rest of this directory is written around those three ideas. The AI agent is 
 | [12 — Roadmap](12-roadmap.md) | Pitch narrative only — not build scope |
 | [13 — Event Submission](13-event-submission.md) | Finalized answers to the event's application questions |
 | [14 — Market Research](14-market-research.md) | India market size, userbase, barriers, and pitch-safe claims |
+| [15 — Brain Dump](15-brain-dump.md) | Pitch narrative (origin story, "who's already served" framing, worked output/input examples), raw — not yet folded into the other docs |
