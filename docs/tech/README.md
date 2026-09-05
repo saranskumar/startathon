@@ -18,6 +18,7 @@ Most implementation decisions haven't been made yet — this is a short, honest 
 ## Not yet decided
 - Which speech-to-text API, and whether it exposes per-utterance confidence directly or needs a self-computed word-error-rate.
 - Which TTS engine/voice for narration output.
+- **Whether real STT/TTS are in scope at all** — both need an external package (`speech_to_text` / `flutter_tts` or a platform channel), and this build has otherwise stayed dependency-free by design. See [idea/22-input-methods-scope.md](../idea/22-input-methods-scope.md) §4. Haptic feedback has no such blocker (`HapticFeedback` is SDK-only) and isn't gated on this decision.
 - Which LLM provider/model for intent inference.
 - How calibration scores and the capability profile are persisted (local storage vs. a backend).
 
