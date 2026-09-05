@@ -4,29 +4,21 @@
 # build step — this is a plain static HTML/CSS/JS site, so `vercel`
 # deploys the directory as-is.
 #
-# Secrets (GitHub → Settings → Secrets and variables → Actions):
-#   VERCEL_TOKEN            — https://vercel.com/account/tokens (scope = owning team)
-#   VERCEL_ORG_ID           — Team/Org ID (shared with the other Vercel project)
-#   VERCEL_PROJECT_ID_MOCK  — Project ID for THIS site (a separate Vercel
-#                             project from code/app, since each Vercel
-#                             project maps to one root directory)
+# Mock UI (code/mock) is deployed by Vercel Git, not this token-based job.
+# Project: startathon-mock  Production: https://startathon-mock.vercel.app
+# Root Directory: code/mock
 #
-# In the Vercel project, set Root Directory to: code/mock
+# The repo VERCEL_TOKEN can deploy Flutter (VERCEL_PROJECT_ID) but cannot
+# see this project — `npx vercel --prod` in Actions fails with Project not found.
+# Manual `workflow_dispatch` is left for debugging only.
 #
 # Repo → Settings → Actions → General → Workflow permissions → Read and write
 
 name: Deploy Mock Web (Vercel)
 
 on:
-  push:
-    paths:
-      - 'code/mock/**'
-      - '.github/workflows/deploy-mock-web.yml'
-  pull_request:
-    branches: [main]
-    paths:
-      - 'code/mock/**'
-      - '.github/workflows/deploy-mock-web.yml'
+  # Vercel Git integration on project `startathon-mock` deploys this site.
+  # Do not use VERCEL_TOKEN here — that token can only see the Flutter project.
   workflow_dispatch:
 
 env:
