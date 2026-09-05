@@ -5,11 +5,12 @@
 # deploys the directory as-is.
 #
 # Secrets (GitHub → Settings → Secrets and variables → Actions):
-#   VERCEL_TOKEN   — same token as the Flutter deploy
-#   VERCEL_ORG_ID  — same team/org as the Flutter deploy
+#   VERCEL_TOKEN — same token already on the repo (used by Flutter too)
 #
-# Does not use VERCEL_PROJECT_ID (that ID is the Flutter app).
-# `vercel --name startathon-mock` creates/uses a separate project the token can see.
+# Do not set VERCEL_ORG_ID / VERCEL_PROJECT_ID here. Those IDs belong to
+# the Flutter project; pairing them with a different project id fails, and
+# org-without-project is rejected by the CLI. Token-only --yes lets Vercel
+# attach a project this token can actually deploy to.
 #
 # Repo → Settings → Actions → General → Workflow permissions → Read and write
 
@@ -28,7 +29,6 @@ on:
   workflow_dispatch:
 
 env:
-  VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
   WORKING_DIR: code/mock
   REPO_OWNER: saranskumar
   REPO_OWNER_EMAIL: saranskumarwh@gmail.com
@@ -145,13 +145,13 @@ jobs:
         id: deploy
         working-directory: ${{ env.WORKING_DIR }}
         run: |
-          url=$(npx vercel --yes --token="$VERCEL_TOKEN" --name startathon-mock)
+          unset VERCEL_ORG_ID VERCEL_PROJECT_ID
+          url=$(npx vercel --yes --token="$VERCEL_TOKEN")
           echo "url=$url" >> "$GITHUB_OUTPUT"
           echo "### Preview URL" >> "$GITHUB_STEP_SUMMARY"
           echo "$url" >> "$GITHUB_STEP_SUMMARY"
         env:
           VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
-          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
 
       - name: Comment preview URL on PR
         if: github.event_name == 'pull_request'
@@ -268,7 +268,8 @@ jobs:
         id: deploy
         working-directory: ${{ env.WORKING_DIR }}
         run: |
-          url=$(npx vercel --prod --yes --token="$VERCEL_TOKEN" --name startathon-mock)
+          unset VERCEL_ORG_ID VERCEL_PROJECT_ID
+          url=$(npx vercel --prod --yes --token="$VERCEL_TOKEN")
           echo "url=$url" >> "$GITHUB_OUTPUT"
           {
             echo "## Live site"
@@ -280,4 +281,3 @@ jobs:
           } >> "$GITHUB_STEP_SUMMARY"
         env:
           VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
-          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
