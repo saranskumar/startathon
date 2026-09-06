@@ -61,6 +61,7 @@ A guide to what lives where and why — each area has one job, and content doesn
 
 Reverse-chronological log of changes to the idea/project — most recent first. Each entry links to the doc(s) that carry the full detail; this is a pointer trail, not a duplicate of their content.
 
+- **Documented the next phone-app pass: option clarity, deferred tunnel layout, section highlight for all modes, and gear-menu Playground.** Canonical plan: [docs/app/04](docs/app/04-clarity-playground-and-field.md).
 - **Added a judge/demo Trackpad/switch (no voice) preset as the first gear-menu option.** One profile: trackpad and switch both score high (trackpad wins when they are close), buttons/joystick unusable, no dictation, full vision, limited reach like Profile B. Live and offline discrete tasks resolve to trackpad. See [GH #19](https://github.com/saranskumar/startathon/issues/19) and `ProfilePresets` in [`code/app/lib/model/session.dart`](code/app/lib/model/session.dart).
 - **Live discrete lists now cap, page, and slow Floor scanning.** RailLink option lists clamp to how many `minTargetSize` rows fit, auto-advance after a full pass, and Floor switch dwell is ~2.5s. Offline demo tasks leave paging off. See [GH #20](https://github.com/saranskumar/startathon/issues/20).
 - **Documented the Flutter phone app as a feature record, and settled the Expo rewrite rule.** Adaptation is a capability profile plus primitives plus a mapping — not a unique Flutter (or Expo) screen per user. Full inventory, the argument, and a port map: [docs/app/](docs/app/README.md).

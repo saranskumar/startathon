@@ -54,7 +54,7 @@ Three pieces, two of which can be live:
 - **Full 4 task shapes × 4 methods** — discrete / continuous / pointing / text × buttons / joystick / trackpad / switch-scan. Switch-scan is first-class (the floor case), not a slide.
 - **Touch + voice fusion on text** (Thesis B) — touch selects the field; voice fills or confirms. Partial speech always confirms. `sounds` is still a vocabulary (one pulse = yes, two = next), not “no voice.”
 - **Confirmation + interrupt** — no consequential send without confirm, using the user’s measured method. Interrupt resets **this step**, not the profile.
-- **Vision** — shrinking-word forced choice (not “can you see this?”); field = full / tunnel / peripheral. The veil is `IgnorePointer` so it never steals hits. Tunnel and peripheral are **opposite** fixes.
+- **Vision** — shrinking-word forced choice (not “can you see this?”); field = full / tunnel / peripheral is **recorded** in the profile. Tunnel/peripheral overlay is **removed for now**; real tunnel layout (all controls inside one square) is further scope. See [docs/app/04](docs/app/04-clarity-playground-and-field.md).
 - **High contrast** — a peer palette (black / white / yellow), not a dark-mode skin. Also follows the OS high-contrast flag. Default on.
 - **Output strip** — lives on the least-reachable row. Named haptics (navigate / confirm / error).
 - **Flutter semantics** — live regions and announcements so TalkBack / VoiceOver hear selection changes.
@@ -162,7 +162,7 @@ Also not connected yet:
 | “We control native desktop apps” | Browser tree only. |
 | “We tested this with the user” | Direct observation informed the problem. Formal use of the built app is planned, not done. |
 | “Skip means they failed the test” | Skip means untested. |
-| “Profile Floor is unsupported” | Switch-scan + sounds + tunnel is implemented. |
+| “Profile Floor is unsupported” | Switch-scan + sounds is implemented. Tunnel overlay deferred (not shown). |
 | “High contrast is the haiku theme” | Haiku is identity (yellow/blue/pink blend). High contrast is the legibility floor. |
 | “Nods are camera head-tracking” | Duration + burst count on hold-to-speak. |
 

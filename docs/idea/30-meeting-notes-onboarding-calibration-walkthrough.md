@@ -19,7 +19,7 @@
    - **High contrast:** ON by default, opt-out (confirmed).
    - **Language default:** stays `'en'`, **not** device/browser locale. Checked against the actual code: `locale` state is real and threaded through (`session.dart:48`, `calibration_flow.dart:36-41`, `profile.dart:171`), but it only changes which `RecordedNarration` clip is looked up (welcome/training audio-text, `recorded_voice.dart:70-75`) — every other string in the app (button labels, step instructions, axis picker copy, results, etc.) is hardcoded English regardless of locale. Per the product owner's own rule ("if it's not [fully] implemented... only that page/content gets it, none of the other pages do" — which matches exactly what's true here), defaulting to device locale would overstate what the toggle actually does, so it stays defaulted to `'en'`.
    - **Demo-only presets** ("start from a saved profile"): move behind the **settings-circle icon** already specified in the locked spec (`ui-ux-phone-flow.md` §4.1b) — not a new hamburger icon as first suggested.
-5. **Post-calibration "playground" (§12 below) — resolves cleanly, no conflict.** The spec's own out-of-scope list (§8) already states "Agent filling a real form / laptop wire" is out of scope for this build — confirming the Demo screen stopping at a local log is by design, not a gap.
+5. **Post-calibration "playground" (§12 below) — the old “missing playground” report resolved cleanly (no conflict with the locked spec).** A **new** Playground is now planned separately: gear/settings → 2-wide mode cards → Calibration or lightweight Demo. See [app/04](../app/04-clarity-playground-and-field.md). The Demo screen stopping at a local log is still by design (no laptop wire).
 
 Everything else in this doc (§2, §3, §5, §6, §7, §9, §10, §11) is either not addressed by the locked spec at all (so no conflict, just new ground) or is consistent with it, and remains an open design item pending its own decision pass.
 
@@ -197,7 +197,9 @@ Both are reachable directly from the calibration results screen ("Use this setup
 
 **What the report is likely actually pointing at:** the Demo screen's own end-state text says outright: *"In the full system this is where the agent takes over and fills the real form. Here it stops at the log."* (`demo_screen.dart:269-271`) — i.e., the *task-driving simulation exists*, but it stops short of *real* task execution because the phone↔agent transport is unstarted (consistent with [doc 29](29-phone-desktop-integration.md) and `tech/README.md`). If what was meant is "there's no way to actually operate a real page/app with the calibrated setup," that's accurate and is the same gap doc 29 already tracks — not a missing playground screen, but a missing *real* backend behind the playground that exists.
 
-**Resolved, no decision needed:** the locked spec's own out-of-scope list (`docs/desgin/ui-ux-phone-flow.md` §8) states "Agent filling a real form / laptop wire" is explicitly out of scope for this build. So the Demo screen stopping at a local log is by design, matching doc 29's separately-tracked phone↔agent transport gap — not a missing playground screen. Nothing to build here beyond what doc 29 already tracks.
+**Resolved for the original report:** the locked spec's own out-of-scope list (`docs/desgin/ui-ux-phone-flow.md` §8) states "Agent filling a real form / laptop wire" is explicitly out of scope for this build. So the Demo screen stopping at a local log is by design — not a missing playground screen.
+
+**New Playground (planned, [app/04](../app/04-clarity-playground-and-field.md)):** a gear-menu mode picker (2-wide cards with picture + name). Each mode offers Calibration (existing step) or Demo (a simple on-screen options list for that method only). This is additive to Preview, not a replacement.
 
 ---
 

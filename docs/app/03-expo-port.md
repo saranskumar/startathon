@@ -114,7 +114,7 @@ Port the Dart unit tests (`test/*_test.dart`) to Vitest for the pure TS layer be
 ## 6. Build order
 
 1. Pure TS model + tests (profile, scoring, fallback, vocal classifier, vocab).
-2. Surfaces in a playground screen (the current Preview).
+2. Surfaces in a playground screen (the current Preview, plus the planned gear-menu Playground in [04](04-clarity-playground-and-field.md)).
 3. Calibration flow + results.
 4. Task shell + four drivers.
 5. Training, contrast, field, locale.

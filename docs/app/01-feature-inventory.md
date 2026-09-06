@@ -65,7 +65,7 @@ Killing the app returns to the Start gate (in-session only; no persistence).
 | **Start gate** | `main.dart` `_StartGateScreen` | Full-bleed tap/hold, nothing else. Continues to Setup. |
 | **Setup** | `main.dart` `_HomeScreen` | Helper / contrast / locale up top. Welcome autoplays. Reach zone is only the tap/hold-to-start block. Settings circle top-right. |
 | **Continue** | `calibration_flow.dart` `_entry` | Slim “We'll measure what works.” + large Continue. No second welcome, no helper question. |
-| **Settings sheet** | `main.dart` `_DemoSettingsSheet` | High contrast, locale chip, presets Trackpad/switch / A / B / Floor, Redo setup, helper path. Presets skip measurement and jump to Preview. |
+| **Settings sheet** | `main.dart` `_DemoSettingsSheet` | High contrast, locale chip, presets Trackpad/switch / A / B / Floor, Redo setup, helper path. Presets skip measurement and jump to Preview. **Planned:** Playground entry ([04](04-clarity-playground-and-field.md)). |
 | **Caregiver training** | `training/caregiver_training.dart` | No scores. Three motions (tap, slide left, slide up). Prompt fading: together → start-together-finish-alone → from the words alone. Three independent hits graduate a drill. Skip this motion / skip all → axis picker. |
 | **Axis picker** | `calibration_flow.dart` `_axisPicker` | Motor / Speech / Vision default ON as large rows. Hold a row to skip it; tap an off row to turn it back on. Start always enabled. Last remaining axis cannot be skipped. Haiku theme reacts live. Helper provenance banner if assisted. |
 | **Calibration steps** | `touch_steps.dart`, `sense_steps.dart` | See §5. Shared `StepFrame`: instruction, `N of M`, always-present Skip (untested ≠ fail), Back from the second test (retake as untested). |
@@ -75,7 +75,9 @@ Killing the app returns to the Start gate (in-session only; no persistence).
 | **Review / Sent** | `demo_screen.dart` | Consequential “Send it” gated; Go back; Run it again. |
 | **Event log** | `runtime/output_bar.dart` | Sheet from tapping the output strip. Last 200 events + live RAW. |
 
-Visual field veil (`vision/field_shell.dart`) wraps **everything after** vision commits, including results. Start gate and Setup stay full-field. Mask is `IgnorePointer` so aiming is not stolen.
+Visual field veil (`vision/field_shell.dart`) currently wraps **everything after** vision commits, including results. Start gate and Setup stay full-field. Mask is `IgnorePointer` so aiming is not stolen.
+
+**Planned ([04](04-clarity-playground-and-field.md)):** remove the tunnel-vision overlay for now (further scope). When tunnel layout is built later, all buttons, text, and options live *inside* that square instead of being spread across the screen. Section highlighting should use the existing joystick implementation for every input mode. Playground is a new gear-menu entry (2-wide mode cards → Calibration or lightweight Demo). Option labels must stay readable; the focused option must be obvious.
 
 ---
 
@@ -117,7 +119,7 @@ Compose modes (`inputs/voice_modes.dart`): dictate / vocal-confirm / touch-pick.
 | Field | Runtime |
 |---|---|
 | `vision` | `screen` (1.0×) / `large` (1.45×) / `none` (1.6×) text scale |
-| `visualField` | `full` / `tunnel` (condensed output window) / `peripheral` (center veiled) |
+| `visualField` | `full` / `tunnel` / `peripheral` values are **recorded**; overlay display is **removed for now**. Real tunnel layout later. See [04](04-clarity-playground-and-field.md). |
 | `locale` | `en` / `ml` — recorded clips only |
 | `haikuTheme` | Decorative blend of motor/speech/vision seeds — **not** a diagnosis |
 | `highContrast` | Peer palette (black / white / yellow), WCAG 4.5:1 text / 3:1 chrome |
@@ -272,7 +274,7 @@ Confirmation gate uses the **user’s method**, never a tiny dialog button they 
 | Calibration scoring, skip, idle, live draft | Real |
 | All input surfaces and the 4×4(+text) matrix | Real |
 | Fallback rule, paging, level-up | Real |
-| Visual field mask, contrast, haiku | Real |
+| Visual field mask, contrast, haiku | Contrast + haiku real. Tunnel overlay **planned removal** — real tunnel layout is further scope ([04](04-clarity-playground-and-field.md)) |
 | Speech **interaction** (hold timing, burst count, gate) | Real |
 | Speech **recogniser** | Stub: `SimulatedSpeechSource`. Swap by implementing `SpeechSource`. Voice step has a SIMULATED RECOGNISER panel so any tier can be demoed on stage. |
 | WAV onboarding | Catalog only |

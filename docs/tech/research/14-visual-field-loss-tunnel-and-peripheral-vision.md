@@ -54,6 +54,8 @@ This is new scope, not a restatement of [09 — Vision Calibration](09-vision-ca
 
 **This is genuinely roadmap, not event-build scope** given the two other threads ([24](../../idea/24-meeting-notes-onboarding-entry-and-accessibility.md)/[11](11-accessible-entry-onboarding-and-contrast.md) and [25](../../idea/25-meeting-notes-caregiver-training-mode.md)/[12](12-caregiver-guided-training-mode.md)) already queued ahead of it — but it's now well-specified enough to build from directly whenever it's prioritized, rather than needing further research first.
 
+**App status (Sept 2026):** the current yellow-square / dim-outside overlay is being **removed**. It is not the layout this brief describes. When tunnel vision is implemented later, **all buttons, text, and options live inside that square** (condensed working window), not spread across the full screen with a spotlight on top. Tracked in [app/04](../../app/04-clarity-playground-and-field.md).
+
 ---
 
 ## Overall verdicts

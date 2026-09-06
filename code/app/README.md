@@ -23,7 +23,9 @@ Laptop: `cd code/desktop && npm run relay`, open `http://<lan-ip>:7777/rail.html
 
 **Calibration (7 steps, ~2 min)** — reachable zone, buttons, joystick, trackpad, touch-and-hold, voice, vision. Each produces real measurements: success rate, time-to-target and error, combined with the formula in [03 §3.1](../../docs/idea/03-input-calibration.md) into one score per method. Results screen shows the score table, the derived profile, and which method each task shape will use.
 
-**After calibration** — a controller playground comes first: every input surface (buttons, joystick, trackpad, switch, voice) can be tried, and the laptop-preview strip is pinned to the top so live signals and intents are visible before any task starts. Tasks still mount only the method they need; the playground is how you see the rest.
+**After calibration** — a controller preview (“Your controllers”) comes first: every input surface (buttons, joystick, trackpad, switch, voice) can be tried, and the laptop-preview strip is pinned to the top so live signals and intents are visible before any task starts. Tasks still mount only the method they need; the preview is how you see the rest.
+
+**Playground (planned)** — a separate gear/settings entry: 2-wide cards per input mode (picture + name), then Calibration or a lightweight Demo list. See [docs/app/04](../../docs/app/04-clarity-playground-and-field.md). Option labels must stay readable; the tunnel-vision overlay is being removed (real “everything inside the square” layout is further scope); section highlighting should follow the joystick implementation for all input modes. Issue #20 (Live paging + Floor ~2.5s dwell) is already shipped.
 
 **Runtime (4 tasks)** — discrete choice, continuous adjust, free pointing, and free text. Each task has a fixed ideal input method; the [§3.3 fallback rule](../../docs/idea/03-input-calibration.md) swaps in the user's best method when it scores meaningfully higher, using that method's own native interaction pattern.
 

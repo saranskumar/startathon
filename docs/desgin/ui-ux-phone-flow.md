@@ -30,7 +30,8 @@ These apply once measurement has started (live draft) and after a confirmed prof
 | Rule | Detail |
 |---|---|
 | **Output strip** | Laptop preview: last intent + live raw signal. Sits on the row the user cannot reach (`outputAtBottom`). Tap opens the event log. |
-| **Visual field shell** | Tunnel or peripheral veil; mask uses `IgnorePointer`. Stays **full** until vision commits; then applies including on the results report. |
+| **Visual field shell** | **Planned change:** the tunnel-vision overlay (yellow square + dimmed outside) is **removed for now**. Real tunnel layout is further scope: once implemented, all buttons, text, and options live inside that square. Peripheral veil stays roadmap. See [app/04](../app/04-clarity-playground-and-field.md). Until that pass lands, code may still wrap post-vision screens in `field_shell.dart` (`IgnorePointer` so aiming is not stolen). |
+| **Section highlight** | **Planned:** extend the joystick section-highlight to all input modes when the active section changes. Same paint, no parallel overlay. See [app/04](../app/04-clarity-playground-and-field.md). |
 | **Theme** | Haiku after axes/profile; **high contrast** is a peer palette (WCAG 4.5:1 text / 3:1 chrome), not a haiku variant. |
 | **Scale / targets** | Text scale from vision; min target size from buttons â€” applied to Skip and later chrome **as soon as measured**. |
 | **Input dock** | Joystick floats at stick home / reach anchor; everything else docks inside the reachable zone. |
@@ -311,6 +312,7 @@ Four sections (tabs / section nav), not one endless scroll.
 | **Simpler / Level up** (one â†’ two â†’ many targets) | |
 | **Start tasks** | |
 | Recalibrate (tune) â†’ home | |
+| **Playground (planned)** — gear/settings entry, not this Preview | 2-wide cards (picture + name) per input mode; then Calibration or a lightweight Demo list. See [app/04](../app/04-clarity-playground-and-field.md). |
 
 ---
 
@@ -359,9 +361,9 @@ Fixed order. Every task screen shares:
 | **Trackpad / switch (no voice)** | Trackpad preferred (switch close behind), buttons/joystick unusable, no dictation, full field, limited reach like B |
 | **Profile A** | Precise touch, clear speech â†’ buttons-heavy, dictate, full field, many targets |
 | **Profile B** | Imprecise touch + partial speech â†’ often joystick fallback, vocab words, two targets |
-| **Floor** | Switch scan, sounds tier, tunnel field, one target |
+| **Floor** | Switch scan, sounds tier, one target; Floor dwell ~2.5s (issue #20). Tunnel overlay not shown (deferred). |
 | **Input level** | How many discrete options visible at once (one / two / many capped by `maxControls`) |
-| **Visual field** | Tunnel: condensed output window; peripheral: center veiled; both leave hits through |
+| **Visual field** | Overlay **removed for now**. Later: tunnel layout puts all buttons/text/options inside one square. Peripheral (center veiled) stays roadmap. [app/04](../app/04-clarity-playground-and-field.md) |
 | **High contrast** | Black / white / yellow peer theme |
 | **Locale** | Recorded onboarding catalog `en` / `ml` |
 | **Fallback rule** | Ideal method for the task shape unless another scores â‰¥ margin higher |
