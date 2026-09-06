@@ -54,8 +54,9 @@ class CalibrationDraft {
   String locale = 'en';
 
   /// Which environments this session measures, chosen on the intro screen.
-  /// An axis left off is untested, same status as a skipped step -- never a
-  /// failed one. At least one is always true (the intro enforces it).
+  /// All three start on. Turning one off takes a hold, not a tap. An axis
+  /// left off is untested, same status as a skipped step -- never a failed
+  /// one. At least one stays on (the last remaining row cannot be skipped).
   bool measureMotor = true;
   bool measureSpeech = true;
   bool measureVision = true;
@@ -104,12 +105,17 @@ class CalibrationDraft {
 
 /// Shared chrome for every calibration step.
 ///
-/// Three things here are deliberate rather than decorative:
+/// Four things here are deliberate rather than decorative:
 ///  * the instruction is one short line, always in the same place;
 ///  * "Skip this test" is always present and always the same size -- a user who
 ///    cannot operate the method under test must never be trapped by it;
+///  * "Back" is the same size, opposite Skip, from the second test on -- a
+///    mis-tap or a changed mind must not require Redo-from-the-start;
 ///  * progress is explicit, because an untimed sequence of unfamiliar tests is
 ///    the main reason people abandon calibration.
+///
+/// Headline copy is attempt-only (issue #8): lead with "Try to …" so a miss is
+/// already valid data. Honesty must not live only in the secondary status line.
 class StepFrame extends StatelessWidget {
   const StepFrame({
     super.key,
@@ -119,8 +125,10 @@ class StepFrame extends StatelessWidget {
     required this.total,
     required this.onSkip,
     required this.child,
+    this.onBack,
     this.status,
     this.textScale = 1.0,
+    this.minTargetSize = 56,
     this.footer,
     this.elapsedFraction,
   });
@@ -130,11 +138,18 @@ class StepFrame extends StatelessWidget {
   final int index;
   final int total;
   final VoidCallback onSkip;
+
+  /// When null (first test in the gated list), Skip stays full-width. Back
+  /// into the axis picker is out of scope for this chrome.
+  final VoidCallback? onBack;
   final Widget child;
 
   /// Live feedback ("2 of 4 done", "hold steady...").
   final String? status;
   final double textScale;
+
+  /// Skip / Back control height follows what buttons calibration measured.
+  final double minTargetSize;
   final Widget? footer;
 
   /// 0.0..1.0 through this *step's own* timed window (a per-round timeout,
@@ -145,6 +160,7 @@ class StepFrame extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
+    final skipH = minTargetSize.clamp(56.0, 120.0);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
@@ -228,14 +244,36 @@ class StepFrame extends StatelessWidget {
         Padding(
           padding: const EdgeInsets.fromLTRB(20, 10, 20, 18),
           child: SizedBox(
-            height: 64,
-            child: OutlinedButton.icon(
-              onPressed: onSkip,
-              icon: const Icon(Icons.skip_next),
-              label: Text(
-                "Skip this test",
-                style: TextStyle(fontSize: 17 * textScale),
-              ),
+            height: skipH,
+            width: double.infinity,
+            child: Row(
+              children: [
+                if (onBack != null) ...[
+                  Expanded(
+                    child: OutlinedButton.icon(
+                      onPressed: onBack,
+                      icon: const Icon(Icons.arrow_back),
+                      label: Text(
+                        'Back',
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(fontSize: 17 * textScale),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                ],
+                Expanded(
+                  child: OutlinedButton.icon(
+                    onPressed: onSkip,
+                    icon: const Icon(Icons.skip_next),
+                    label: Text(
+                      'Skip this test',
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(fontSize: 17 * textScale),
+                    ),
+                  ),
+                ),
+              ],
             ),
           ),
         ),

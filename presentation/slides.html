@@ -3,10 +3,10 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Adaptive Capability-Profile Access Layer — Pitch Deck</title>
+<title>Adaptive Access Layer — 5 slides</title>
 <style>
   :root{
-    --bg:#111214; --fg:#f2f0e6; --dim:#9a9a8f; --accent:#e1e4c9; --line:#33342f;
+    --bg:#fff; --fg:#111; --dim:#5c5c5c; --line:#ddd; --card:#f5f5f5;
   }
   *{box-sizing:border-box;}
   html,body{height:100%;margin:0;background:var(--bg);color:var(--fg);
@@ -14,133 +14,91 @@
   #deck{height:100vh;overflow:hidden;position:relative;}
   .slide{
     position:absolute;inset:0;display:none;flex-direction:column;justify-content:center;
-    padding:6vh 8vw;gap:1.4rem;
+    padding:6vh 8vw;gap:.7rem;overflow:auto;
   }
   .slide.active{display:flex;}
-  .kicker{color:var(--dim);font-size:0.95rem;letter-spacing:.08em;text-transform:uppercase;}
-  h1{font-size:clamp(1.8rem,4vw,3.2rem);margin:0;line-height:1.15;}
-  .lede{font-size:clamp(1.1rem,1.8vw,1.5rem);color:var(--fg);max-width:52ch;}
-  .quote{border-left:3px solid var(--accent);padding-left:1rem;color:var(--fg);font-style:italic;max-width:60ch;}
-  table{border-collapse:collapse;font-size:1rem;max-width:80ch;}
-  td,th{border:1px solid var(--line);padding:.5rem .8rem;text-align:left;vertical-align:top;}
-  th{color:var(--dim);font-weight:600;}
-  .media{
-    border:1px dashed var(--line);border-radius:8px;min-height:26vh;max-width:60vw;
-    display:flex;align-items:center;justify-content:center;color:var(--dim);
-    font-size:.9rem;position:relative;overflow:hidden;background:#0000001a;
+  .tag{color:var(--dim);font-size:.72rem;letter-spacing:.14em;text-transform:uppercase;font-weight:600;}
+  h1{font-size:clamp(1.6rem,3.2vw,2.35rem);margin:0;line-height:1.2;font-weight:650;}
+  .rows{display:flex;flex-direction:column;gap:.4rem;max-width:76ch;margin-top:.25rem;}
+  .row{
+    display:grid;grid-template-columns:16ch 1fr;gap:1.1rem;align-items:start;
+    padding:.7rem 1rem;background:var(--card);border:1px solid var(--line);border-radius:4px;
+    font-size:.95rem;line-height:1.4;
   }
-  .media video, .media img{width:100%;height:100%;object-fit:cover;display:block;}
-  .media .fallback{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
-    text-align:center;padding:1rem;}
-  .media video:not([data-missing]) ~ .fallback, .media img:not([data-missing]) ~ .fallback{display:none;}
+  .row .k{color:var(--dim);font-size:.68rem;letter-spacing:.11em;text-transform:uppercase;font-weight:650;padding-top:.2rem;}
   #hud{
-    position:fixed;bottom:1rem;right:1.2rem;color:var(--dim);font-size:.85rem;
-    font-variant-numeric:tabular-nums;
+    position:fixed;bottom:1rem;right:1.2rem;color:var(--dim);font-size:.8rem;
+    font-variant-numeric:tabular-nums;z-index:5;
   }
-  #hud kbd{border:1px solid var(--line);border-radius:4px;padding:0 .3rem;}
+  #hud kbd{border:1px solid var(--line);border-radius:3px;padding:0 .28rem;}
+  @media (max-width:800px){
+    .row{grid-template-columns:1fr;}
+  }
 </style>
 </head>
 <body>
 <div id="deck">
 
-  <section class="slide" data-clip="4,5">
-    <div class="kicker">Live demo</div>
-    <h1>Two profiles, one task, switched live.</h1>
-    <p class="lede">This is the actual proof — not a recording. Everything after this slide explains what you just saw.</p>
-  </section>
-
-  <section class="slide" data-clip="">
-    <div class="kicker">Context</div>
-    <h1>Not a revenue pitch. Built for public good, open source.</h1>
-    <p class="quote">Shreevardhan's brother has cerebral palsy. On his phone he can open WhatsApp, scroll his chats,
-      tap one region he can reliably reach, and record voice notes — anything else goes through Google Assistant,
-      which took real training effort to recognize reliably.</p>
-    <div class="media" data-slot="origin-photo"><img data-missing alt=""><div class="fallback">media/01-origin.(jpg|mp4)</div></div>
-  </section>
-
-  <section class="slide" data-clip="1,2">
-    <div class="kicker">Who's already served</div>
-    <h1>Every existing tool assumes one clean channel.</h1>
-    <table>
-      <tr><th>If a person has…</th><th>…they can already use</th></tr>
-      <tr><td>No vision, good hand control</td><td>Screen reader (TalkBack / VoiceOver)</td></tr>
-      <tr><td>Motor difficulty, clear speech + sight</td><td>Voice Access</td></tr>
-      <tr><td>Can reliably type or speak clearly</td><td>General-purpose AI agents</td></tr>
-    </table>
-    <p class="lede">Our target user has none of these individually — partial ability across more than one.</p>
-    <div class="media" data-slot="talkback-voiceaccess-clip">
-      <video data-missing controls muted loop></video>
-      <div class="fallback">media/02-talkback-voiceaccess.mp4 (5–10s, clips 1&amp;2)</div>
+  <section class="slide">
+    <div class="tag">01</div>
+    <h1>Problem &amp; User</h1>
+    <div class="rows">
+      <div class="row"><div class="k">User</div><div>A family member with cerebral palsy. Observed directly. Reliable motor input is limited to one region of a smartphone screen; speech is present but not consistently recognized.</div></div>
+      <div class="row"><div class="k">Problem</div><div>He can operate WhatsApp—scroll, tap that region, send a voice note. He cannot independently open other applications or place a call. Existing tools each require one complete ability he does not have.</div></div>
+      <div class="row"><div class="k">Today</div><div>Tasks outside that set are done through Google Assistant, after extensive training on phrases such as “call amma,” or by a caregiver operating the device.</div></div>
+      <div class="row"><div class="k">Why it matters</div><div>Independent use of a phone he already owns is confined to a single application. Remaining tasks are abandoned or delegated.</div></div>
     </div>
   </section>
 
-  <section class="slide" data-clip="">
-    <div class="kicker">The gap</div>
-    <h1>No single tool. No cooperation between tools.</h1>
-    <p class="lede">These users stitch together mismatched tools, or depend on a caregiver — losing independence
-      on tasks they should manage alone.</p>
-    <p class="lede">Adaptive input already exists — as hardware. A foot-controlled trackball, a tongue-driven mouse.
-      We do the same thing in software, on the phone already in their hand — no dedicated device to buy or fit.</p>
-  </section>
-
-  <section class="slide" data-clip="3">
-    <div class="kicker">Prior art</div>
-    <h1>Free-text entry without speech or fine taps already has an answer.</h1>
-    <p class="lede">Dasher (Cambridge / GNOME) — zooming, continuous-steer text entry. We cite it as evidence
-      the gap is real; we don't rebuild it.</p>
-    <div class="media" data-slot="dasher-clip">
-      <video data-missing controls muted loop></video>
-      <div class="fallback">media/03-dasher.mp4 (5–10s, from dasher-project.github.io/dasher-web)</div>
+  <section class="slide">
+    <div class="tag">02</div>
+    <h1>Validation &amp; What You Learned</h1>
+    <div class="rows">
+      <div class="row"><div class="k">Evidence</div><div>Direct observation of this user, and through him others with similar conditions. Not a survey. Not a persona.</div></div>
+      <div class="row"><div class="k">Assumption</div><div>That we require AI—that an AI agent would solve his problem.</div></div>
+      <div class="row"><div class="k">Observed</div><div>He already has a small set of reliable inputs. Google Assistant, itself an AI, already fails him. The bottleneck is mapping a large application onto that set, not another agent.</div></div>
+      <div class="row"><div class="k">Changed</div><div>Dropped OpenClaw: performance overhead, security issues, and it is too slow. No AI. A deterministic DOM engine ranks the page instead.</div></div>
     </div>
   </section>
 
-  <section class="slide" data-clip="">
-    <div class="kicker">The model</div>
-    <h1>A measured capability profile, not a disability label.</h1>
-    <p class="lede">Continuous axes — touch precision, speech clarity, vision — measured from the real user,
-      not assumed from a category.</p>
-  </section>
-
-  <section class="slide" data-clip="5">
-    <div class="kicker">Input composition</div>
-    <h1>Same task. Two profiles. Two rendered input surfaces.</h1>
-    <div class="media" data-slot="input-composition-clip">
-      <video data-missing controls muted loop></video>
-      <div class="fallback">media/06-input-composition.mp4 (5–10s)</div>
+  <section class="slide">
+    <div class="tag">03</div>
+    <h1>Your Solution</h1>
+    <div class="rows">
+      <div class="row"><div class="k">What it is</div><div>A phone input layer that measures what this person can do, then maps any task onto those residual abilities. Touch selects. Voice, when usable, supplies content.</div></div>
+      <div class="row"><div class="k">How it fits</div><div>Calibration produces a capability profile. The interface uses only methods that scored, inside the reachable region, at a size he can hit. A webpage is reduced to ranked actions by a DOM engine—no model call.</div></div>
+      <div class="row"><div class="k">Value</div><div>He keeps the inputs that already work and reaches apps beyond WhatsApp, without handing the phone over.</div></div>
+      <div class="row"><div class="k">Vs today</div><div>TalkBack still needs swipe gestures he cannot land. Voice Access and Assistant still need speech that is not recognized. This system does not require one complete channel.</div></div>
     </div>
   </section>
 
-  <section class="slide" data-clip="6">
-    <div class="kicker">Output composition</div>
-    <h1>Low precision means fewer, spoken, inferred choices — not a full readout.</h1>
-    <p class="quote">"There are two buttons on your screen. Press yes to turn on Bluetooth. Press no to go back."</p>
-    <div class="media" data-slot="output-composition-clip">
-      <video data-missing controls muted loop></video>
-      <div class="fallback">media/07-output-composition.mp4 (5–10s, blocked on narration build)</div>
+  <section class="slide">
+    <div class="tag">04</div>
+    <h1>What You Built</h1>
+    <div class="rows">
+      <div class="row"><div class="k">Phone</div><div>Flutter app: seven-step calibration, a live capability profile, four task shapes through four input methods, and touch-plus-voice on text. Flutter SDK only.</div></div>
+      <div class="row"><div class="k">Desktop</div><div>Playwright reads a page’s accessibility tree. A heuristic DOM engine ranks it into navigation vs information. Inspector can act on a ranked node. No LLM.</div></div>
+      <div class="row"><div class="k">Choices</div><div>No OpenClaw (overhead, security, latency). Browser tree, not native OS apps. Phone and desktop are not yet wired. Target sites are self-built mocks (Aperture Daily).</div></div>
+      <div class="row"><div class="k">Not real yet</div><div>Speech recognition is simulated. TTS / narration is not built. Phone intents stop on an on-screen strip. They do not yet drive the laptop.</div></div>
     </div>
   </section>
 
-  <section class="slide" data-clip="">
-    <div class="kicker">Why this is defensible</div>
-    <h1>The pieces exist separately. Nobody combines them live.</h1>
-    <p class="lede">Continuous ability modeling and modality fusion both have academic precedent — what's new is
-      doing it live, on a phone, with an agent closing the inference gap in real time.</p>
-    <p class="lede">To be clear: this isn't an AI product. Adaptive input is the core — AI only closes small
-      inference gaps, always under confirmation.</p>
-  </section>
-
-  <section class="slide" data-clip="">
-    <div class="kicker">Close</div>
-    <h1>~$2.5B market today. Kept open source.</h1>
-    <p class="lede">India's assistive-tech market is estimated at ~$2.5B today (IMARC), heading to ~$3.6B by 2034 —
-      built open source so the adaptive layer can be adopted and localized, not gated.</p>
+  <section class="slide">
+    <div class="tag">05</div>
+    <h1>Results &amp; What Comes Next</h1>
+    <div class="rows">
+      <div class="row"><div class="k">Proven</div><div>We can measure a profile and reshape the same task to match it. We can rank a real page without an AI agent. The assumption that AI would solve his problem did not hold.</div></div>
+      <div class="row"><div class="k">Uncertain</div><div>Whether he can complete more tasks independently than with WhatsApp, Assistant, and a caregiver. Whether real speech recognition works for him.</div></div>
+      <div class="row"><div class="k">Next week</div><div>Wire the phone to the desktop. Put the built input layer in front of him. Decide whether to add a real speech package.</div></div>
+      <div class="row"><div class="k">To be useful</div><div>He must reach apps he currently abandons or hands off, without confirmation becoming constant interruption, on ordinary websites—not only our mocks.</div></div>
+    </div>
   </section>
 
 </div>
-<div id="hud"><span id="pos">1</span> / <span id="total"></span> — <kbd>←</kbd> <kbd>→</kbd></div>
+<div id="hud"><span id="pos">1</span> / <span id="total"></span> · <kbd>←</kbd> <kbd>→</kbd> <kbd>Space</kbd></div>
 
 <script>
-  const slides = document.querySelectorAll('.slide');
+  const slides = [...document.querySelectorAll('.slide')];
   let i = 0;
   document.getElementById('total').textContent = slides.length;
 
@@ -153,17 +111,12 @@
   show(0);
 
   window.addEventListener('keydown', e => {
-    if (e.key === 'ArrowRight' || e.key === ' ') show(i + 1);
-    if (e.key === 'ArrowLeft') show(i - 1);
+    if (e.key === 'ArrowRight' || e.key === ' ') { e.preventDefault(); show(i + 1); }
+    if (e.key === 'ArrowLeft') { e.preventDefault(); show(i - 1); }
   });
-
-  // Mark media placeholders as missing if the referenced file 404s / has no src,
-  // so the dashed-box fallback label shows instead of a broken player.
-  document.querySelectorAll('.media video, .media img').forEach(el => {
-    if (!el.getAttribute('src')) { el.setAttribute('data-missing', ''); return; }
-    el.addEventListener('error', () => el.setAttribute('data-missing', ''));
-    el.addEventListener('loadeddata', () => el.removeAttribute('data-missing'));
-    el.addEventListener('load', () => el.removeAttribute('data-missing'));
+  document.addEventListener('click', e => {
+    if (e.target.closest('a,button,input,textarea,select')) return;
+    show(i + 1);
   });
 </script>
 </body>

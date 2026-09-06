@@ -7,6 +7,7 @@ import '../inputs/surfaces.dart';
 import '../inputs/timed_cue.dart';
 import '../model/profile.dart';
 import '../model/session.dart';
+import 'hold_fill.dart';
 import 'step_frame.dart';
 
 /// Shared constructor arguments for every calibration step.
@@ -18,6 +19,7 @@ abstract class CalibrationStep extends StatefulWidget {
     required this.total,
     required this.onNext,
     required this.onSkip,
+    this.onBack,
     this.textScale = 1.0,
   });
 
@@ -26,6 +28,7 @@ abstract class CalibrationStep extends StatefulWidget {
   final int total;
   final VoidCallback onNext;
   final VoidCallback onSkip;
+  final VoidCallback? onBack;
   final double textScale;
 }
 
@@ -52,6 +55,7 @@ class ReachStep extends CalibrationStep {
     required super.total,
     required super.onNext,
     required super.onSkip,
+    super.onBack,
     super.textScale,
   });
 
@@ -134,12 +138,15 @@ class _ReachStepState extends State<ReachStep> {
     final tentative = _stage.where((s) => s == 1).length;
     return StepFrame(
       title: 'Reachable zone',
-      instruction: 'Tap every square you can reach. Tap it again to confirm.',
+      instruction:
+          'Try to tap every square you can reach. Tap it again to confirm.',
       status: '$locked confirmed, $tentative tentative so far. '
           'Stops after a couple of seconds without a tap.',
       index: widget.index,
       total: widget.total,
       textScale: widget.textScale,
+      minTargetSize: widget.draft.minTargetSize,
+      onBack: widget.onBack,
       onSkip: () {
         _idleTimer?.cancel();
         _overallCue.cancel();
@@ -221,6 +228,7 @@ class ButtonsStep extends CalibrationStep {
     required super.total,
     required super.onNext,
     required super.onSkip,
+    super.onBack,
     super.textScale,
   });
 
@@ -329,12 +337,14 @@ class _ButtonsStepState extends State<ButtonsStep> {
     final size = _sizes[math.min(_round, _sizes.length - 1)];
     return StepFrame(
       title: 'Buttons',
-      instruction: 'Press the button.',
+      instruction: 'Try to press the button.',
       status: 'It gets smaller each time. Missing is useful data, not failure. '
           '$_feedback',
       index: widget.index,
       total: widget.total,
       textScale: widget.textScale,
+      minTargetSize: widget.draft.minTargetSize,
+      onBack: widget.onBack,
       onSkip: () {
         _cue?.cancel();
         widget.draft.skipped.add('buttons');
@@ -408,6 +418,7 @@ class JoystickStep extends CalibrationStep {
     required super.total,
     required super.onNext,
     required super.onSkip,
+    super.onBack,
     super.textScale,
   });
 
@@ -657,12 +668,14 @@ class _JoystickStepState extends State<JoystickStep> {
     final cell = _cellOrder[math.min(_cellRound, _cellOrder.length - 1)];
     return StepFrame(
       title: 'Joystick',
-      instruction: 'Circle the stick all the way around, right here.',
+      instruction: 'Try to circle the stick all the way around, right here.',
       status: '$_feedback Spot ${_cellRound + 1} of ${_cellOrder.length}. '
           'Need $_octantsNeeded of 8 directions.',
       index: widget.index,
       total: widget.total,
       textScale: widget.textScale,
+      minTargetSize: widget.draft.minTargetSize,
+      onBack: widget.onBack,
       onSkip: () {
         _cue?.cancel();
         widget.draft.skipped.add('joystick');
@@ -714,12 +727,14 @@ class _JoystickStepState extends State<JoystickStep> {
     final dir = _holdTargets[math.min(_holdRound, _holdTargets.length - 1)];
     return StepFrame(
       title: 'Joystick',
-      instruction: 'Push the stick $dir and hold it there.',
+      instruction: 'Try to push the stick $dir and hold it there.',
       status: '$_feedback${_holdRound + 1} of ${_holdTargets.length}. '
           'Hold for half a second to register.',
       index: widget.index,
       total: widget.total,
       textScale: widget.textScale,
+      minTargetSize: widget.draft.minTargetSize,
+      onBack: widget.onBack,
       onSkip: () {
         _cue?.cancel();
         _holdTimer?.cancel();
@@ -777,6 +792,7 @@ class TrackpadStep extends CalibrationStep {
     required super.total,
     required super.onNext,
     required super.onSkip,
+    super.onBack,
     super.textScale,
   });
 
@@ -866,11 +882,13 @@ class _TrackpadStepState extends State<TrackpadStep> {
     final target = _targets[math.min(_round, _targets.length - 1)];
     return StepFrame(
       title: 'Trackpad',
-      instruction: 'Drag the dot into the ring, then let go.',
+      instruction: 'Try to drag the dot into the ring, then let go.',
       status: '$_feedback${_round + 1} of ${_targets.length}.',
       index: widget.index,
       total: widget.total,
       textScale: widget.textScale,
+      minTargetSize: widget.draft.minTargetSize,
+      onBack: widget.onBack,
       onSkip: () {
         _cue?.cancel();
         widget.draft.skipped.add('trackpad');
@@ -961,6 +979,7 @@ class HoldStep extends CalibrationStep {
     required super.total,
     required super.onNext,
     required super.onSkip,
+    super.onBack,
     super.textScale,
   });
 
@@ -969,7 +988,6 @@ class HoldStep extends CalibrationStep {
 }
 
 class _HoldStepState extends State<HoldStep> {
-  static const _requiredMs = 1500;
   static const _roundTimeout = Duration(seconds: 7);
 
   late final List<ButtonTarget> _targets;
@@ -979,14 +997,13 @@ class _HoldStepState extends State<HoldStep> {
   // Floor-case-only aggregate (no button targets to attach a result to).
   bool? _floorHoldable;
 
-  Timer? _ticker;
   Timer? _roundTimer;
-  // Audio/haptic only -- the ring above already shows visual progress, so
-  // this doesn't bind an elapsedFraction into StepFrame.
+  // Audio/haptic only -- HoldFillRing already shows visual progress, so this
+  // doesn't bind an elapsedFraction into StepFrame.
   TimedCue? _feedbackCue;
+
   Offset? _origin;
   double _jitter = 0;
-  int _elapsed = 0;
   bool _done = false;
   String _feedback = '';
 
@@ -1001,7 +1018,6 @@ class _HoldStepState extends State<HoldStep> {
 
   @override
   void dispose() {
-    _ticker?.cancel();
     _roundTimer?.cancel();
     _feedbackCue?.dispose();
     super.dispose();
@@ -1015,44 +1031,31 @@ class _HoldStepState extends State<HoldStep> {
     _roundTimer = Timer(_roundTimeout, () => _complete(false));
   }
 
-  void _down(Offset p) {
-    if (_done) return;
+  void _onDown(Offset p) {
     _origin = p;
     _jitter = 0;
-    _elapsed = 0;
-    _ticker?.cancel();
-    _ticker = Timer.periodic(const Duration(milliseconds: 50), (t) {
-      if (!mounted) return;
-      setState(() => _elapsed += 50);
-      if (_elapsed >= _requiredMs) _complete(true);
-    });
     _feedbackCue?.dispose();
-    _feedbackCue = TimedCue(duration: Duration(milliseconds: _requiredMs))
-      ..start();
+    _feedbackCue = TimedCue(duration: HoldFill.standard)..start();
   }
 
-  void _move(Offset p) {
+  void _onMove(Offset p) {
     if (_origin == null) return;
     final d = distanceBetween(p, _origin!);
     if (d > _jitter) setState(() => _jitter = d);
   }
 
-  void _up() {
+  void _onCancel(Duration held) {
     if (_done) return;
-    _ticker?.cancel();
     _feedbackCue?.cancel();
-    if (_elapsed < _requiredMs) {
-      setState(() {
-        _feedback = 'Released after ${_elapsed}ms -- try once more, or skip.';
-        _elapsed = 0;
-      });
-    }
+    setState(() {
+      _feedback =
+          'Released after ${held.inMilliseconds}ms -- try once more, or skip.';
+    });
   }
 
   void _complete(bool ok) {
     if (_done) return;
     _done = true;
-    _ticker?.cancel();
     _roundTimer?.cancel();
     _feedbackCue?.cancel();
     // 60 logical pixels of wander during a still hold is the point at which
@@ -1078,7 +1081,6 @@ class _HoldStepState extends State<HoldStep> {
       _done = false;
       _origin = null;
       _jitter = 0;
-      _elapsed = 0;
       _feedback = '';
     });
     _armRoundTimeout();
@@ -1088,8 +1090,8 @@ class _HoldStepState extends State<HoldStep> {
   /// keeps whatever buttons were already confirmed holdable and only leaves
   /// the remaining ones untested, per docs/idea/30 §8's own open question.
   void _skipRemaining() {
-    _ticker?.cancel();
     _roundTimer?.cancel();
+    _feedbackCue?.cancel();
     _commit();
     widget.onNext();
   }
@@ -1106,7 +1108,6 @@ class _HoldStepState extends State<HoldStep> {
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
-    final progress = (_elapsed / _requiredMs).clamp(0.0, 1.0);
     final status = _feedback.isNotEmpty
         ? _feedback
         : _floorCase
@@ -1117,14 +1118,15 @@ class _HoldStepState extends State<HoldStep> {
     return StepFrame(
       title: 'Touch and hold',
       instruction: _floorCase
-          ? 'Press anywhere below and hold still.'
-          : 'Hold down on this button.',
+          ? 'Try to press anywhere below and hold still.'
+          : 'Try to hold down on this button.',
       status: status,
       index: widget.index,
       total: widget.total,
       textScale: widget.textScale,
+      minTargetSize: widget.draft.minTargetSize,
+      onBack: widget.onBack,
       onSkip: () {
-        _ticker?.cancel();
         _roundTimer?.cancel();
         _feedbackCue?.cancel();
         widget.draft.skipped.add('hold');
@@ -1148,58 +1150,45 @@ class _HoldStepState extends State<HoldStep> {
           final area = Size(constraints.maxWidth, constraints.maxHeight);
           final reach = widget.draft.build().reachableRect(area);
           final target = _floorCase ? null : _targets[_targetIndex];
-          final diameter = target == null ? 160.0 : math.max(target.size, 120.0);
-          final ring = SizedBox(
-            width: diameter,
-            height: diameter,
-            child: Stack(
-              alignment: Alignment.center,
-              children: [
-                SizedBox(
-                  width: diameter - 20,
-                  height: diameter - 20,
-                  child: CircularProgressIndicator(
-                    value: progress,
-                    strokeWidth: 12,
-                  ),
-                ),
-                Text(
-                  progress >= 1 ? 'done' : '${(progress * 100).round()}%',
-                  style: const TextStyle(
-                    fontSize: 22,
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-              ],
-            ),
-          );
-          final listener = Listener(
-            behavior: HitTestBehavior.opaque,
-            onPointerDown: (e) => _down(e.localPosition),
-            onPointerMove: (e) => _move(e.localPosition),
-            onPointerUp: (_) => _up(),
-            onPointerCancel: (_) => _up(),
-            child: Container(
+          final diameter =
+              target == null ? 160.0 : math.max(target.size, 120.0);
+          final holdWidget = HoldFill(
+            onDown: _onDown,
+            onMove: _onMove,
+            onComplete: () => _complete(true),
+            onCancel: _onCancel,
+            builder: (context, progress) => Container(
               decoration: BoxDecoration(
                 color: scheme.surfaceContainerHighest.withValues(alpha: 0.5),
                 borderRadius: BorderRadius.circular(20),
                 border: Border.all(color: scheme.outlineVariant),
               ),
               alignment: Alignment.center,
-              child: ring,
+              child: HoldFillRing(
+                progress: progress,
+                size: diameter,
+                strokeWidth: 12,
+                child: Text(
+                  progress >= 1 ? 'done' : '${(progress * 100).round()}%',
+                  style: const TextStyle(
+                    fontSize: 22,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ),
             ),
           );
           return Stack(
             children: [
               if (target == null)
-                Positioned.fromRect(rect: reach.deflate(8), child: listener)
+                Positioned.fromRect(rect: reach.deflate(8), child: holdWidget)
               else
                 Align(
                   alignment: target.placement,
                   child: SizedBox(
                     width: diameter + 24,
                     height: diameter + 24,
-                    child: listener,
+                    child: holdWidget,
                   ),
                 ),
             ],

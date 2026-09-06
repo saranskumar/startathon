@@ -35,17 +35,18 @@ abstract final class OnboardingCatalog {
       locale: 'en',
       duration: Duration(seconds: 8),
       transcript:
-          'Welcome. Tap anywhere on this screen to set up how you control '
-          'things. There is no pass or fail. If someone is helping you, they '
-          'can use the smaller button at the bottom.',
+          'Welcome. Tap or hold the large block at the bottom to set up how '
+          'you control things. There is no pass or fail. If someone is '
+          'helping you, they can use the smaller button at the top.',
     ),
     OnboardingClip(
       id: 'welcome',
       locale: 'ml',
       duration: Duration(seconds: 9),
       transcript:
-          'സ്വാഗതം. ഈ സ്ക്രീനിൽ എവിടെയും തട്ടിയാൽ സജ്ജീകരണം തുടങ്ങും. '
-          'പരാജയമില്ല. സഹായിക്കുന്ന ആളാണെങ്കിൽ താഴെയുള്ള ചെറിയ ബട്ടൺ മതി.',
+          'സ്വാഗതം. താഴെയുള്ള വലിയ ബ്ലോക്ക് തട്ടിയാലോ പിടിച്ചാലോ സജ്ജീകരണം '
+          'തുടങ്ങും. പരാജയമില്ല. സഹായിക്കുന്ന ആളാണെങ്കിൽ മുകളിലുള്ള ചെറിയ '
+          'ബട്ടൺ മതി.',
     ),
     OnboardingClip(
       id: 'training',

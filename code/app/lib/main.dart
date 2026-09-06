@@ -12,12 +12,9 @@ import 'vision/field_shell.dart';
 
 /// Adaptive Capability-Profile Access Layer -- input layer only.
 ///
-/// This build is the phone side of docs/idea/07-architecture.md and nothing
-/// else: calibration produces a capability profile, and the profile decides how
-/// every task is operated. There is no agent, no browser automation and no
-/// connection to a laptop -- resolved intents are written to the output strip
-/// instead, which is placed in whichever screen region calibration found the
-/// user cannot reach anyway.
+/// Launch is a full-bleed Start gate, then Setup. Demo presets live behind
+/// the settings circle. Once the user confirms a profile, the rest of the
+/// session stays on that calibrated UI.
 void main() => runApp(const AccessLayerApp());
 
 class AccessLayerApp extends StatefulWidget {
@@ -27,12 +24,15 @@ class AccessLayerApp extends StatefulWidget {
   State<AccessLayerApp> createState() => _AccessLayerAppState();
 }
 
-enum _Screen { home, calibrate, preview, demo }
+enum _Screen { start, home, calibrate, preview, demo }
 
 class _AccessLayerAppState extends State<AccessLayerApp> {
   final AppState _state = AppState();
-  _Screen _screen = _Screen.home;
+  _Screen _screen = _Screen.start;
   bool _assisted = false;
+
+  /// Bumped on redo so CalibrationFlow remounts with a fresh draft.
+  int _setupEpoch = 0;
 
   /// Live during calibration: updated the moment the intro's axis toggles
   /// change, so the theme reacts before any test has produced a score.
@@ -56,24 +56,77 @@ class _AccessLayerAppState extends State<AccessLayerApp> {
   }
 
   void _use(CapabilityProfile p) {
-    _state.setProfile(p);
+    _state.setProfile(p, confirm: true);
     setState(() {
       _liveTheme = p.haikuTheme;
       _screen = _Screen.preview;
+      _assisted = false;
+    });
+  }
+
+  void _onDraftChanged(CapabilityProfile p) {
+    _state.applyLiveProfile(p);
+    // Avoid setState during CalibrationFlow build/init.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      setState(() => _liveTheme = p.haikuTheme);
     });
   }
 
   void _onAxesChanged(bool motor, bool speech, bool vision) {
-    setState(() {
-      _liveTheme = HaikuTheme.compute(motor: motor, speech: speech, vision: vision);
+    final next =
+        HaikuTheme.compute(motor: motor, speech: speech, vision: vision);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      setState(() => _liveTheme = next);
     });
+  }
+
+  void _redoSetup({bool assisted = false}) {
+    _state.clearProfile();
+    setState(() {
+      _assisted = assisted;
+      _setupEpoch++;
+      _liveTheme = HaikuTheme.fallback;
+      // Redo returns to Setup, not the Start gate. Helper from settings
+      // skips Setup and opens training inside calibration.
+      _screen = assisted ? _Screen.calibrate : _Screen.home;
+    });
+  }
+
+  void _beginCalibration(bool assisted) {
+    setState(() {
+      _assisted = assisted;
+      _screen = _Screen.calibrate;
+    });
+  }
+
+  void _openSettings(BuildContext context) {
+    showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      showDragHandle: true,
+      builder: (ctx) => _DemoSettingsSheet(
+        state: _state,
+        onPreset: (p) {
+          Navigator.pop(ctx);
+          _use(p);
+        },
+        onRedoSetup: () {
+          Navigator.pop(ctx);
+          _redoSetup();
+        },
+        onHelping: () {
+          Navigator.pop(ctx);
+          _redoSetup(assisted: true);
+        },
+      ),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
-    final theme = _screen == _Screen.home && !_state.isCalibrated
-        ? HaikuTheme.fallback
-        : _liveTheme;
+    final theme = _liveTheme;
     return AppScope(
       state: _state,
       child: Builder(
@@ -93,41 +146,68 @@ class _AccessLayerAppState extends State<AccessLayerApp> {
             home: Builder(
               builder: (context) {
                 final body = switch (_screen) {
+                  _Screen.start => _StartGateScreen(
+                      onStart: () => setState(() => _screen = _Screen.home),
+                    ),
                   _Screen.home => _HomeScreen(
-                      onCalibrate: (assisted) => setState(() {
-                        _assisted = assisted;
-                        _screen = _Screen.calibrate;
-                      }),
-                      onPreset: _use,
+                      onCalibrate: _beginCalibration,
+                      showSettings: () => _openSettings(context),
                     ),
                   _Screen.calibrate => Scaffold(
                       body: SafeArea(
                         child: CalibrationFlow(
+                          key: ValueKey('setup-$_setupEpoch-$_assisted'),
                           startAssisted: _assisted,
                           locale: _state.locale,
                           onComplete: _use,
                           onAxesChanged: _onAxesChanged,
+                          onDraftChanged: _onDraftChanged,
+                          showSettings: () => _openSettings(context),
                         ),
                       ),
                     ),
-                  _Screen.preview => InputPreviewScreen(
-                      onContinue: () =>
-                          setState(() => _screen = _Screen.demo),
-                      onRecalibrate: () =>
-                          setState(() => _screen = _Screen.home),
+                  _Screen.preview => Stack(
+                      children: [
+                        InputPreviewScreen(
+                          onContinue: () =>
+                              setState(() => _screen = _Screen.demo),
+                          onRecalibrate: _redoSetup,
+                        ),
+                        Positioned(
+                          top: MediaQuery.paddingOf(context).top + 8,
+                          right: 8,
+                          child: _SettingsCircle(
+                            onPressed: () => _openSettings(context),
+                          ),
+                        ),
+                      ],
                     ),
-                  _Screen.demo => DemoScreen(
-                      onRecalibrate: () =>
-                          setState(() => _screen = _Screen.home),
-                      onOpenPreview: () =>
-                          setState(() => _screen = _Screen.preview),
+                  _Screen.demo => Stack(
+                      children: [
+                        DemoScreen(
+                          onRecalibrate: _redoSetup,
+                          onOpenPreview: () =>
+                              setState(() => _screen = _Screen.preview),
+                        ),
+                        Positioned(
+                          top: MediaQuery.paddingOf(context).top + 8,
+                          right: 8,
+                          child: _SettingsCircle(
+                            onPressed: () => _openSettings(context),
+                          ),
+                        ),
+                      ],
                     ),
                 };
                 final profile = _state.profile;
+                // Start gate and Setup stay full-field. Draft.visualField is
+                // full until vision commits, then the veil applies.
+                final field = (_screen == _Screen.start ||
+                        _screen == _Screen.home)
+                    ? VisualField.full
+                    : profile.visualField;
                 return VisualFieldShell(
-                  field: _screen == _Screen.home
-                      ? VisualField.full
-                      : profile.visualField,
+                  field: field,
                   outputAtBottom: profile.outputAtBottom,
                   child: body,
                 );
@@ -140,17 +220,51 @@ class _AccessLayerAppState extends State<AccessLayerApp> {
   }
 }
 
-/// Entry point and profile switch in one.
-///
-/// The presets are here because 05-scope item 3 makes the visible A/B reshape
-/// non-negotiable, and a live calibration run takes two minutes -- too long to
-/// repeat in front of a judge. Calibrating for real and picking a preset both
-/// end in the same object, so the runtime cannot tell them apart.
+class _StartGateScreen extends StatelessWidget {
+  const _StartGateScreen({required this.onStart});
+
+  final VoidCallback onStart;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return Scaffold(
+      body: SizedBox.expand(
+        child: GestureDetector(
+          key: const Key('start-gate'),
+          behavior: HitTestBehavior.opaque,
+          onTap: onStart,
+          onLongPress: onStart,
+          child: ColoredBox(
+            color: scheme.primary,
+            child: Semantics(
+              button: true,
+              label: 'Tap or hold to continue',
+              child: Center(
+                child: Icon(
+                  Icons.touch_app,
+                  size: 72,
+                  color: scheme.onPrimary,
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Setup: helper / contrast / locale sit up top, out of the thumb zone.
+/// The reachable lower region is only the tap/hold-to-start block.
 class _HomeScreen extends StatelessWidget {
-  const _HomeScreen({required this.onCalibrate, required this.onPreset});
+  const _HomeScreen({
+    required this.onCalibrate,
+    required this.showSettings,
+  });
 
   final void Function(bool assisted) onCalibrate;
-  final void Function(CapabilityProfile) onPreset;
+  final VoidCallback showSettings;
 
   @override
   Widget build(BuildContext context) {
@@ -158,108 +272,237 @@ class _HomeScreen extends StatelessWidget {
     final state = AppScope.of(context);
     return Scaffold(
       body: SafeArea(
-        child: ListView(
-            padding: const EdgeInsets.fromLTRB(20, 28, 20, 24),
-            children: [
-              GestureDetector(
-                behavior: HitTestBehavior.opaque,
-                onTap: () => onCalibrate(false),
-                onLongPress: () => onCalibrate(false),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    Text(
-                      'Access layer',
-                      style: TextStyle(
-                        fontSize: 32,
-                        fontWeight: FontWeight.w800,
-                        color: scheme.onSurface,
-                      ),
+        child: Stack(
+          children: [
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                const SizedBox(height: 56),
+                Flexible(
+                  child: SingleChildScrollView(
+                    padding: const EdgeInsets.fromLTRB(20, 0, 20, 12),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        Wrap(
+                          spacing: 8,
+                          runSpacing: 8,
+                          crossAxisAlignment: WrapCrossAlignment.center,
+                          children: [
+                            OutlinedButton(
+                              onPressed: () => onCalibrate(true),
+                              child: const Text(
+                                'Someone is helping set this up',
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                            FilterChip(
+                              label: const Text('High contrast'),
+                              selected: state.highContrast,
+                              onSelected: state.setHighContrast,
+                            ),
+                            FilterChip(
+                              label: Text(
+                                state.locale == 'ml' ? 'മലയാളം' : 'English',
+                              ),
+                              selected: true,
+                              onSelected: (_) => state.setLocale(
+                                state.locale == 'en' ? 'ml' : 'en',
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 16),
+                        Text(
+                          'Set up how you control things',
+                          style: TextStyle(
+                            fontSize: 26,
+                            fontWeight: FontWeight.w800,
+                            color: scheme.onSurface,
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          'There is no pass or fail. Tap or hold the block '
+                          'below when you are ready.',
+                          style: TextStyle(
+                            color: scheme.onSurfaceVariant,
+                            height: 1.35,
+                          ),
+                        ),
+                        const SizedBox(height: 12),
+                        RecordedNarration(
+                          clipId: 'welcome',
+                          locale: state.locale,
+                          autoplay: true,
+                        ),
+                      ],
                     ),
-                    const SizedBox(height: 6),
-                    Text(
-                      'Tap or hold this block to start. There is no small '
-                      'button to find first.',
-                      style: TextStyle(
-                          color: scheme.onSurfaceVariant, height: 1.4),
-                    ),
-                    const SizedBox(height: 16),
-                    RecordedNarration(
-                      clipId: 'welcome',
-                      locale: state.locale,
-                    ),
-                    const SizedBox(height: 20),
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 28, vertical: 36),
-                      decoration: BoxDecoration(
-                        color: scheme.primary,
-                        borderRadius: BorderRadius.circular(18),
-                      ),
-                      alignment: Alignment.center,
-                      child: Text(
-                        'Tap anywhere to start',
-                        style: TextStyle(
-                          fontSize: 20,
-                          fontWeight: FontWeight.w700,
-                          color: scheme.onPrimary,
+                  ),
+                ),
+                Expanded(
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
+                    child: GestureDetector(
+                      behavior: HitTestBehavior.opaque,
+                      onTap: () => onCalibrate(false),
+                      onLongPress: () => onCalibrate(false),
+                      child: DecoratedBox(
+                        decoration: BoxDecoration(
+                          color: scheme.primary,
+                          borderRadius: BorderRadius.circular(18),
+                        ),
+                        child: Center(
+                          child: Text(
+                            'Tap anywhere to start',
+                            textAlign: TextAlign.center,
+                            style: TextStyle(
+                              fontSize: 22,
+                              fontWeight: FontWeight.w800,
+                              color: scheme.onPrimary,
+                            ),
+                          ),
                         ),
                       ),
                     ),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 16),
-              SizedBox(
-                height: 56,
-                child: OutlinedButton(
-                  onPressed: () => onCalibrate(true),
-                  child: const Text(
-                    'Someone is helping set this up',
-                    textAlign: TextAlign.center,
-                    overflow: TextOverflow.ellipsis,
-                    style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
                   ),
                 ),
-              ),
-              const SizedBox(height: 18),
-              Row(
-                children: [
-                  Expanded(
-                    child: FilterChip(
-                      label: const Text('High contrast'),
-                      selected: state.highContrast,
-                      onSelected: state.setHighContrast,
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  FilterChip(
-                    label: Text(state.locale == 'ml' ? 'മലയാളം' : 'English'),
-                    selected: true,
-                    onSelected: (_) => state.setLocale(
-                      state.locale == 'en' ? 'ml' : 'en',
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 28),
-              Text(
-                'OR START FROM A SAVED PROFILE',
-                style: TextStyle(
-                  fontSize: 11,
-                  letterSpacing: 1.4,
-                  fontWeight: FontWeight.w800,
-                  color: scheme.primary,
-                ),
-              ),
-              const SizedBox(height: 12),
-              for (final p in ProfilePresets.all)
-                Padding(
-                  padding: const EdgeInsets.only(bottom: 10),
-                  child: _PresetCard(profile: p, onTap: () => onPreset(p)),
-                ),
-            ],
+              ],
+            ),
+            Positioned(
+              top: 8,
+              right: 8,
+              child: _SettingsCircle(onPressed: showSettings),
+            ),
+          ],
         ),
+      ),
+    );
+  }
+}
+
+class _SettingsCircle extends StatelessWidget {
+  const _SettingsCircle({required this.onPressed});
+
+  final VoidCallback onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return Material(
+      color: scheme.surfaceContainerHighest,
+      shape: const CircleBorder(),
+      elevation: 2,
+      child: InkWell(
+        customBorder: const CircleBorder(),
+        onTap: onPressed,
+        child: SizedBox(
+          width: 48,
+          height: 48,
+          child: Icon(Icons.settings, size: 22, color: scheme.onSurface),
+        ),
+      ),
+    );
+  }
+}
+
+/// Demo / judge controls: presets, contrast, locale, redo, helper training.
+/// Kept out of the first-run path so Setup stays a single tap/hold.
+class _DemoSettingsSheet extends StatelessWidget {
+  const _DemoSettingsSheet({
+    required this.state,
+    required this.onPreset,
+    required this.onRedoSetup,
+    required this.onHelping,
+  });
+
+  final AppState state;
+  final void Function(CapabilityProfile) onPreset;
+  final VoidCallback onRedoSetup;
+  final VoidCallback onHelping;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return SafeArea(
+      child: ListView(
+        shrinkWrap: true,
+        padding: const EdgeInsets.fromLTRB(20, 8, 20, 28),
+        children: [
+          Text(
+            'Settings',
+            style: TextStyle(
+              fontSize: 22,
+              fontWeight: FontWeight.w800,
+              color: scheme.onSurface,
+            ),
+          ),
+          const SizedBox(height: 6),
+          Text(
+            'Demo presets. High contrast and language also sit on Setup, '
+            'above the tap-to-start block.',
+            style: TextStyle(color: scheme.onSurfaceVariant, height: 1.35),
+          ),
+          const SizedBox(height: 16),
+          if (state.setupConfirmed) ...[
+            SizedBox(
+              height: 56,
+              width: double.infinity,
+              child: FilledButton.tonal(
+                onPressed: onRedoSetup,
+                child: const Text('Redo setup'),
+              ),
+            ),
+            const SizedBox(height: 10),
+          ],
+          SizedBox(
+            height: 56,
+            width: double.infinity,
+            child: OutlinedButton(
+              onPressed: onHelping,
+              child: const Text(
+                'Someone is helping set this up',
+                textAlign: TextAlign.center,
+              ),
+            ),
+          ),
+          const SizedBox(height: 18),
+          Row(
+            children: [
+              Expanded(
+                child: FilterChip(
+                  label: const Text('High contrast'),
+                  selected: state.highContrast,
+                  onSelected: state.setHighContrast,
+                ),
+              ),
+              const SizedBox(width: 8),
+              FilterChip(
+                label: Text(state.locale == 'ml' ? 'മലയാളം' : 'English'),
+                selected: true,
+                onSelected: (_) => state.setLocale(
+                  state.locale == 'en' ? 'ml' : 'en',
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 24),
+          Text(
+            'OR START FROM A SAVED PROFILE',
+            style: TextStyle(
+              fontSize: 11,
+              letterSpacing: 1.4,
+              fontWeight: FontWeight.w800,
+              color: scheme.primary,
+            ),
+          ),
+          const SizedBox(height: 12),
+          for (final p in ProfilePresets.all)
+            Padding(
+              padding: const EdgeInsets.only(bottom: 10),
+              child: _PresetCard(profile: p, onTap: () => onPreset(p)),
+            ),
+        ],
       ),
     );
   }

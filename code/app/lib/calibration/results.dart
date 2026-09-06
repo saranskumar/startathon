@@ -61,6 +61,7 @@ class _CalibrationResultsState extends State<CalibrationResults> {
     final scheme = Theme.of(context).colorScheme;
     final scale = profile.vision.textScale;
     final haiku = profile.haikuTheme;
+    final target = profile.minTargetSize.clamp(56.0, 120.0);
 
     return SafeArea(
       child: Column(
@@ -83,7 +84,8 @@ class _CalibrationResultsState extends State<CalibrationResults> {
                     const SizedBox(height: 4),
                     Text(
                       'Nothing here is a diagnosis. It is what the tests measured, '
-                      'and it can be redone at any time.',
+                      'and it can be redone at any time. This report already uses '
+                      'your measured size and field.',
                       style: TextStyle(
                         fontSize: 13 * scale,
                         color: scheme.onSurfaceVariant,
@@ -96,7 +98,7 @@ class _CalibrationResultsState extends State<CalibrationResults> {
           ),
           Padding(
             padding: const EdgeInsets.fromLTRB(16, 4, 16, 0),
-            child: _sectionNav(scheme, scale),
+            child: _sectionNav(scheme, scale, target),
           ),
           Expanded(
             child: ListView(
@@ -175,32 +177,55 @@ class _CalibrationResultsState extends State<CalibrationResults> {
           ),
           Padding(
             padding: const EdgeInsets.fromLTRB(20, 8, 20, 18),
-            child: Row(
-              children: [
-                Expanded(
-                  child: SizedBox(
-                    height: 64,
-                    child: OutlinedButton(
-                      onPressed: widget.onRedo,
-                      child: Text('Redo',
-                          style: TextStyle(fontSize: 17 * scale)),
-                    ),
+            child: target >= 96
+                ? Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      SizedBox(
+                        height: target,
+                        child: FilledButton(
+                          onPressed: widget.onUse,
+                          child: Text('Use this setup',
+                              style: TextStyle(fontSize: 17 * scale)),
+                        ),
+                      ),
+                      const SizedBox(height: 10),
+                      SizedBox(
+                        height: target,
+                        child: OutlinedButton(
+                          onPressed: widget.onRedo,
+                          child: Text('Redo',
+                              style: TextStyle(fontSize: 17 * scale)),
+                        ),
+                      ),
+                    ],
+                  )
+                : Row(
+                    children: [
+                      Expanded(
+                        child: SizedBox(
+                          height: target,
+                          child: OutlinedButton(
+                            onPressed: widget.onRedo,
+                            child: Text('Redo',
+                                style: TextStyle(fontSize: 17 * scale)),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        flex: 2,
+                        child: SizedBox(
+                          height: target,
+                          child: FilledButton(
+                            onPressed: widget.onUse,
+                            child: Text('Use this setup',
+                                style: TextStyle(fontSize: 17 * scale)),
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  flex: 2,
-                  child: SizedBox(
-                    height: 64,
-                    child: FilledButton(
-                      onPressed: widget.onUse,
-                      child: Text('Use this setup',
-                          style: TextStyle(fontSize: 17 * scale)),
-                    ),
-                  ),
-                ),
-              ],
-            ),
           ),
         ],
       ),
@@ -210,7 +235,7 @@ class _CalibrationResultsState extends State<CalibrationResults> {
   /// Four large, always-visible buttons -- not a swipeable tab strip, so
   /// jumping to a section is one direct tap, sized and reachable the same
   /// way every other control in this app is.
-  Widget _sectionNav(ColorScheme scheme, double scale) => Wrap(
+  Widget _sectionNav(ColorScheme scheme, double scale, double target) => Wrap(
         spacing: 8,
         runSpacing: 8,
         children: [
@@ -219,7 +244,7 @@ class _CalibrationResultsState extends State<CalibrationResults> {
               onTap: () => setState(() => _section = s),
               borderRadius: BorderRadius.circular(14),
               child: Container(
-                constraints: const BoxConstraints(minHeight: 44),
+                constraints: BoxConstraints(minHeight: target.clamp(44.0, 72.0)),
                 padding:
                     const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
                 decoration: BoxDecoration(

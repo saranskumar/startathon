@@ -82,3 +82,13 @@ Future<void> teardownTree(WidgetTester tester) async {
   await tester.pumpWidget(const SizedBox.shrink());
   await tester.pump(const Duration(milliseconds: 50));
 }
+
+/// Hold on [finder] long enough for a [HoldFill] (1.5s) to complete under
+/// the fake clock. Used by the axis picker (issue #7) and similar holds.
+Future<void> holdToConfirm(WidgetTester tester, Finder finder) async {
+  final gesture = await tester.startGesture(tester.getCenter(finder));
+  await tester.pump();
+  await tester.pump(const Duration(milliseconds: 1550));
+  await gesture.up();
+  await tester.pump();
+}
