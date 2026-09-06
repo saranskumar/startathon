@@ -23,6 +23,7 @@ Traceability map. Every fact in `outline.md` / `demo-clips.md` / `slides.html` i
 | Desktop: Playwright + ranking + act + zooming navigator; no LLM | [code/desktop/README.md](../../code/desktop/README.md) | slide 4 |
 | Primary demo = mocks; Google Form secondary | [28](../../docs/idea/28-meeting-notes-scope-lock-no-ai.md) §2 | slide 4, demo notes |
 | Speech simulated; phone unwired | [code/app/README.md](../../code/app/README.md); [docs/app/01-feature-inventory.md](../../docs/app/01-feature-inventory.md) | slides 4–5, demo |
+| If speech is added: hosted general ASR, not a fine-tuned dysarthric model, during event-scale build | [docs/tech/research/11-voice-accessibility-viability.md](../../docs/tech/research/11-voice-accessibility-viability.md) §9, §13 | slide 5 |
 | Formal user-beta of the built app is planned, not done | [16](../../docs/idea/16-canvas-submission.md) | slide 5 |
 | Confirmation must not become constant interruption | [11](../../docs/idea/11-risks.md) | slide 5 |
 

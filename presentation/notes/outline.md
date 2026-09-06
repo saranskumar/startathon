@@ -86,7 +86,7 @@ Do not say: TAM, competitor tables, architecture diagrams, library lists, open-s
 |---|---|
 | Proven | KAI can measure a profile and reshape the same task to match the user. A real page can be ranked without an AI agent. The assumption that AI would solve the user’s problem did not hold. |
 | Uncertain | Whether the user can complete more tasks independently than with WhatsApp, Assistant, and a caregiver. Whether real speech recognition works for the user. |
-| Next week | Wire the phone to the desktop. Put KAI in front of the user. Decide whether to add a real speech package. |
+| Next week | Wire the phone to the desktop. Put KAI in front of the user. If we add real speech, it is a hosted recognizer, not a trained model. |
 | To be useful | The user must reach apps currently abandoned or handed off, without confirmation becoming constant interruption, on ordinary websites—not only our mocks. |
 
 **Say:** We proved the input layer and the ranking. We have not yet proved KAI with the user on a live site. That is the next test.

@@ -27,6 +27,7 @@ class TextTaskView extends StatefulWidget {
     required this.onResolve,
     required this.onRaw,
     required this.onNote,
+    this.suggestions,
   });
 
   final CapabilityProfile profile;
@@ -39,6 +40,9 @@ class TextTaskView extends StatefulWidget {
   /// raw movement.
   final void Function(String note) onNote;
 
+  /// Authored phrases for this field. Falls back to the demo defaults.
+  final List<String>? suggestions;
+
   @override
   State<TextTaskView> createState() => _TextTaskViewState();
 }
@@ -46,12 +50,18 @@ class TextTaskView extends StatefulWidget {
 class _TextTaskViewState extends State<TextTaskView> {
   /// Context-predictive phrases -- the "context-based text input" idea from
   /// docs/idea/20, and the fallback whenever dictation is not available.
-  static const _suggestions = <String>[
+  static const _defaults = <String>[
     'Leave it at the front desk',
     'Ring the bell twice',
     'Call me when you arrive',
     'Leave it with a neighbour',
   ];
+
+  List<String> get _suggestions {
+    final extra = widget.suggestions;
+    if (extra == null || extra.isEmpty) return _defaults;
+    return extra;
+  }
 
   final SpeechSource _speech = SimulatedSpeechSource();
 

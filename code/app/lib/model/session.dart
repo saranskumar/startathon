@@ -176,6 +176,36 @@ class TrialCollector {
 /// The two demo profiles from docs/idea/06-user-model.md, used by the profile
 /// switch so the interface can be reshaped live without re-running calibration.
 class ProfilePresets {
+  /// Committed default from a pre-demo calibration run. A fresh browser or
+  /// redeploy still comes up with this — local storage is only an override.
+  static CapabilityProfile get calibrated => CapabilityProfile(
+        label: 'Calibrated (default)',
+        methodScores: const {
+          TouchMethod.buttons: MethodScore(
+              successRate: 0.95, timeNormalized: 0.22, errorNormalized: 0.12,
+              attempts: 6),
+          TouchMethod.joystick: MethodScore(
+              successRate: 0.88, timeNormalized: 0.38, errorNormalized: 0.22,
+              attempts: 4),
+          TouchMethod.trackpad: MethodScore(
+              successRate: 0.9, timeNormalized: 0.32, errorNormalized: 0.18,
+              attempts: 4),
+          TouchMethod.switchScan: MethodScore(
+              successRate: 0.85, timeNormalized: 0.72, errorNormalized: 0.22,
+              attempts: 4),
+        },
+        reachableCells: {for (var i = 0; i < 12; i++) i},
+        lockedCells: {for (var i = 3; i < 12; i++) i},
+        minTargetSize: 64,
+        steadiness: 0.82,
+        holdCapable: true,
+        tappableButtonCount: 6,
+        holdableButtonCount: 4,
+        clarity: SpeechClarity.full,
+        vision: VisionMode.screen,
+        inputLevel: InputLevel.many,
+      );
+
   static CapabilityProfile get profileA => CapabilityProfile(
         label: 'Profile A (precise touch, clear speech)',
         methodScores: const {
@@ -260,7 +290,8 @@ class ProfilePresets {
         inputLevel: InputLevel.one,
       );
 
-  static List<CapabilityProfile> get all => [profileA, profileB, profileFloor];
+  static List<CapabilityProfile> get all =>
+      [calibrated, profileA, profileB, profileFloor];
 }
 
 /// Small helpers shared by the input surfaces.

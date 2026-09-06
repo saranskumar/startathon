@@ -149,6 +149,20 @@ class MethodScore {
       0.2 * (1 - errorNormalized);
 
   bool get tested => attempts > 0;
+
+  Map<String, dynamic> toJson() => {
+        'successRate': successRate,
+        'timeNormalized': timeNormalized,
+        'errorNormalized': errorNormalized,
+        'attempts': attempts,
+      };
+
+  factory MethodScore.fromJson(Map<String, dynamic> j) => MethodScore(
+        successRate: (j['successRate'] as num?)?.toDouble() ?? 0,
+        timeNormalized: (j['timeNormalized'] as num?)?.toDouble() ?? 1,
+        errorNormalized: (j['errorNormalized'] as num?)?.toDouble() ?? 1,
+        attempts: (j['attempts'] as num?)?.toInt() ?? 0,
+      );
 }
 
 /// docs/idea/02-core-model.md 2.3 -- the one object everything runs off.
@@ -456,5 +470,82 @@ class CapabilityProfile {
         '| vision ${vision.label} ${visualField.label} '
         '| level ${inputLevel.label}'
         '${vocabulary.isEmpty ? '' : ' | vocab ${vocabulary.length}'}';
+  }
+
+  Map<String, dynamic> toJson() => {
+        'label': label,
+        'methodScores': {
+          for (final e in methodScores.entries) e.key.name: e.value.toJson(),
+        },
+        'reachableCells': reachableCells.toList(),
+        'lockedCells': lockedCells.toList(),
+        'minTargetSize': minTargetSize,
+        'steadiness': steadiness,
+        'holdCapable': holdCapable,
+        'tappableButtonCount': tappableButtonCount,
+        'holdableButtonCount': holdableButtonCount,
+        'clarity': clarity.name,
+        'vision': vision.name,
+        'visualField': visualField.name,
+        'inputLevel': inputLevel.name,
+        'vocabulary': vocabulary,
+        'locale': locale,
+        'measureMotor': measureMotor,
+        'measureSpeech': measureSpeech,
+        'measureVision': measureVision,
+        'joystickHomeCell': joystickHomeCell,
+      };
+
+  factory CapabilityProfile.fromJson(Map<String, dynamic> j) {
+    final rawScores = (j['methodScores'] as Map?)?.cast<String, dynamic>() ?? {};
+    final scores = <TouchMethod, MethodScore>{
+      for (final m in TouchMethod.values)
+        m: rawScores[m.name] is Map
+            ? MethodScore.fromJson(
+                (rawScores[m.name] as Map).cast<String, dynamic>(),
+              )
+            : const MethodScore.untested(),
+    };
+    return CapabilityProfile(
+      label: j['label'] as String? ?? 'Calibrated',
+      methodScores: scores,
+      reachableCells: {
+        for (final n in (j['reachableCells'] as List? ?? const []))
+          (n as num).toInt(),
+      },
+      lockedCells: {
+        for (final n in (j['lockedCells'] as List? ?? const []))
+          (n as num).toInt(),
+      },
+      minTargetSize: (j['minTargetSize'] as num?)?.toDouble() ?? 96,
+      steadiness: (j['steadiness'] as num?)?.toDouble() ?? 0.5,
+      holdCapable: j['holdCapable'] as bool? ?? false,
+      tappableButtonCount: (j['tappableButtonCount'] as num?)?.toInt() ?? 0,
+      holdableButtonCount: (j['holdableButtonCount'] as num?)?.toInt() ?? 0,
+      clarity: SpeechClarity.values.firstWhere(
+        (v) => v.name == j['clarity'],
+        orElse: () => SpeechClarity.none,
+      ),
+      vision: VisionMode.values.firstWhere(
+        (v) => v.name == j['vision'],
+        orElse: () => VisionMode.screen,
+      ),
+      visualField: VisualField.values.firstWhere(
+        (v) => v.name == j['visualField'],
+        orElse: () => VisualField.full,
+      ),
+      inputLevel: InputLevel.values.firstWhere(
+        (v) => v.name == j['inputLevel'],
+        orElse: () => InputLevel.one,
+      ),
+      vocabulary: [
+        for (final w in (j['vocabulary'] as List? ?? const [])) w.toString(),
+      ],
+      locale: j['locale'] as String? ?? 'en',
+      measureMotor: j['measureMotor'] as bool? ?? true,
+      measureSpeech: j['measureSpeech'] as bool? ?? true,
+      measureVision: j['measureVision'] as bool? ?? true,
+      joystickHomeCell: (j['joystickHomeCell'] as num?)?.toInt(),
+    );
   }
 }

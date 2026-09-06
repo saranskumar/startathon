@@ -9,9 +9,11 @@
     "aux": "node src/auxCli.js",
     "snapshot": "node src/snapshot.js",
     "train": "node src/trainRanking.js",
-    "test": "node --test test/*.test.js"
+    "test": "node --test test/*.test.js",
+    "relay": "node src/relay.js"
   },
   "dependencies": {
-    "playwright": "^1.48.0"
+    "playwright": "^1.48.0",
+    "ws": "^8.21.3"
   }
 }
