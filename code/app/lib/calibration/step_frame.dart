@@ -1,6 +1,26 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
 import '../model/profile.dart';
+
+/// One button [ButtonsStep] placed and confirmed as tappable, carried forward
+/// so [HoldStep] can re-visit the exact same spot instead of an arbitrary one
+/// -- see docs/idea/30 §8 ("5 tappable, 2 also holdable -> 7 usable inputs").
+class ButtonTarget {
+  ButtonTarget({required this.cell, required this.size, required this.placement});
+
+  /// Reach-grid cell index the button sat in -- informational parity with
+  /// [CalibrationDraft.reachableCells], not read by [HoldStep] directly.
+  final int cell;
+  final double size;
+  final Alignment placement;
+
+  /// null = not yet tested by [HoldStep] (including "step was skipped before
+  /// reaching this button"); true/false = tested result. Nullable so an
+  /// untested button never reads as a failed one, same rule as
+  /// [CalibrationDraft.skipped].
+  bool? holdable;
+}
 
 /// What the calibration steps write into as they run. Turned into a
 /// [CapabilityProfile] by the results step.
@@ -9,6 +29,14 @@ class CalibrationDraft {
     for (final m in TouchMethod.values) m: const MethodScore.untested(),
   };
   final Set<int> reachableCells = <int>{};
+
+  /// Subset of [reachableCells] confirmed by a second tap during the Reach
+  /// step (see [ReachStep]) rather than left as a one-tap tentative guess.
+  final Set<int> lockedCells = <int>{};
+
+  /// Buttons [ButtonsStep] confirmed as tappable, in placement order --
+  /// [HoldStep] tests hold on each of these rather than one arbitrary spot.
+  final List<ButtonTarget> tappableButtons = <ButtonTarget>[];
 
   double minTargetSize = 96;
   double steadiness = 0.5;
@@ -54,6 +82,10 @@ class CalibrationDraft {
   CapabilityProfile build() => CapabilityProfile(
         methodScores: Map.of(scores),
         reachableCells: Set.of(reachableCells),
+        lockedCells: Set.of(lockedCells),
+        tappableButtonCount: tappableButtons.length,
+        holdableButtonCount:
+            tappableButtons.where((t) => t.holdable == true).length,
         minTargetSize: minTargetSize,
         steadiness: steadiness,
         holdCapable: holdCapable,
@@ -98,6 +130,7 @@ class StepFrame extends StatelessWidget {
     this.textScale = 1.0,
     this.minTargetSize = 56,
     this.footer,
+    this.elapsedFraction,
   });
 
   final String title;
@@ -118,6 +151,11 @@ class StepFrame extends StatelessWidget {
   /// Skip / Back control height follows what buttons calibration measured.
   final double minTargetSize;
   final Widget? footer;
+
+  /// 0.0..1.0 through this *step's own* timed window (a per-round timeout,
+  /// an idle-reset window), independent of the step-of-total bar above --
+  /// see [TimedCue]. Null when the step has no timed window of its own.
+  final ValueListenable<double>? elapsedFraction;
 
   @override
   Widget build(BuildContext context) {
@@ -160,6 +198,21 @@ class StepFrame extends StatelessWidget {
                   minHeight: 6,
                 ),
               ),
+              if (elapsedFraction != null) ...[
+                const SizedBox(height: 4),
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(3),
+                  child: ValueListenableBuilder<double>(
+                    valueListenable: elapsedFraction!,
+                    builder: (context, value, _) => LinearProgressIndicator(
+                      value: value,
+                      minHeight: 3,
+                      color: scheme.tertiary,
+                      backgroundColor: scheme.surfaceContainerHighest,
+                    ),
+                  ),
+                ),
+              ],
               const SizedBox(height: 14),
               Text(
                 instruction,

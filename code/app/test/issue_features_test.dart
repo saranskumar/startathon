@@ -605,7 +605,10 @@ void main() {
 
       await tester.tap(find.text('Skip this test'));
       await tester.pump();
-      expect(find.text('Joystick'), findsOneWidget);
+      // Order is Reach -> Buttons -> Hold -> Joystick -> Trackpad (GH #9) --
+      // Hold follows Buttons directly so it can test hold on the same
+      // buttons Buttons just confirmed tappable.
+      expect(find.text('Touch and hold'), findsOneWidget);
 
       await tester.tap(find.text('Back'));
       await tester.pump();

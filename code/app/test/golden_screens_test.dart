@@ -92,18 +92,18 @@ void main() {
       '04-buttons',
     );
     await step(
+      HoldStep(draft: draft, index: 2, total: 7, onNext: () {}, onSkip: () {}),
+      '05-hold',
+    );
+    await step(
       JoystickStep(
-          draft: draft, index: 2, total: 7, onNext: () {}, onSkip: () {}),
-      '05-joystick',
+          draft: draft, index: 3, total: 7, onNext: () {}, onSkip: () {}),
+      '06-joystick',
     );
     await step(
       TrackpadStep(
-          draft: draft, index: 3, total: 7, onNext: () {}, onSkip: () {}),
-      '06-trackpad',
-    );
-    await step(
-      HoldStep(draft: draft, index: 4, total: 7, onNext: () {}, onSkip: () {}),
-      '07-hold',
+          draft: draft, index: 4, total: 7, onNext: () {}, onSkip: () {}),
+      '07-trackpad',
     );
     await step(
       VoiceStep(draft: draft, index: 5, total: 7, onNext: () {}, onSkip: () {}),
