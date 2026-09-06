@@ -28,6 +28,7 @@ class DiscreteTaskView extends StatefulWidget {
     required this.options,
     required this.onResolve,
     required this.onRaw,
+    this.onHighlight,
   });
 
   final CapabilityProfile profile;
@@ -35,6 +36,10 @@ class DiscreteTaskView extends StatefulWidget {
   final List<String> options;
   final void Function(int index, String value) onResolve;
   final void Function(String raw) onRaw;
+
+  /// Fired when the highlight moves, so a live laptop overlay can follow
+  /// without waiting for the act.
+  final void Function(int index, String value)? onHighlight;
 
   @override
   State<DiscreteTaskView> createState() => _DiscreteTaskViewState();
@@ -54,6 +59,14 @@ class _DiscreteTaskViewState extends State<DiscreteTaskView> {
     super.initState();
     _repeater = HoldRepeater(_stepFromDirection);
     if (widget.method == TouchMethod.switchScan) _startScan();
+    WidgetsBinding.instance.addPostFrameCallback((_) => _emitHighlight());
+  }
+
+  void _emitHighlight() {
+    final cb = widget.onHighlight;
+    if (cb == null || widget.options.isEmpty) return;
+    final i = _highlight.clamp(0, widget.options.length - 1);
+    cb(i, widget.options[i]);
   }
 
   @override
@@ -150,11 +163,13 @@ class _DiscreteTaskViewState extends State<DiscreteTaskView> {
     if (action == VocabMapping.next) {
       setState(() => _highlight = (_highlight + 1) % widget.options.length);
       _announce(widget.options[_highlight]);
+      _emitHighlight();
       widget.onRaw('vocab next -> ${widget.options[_highlight]}');
     } else if (action == VocabMapping.previous) {
       setState(() => _highlight =
           (_highlight - 1 + widget.options.length) % widget.options.length);
       _announce(widget.options[_highlight]);
+      _emitHighlight();
       widget.onRaw('vocab previous -> ${widget.options[_highlight]}');
     } else if (action == VocabMapping.select) {
       _resolve(_highlight);
@@ -174,6 +189,7 @@ class _DiscreteTaskViewState extends State<DiscreteTaskView> {
           (_highlight + delta + widget.options.length) % widget.options.length;
     });
     _announce(widget.options[_highlight]);
+    _emitHighlight();
     widget.onRaw('$dir -> ${widget.options[_highlight]}');
   }
 
@@ -332,6 +348,7 @@ class _DiscreteTaskViewState extends State<DiscreteTaskView> {
     if (i == _highlight) return;
     setState(() => _highlight = i);
     _announce(widget.options[i]);
+    _emitHighlight();
     widget.onRaw('hover -> ${widget.options[i]}');
   }
 

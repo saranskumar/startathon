@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 
 import 'calibration/calibration_flow.dart';
+import 'live/live_screen.dart';
+import 'live/live_store.dart';
 import 'model/profile.dart';
 import 'model/session.dart';
 import 'onboarding/recorded_voice.dart';
@@ -24,7 +26,7 @@ class AccessLayerApp extends StatefulWidget {
   State<AccessLayerApp> createState() => _AccessLayerAppState();
 }
 
-enum _Screen { start, home, calibrate, preview, demo }
+enum _Screen { start, home, calibrate, preview, demo, live }
 
 class _AccessLayerAppState extends State<AccessLayerApp> {
   final AppState _state = AppState();
@@ -57,6 +59,7 @@ class _AccessLayerAppState extends State<AccessLayerApp> {
 
   void _use(CapabilityProfile p) {
     _state.setProfile(p, confirm: true);
+    LiveStore.saveProfile(p);
     setState(() {
       _liveTheme = p.haikuTheme;
       _screen = _Screen.preview;
@@ -108,6 +111,7 @@ class _AccessLayerAppState extends State<AccessLayerApp> {
       showDragHandle: true,
       builder: (ctx) => _DemoSettingsSheet(
         state: _state,
+        calibrated: ProfilePresets.calibrated,
         onPreset: (p) {
           Navigator.pop(ctx);
           _use(p);
@@ -171,6 +175,8 @@ class _AccessLayerAppState extends State<AccessLayerApp> {
                         InputPreviewScreen(
                           onContinue: () =>
                               setState(() => _screen = _Screen.demo),
+                          onConnect: () =>
+                              setState(() => _screen = _Screen.live),
                           onRecalibrate: _redoSetup,
                         ),
                         Positioned(
@@ -185,6 +191,22 @@ class _AccessLayerAppState extends State<AccessLayerApp> {
                   _Screen.demo => Stack(
                       children: [
                         DemoScreen(
+                          onRecalibrate: _redoSetup,
+                          onOpenPreview: () =>
+                              setState(() => _screen = _Screen.preview),
+                        ),
+                        Positioned(
+                          top: MediaQuery.paddingOf(context).top + 8,
+                          right: 8,
+                          child: _SettingsCircle(
+                            onPressed: () => _openSettings(context),
+                          ),
+                        ),
+                      ],
+                    ),
+                  _Screen.live => Stack(
+                      children: [
+                        LiveScreen(
                           onRecalibrate: _redoSetup,
                           onOpenPreview: () =>
                               setState(() => _screen = _Screen.preview),
@@ -411,12 +433,14 @@ class _SettingsCircle extends StatelessWidget {
 class _DemoSettingsSheet extends StatelessWidget {
   const _DemoSettingsSheet({
     required this.state,
+    required this.calibrated,
     required this.onPreset,
     required this.onRedoSetup,
     required this.onHelping,
   });
 
   final AppState state;
+  final CapabilityProfile calibrated;
   final void Function(CapabilityProfile) onPreset;
   final VoidCallback onRedoSetup;
   final VoidCallback onHelping;
@@ -497,7 +521,21 @@ class _DemoSettingsSheet extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 12),
-          for (final p in ProfilePresets.all)
+          FutureBuilder<CapabilityProfile?>(
+            future: LiveStore.loadProfile(),
+            builder: (context, snap) {
+              final p = snap.data ?? calibrated;
+              return Padding(
+                padding: const EdgeInsets.only(bottom: 10),
+                child: _PresetCard(profile: p, onTap: () => onPreset(p)),
+              );
+            },
+          ),
+          for (final p in [
+            ProfilePresets.profileA,
+            ProfilePresets.profileB,
+            ProfilePresets.profileFloor,
+          ])
             Padding(
               padding: const EdgeInsets.only(bottom: 10),
               child: _PresetCard(profile: p, onTap: () => onPreset(p)),
