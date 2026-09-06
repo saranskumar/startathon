@@ -68,7 +68,7 @@ void main() {
             onNext: () {},
             onSkip: () {},
           ),
-          'Try to tap the highlighted square.',
+          'Try to tap every square you can reach. Tap it again to confirm.',
         ),
         (
           JoystickStep(

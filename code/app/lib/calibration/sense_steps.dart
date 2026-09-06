@@ -6,6 +6,7 @@ import '../inputs/voice.dart';
 import '../inputs/voice_vocab.dart';
 import '../model/profile.dart';
 import '../runtime/dock.dart';
+import '../runtime/discrete_view.dart';
 import 'step_frame.dart';
 import 'touch_steps.dart' show CalibrationStep;
 
@@ -112,6 +113,48 @@ class _VoiceStepState extends State<VoiceStep> {
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
     final r = _result;
+    // Confirming a captured utterance is sequenced *after* recording, not
+    // shown alongside the mic dock -- both want the same InputOverlay dock
+    // slot, and this way the confirm choice itself routes through whatever
+    // input method motor calibration already found instead of needing a
+    // small always-visible tap chip. See GH #11 / docs/idea/30 §10.
+    if (r != null) {
+      final profile = widget.draft.build();
+      return StepFrame(
+        title: 'Voice',
+        instruction: 'Did "${_current.target}" land?',
+        status: 'heard: ${r.transcript.isEmpty ? "(no words)" : r.transcript}',
+        index: widget.index,
+        total: widget.total,
+        textScale: widget.textScale,
+        onSkip: () {
+          widget.draft.skipped.add('voice');
+          widget.draft.clarity = SpeechClarity.none;
+          widget.draft.vocabulary = const [];
+          widget.onSkip();
+        },
+        child: Column(
+          children: [
+            Padding(
+              padding: const EdgeInsets.all(16),
+              child: _resultCard(scheme, r),
+            ),
+            Expanded(
+              child: DiscreteTaskView(
+                profile: profile,
+                method: profile.bestMethod,
+                options: const ['That word was clear', 'Not this one'],
+                onResolve: (i, _) {
+                  _markLanded(i == 0);
+                  setState(() => _result = null);
+                },
+                onRaw: (_) {},
+              ),
+            ),
+          ],
+        ),
+      );
+    }
     return StepFrame(
       title: 'Voice',
       instruction: 'Try to say: "${_current.sentence}"',
@@ -159,24 +202,6 @@ class _VoiceStepState extends State<VoiceStep> {
                 'Your words so far: ${_landed.isEmpty ? 'none yet' : _landed.join(', ')}',
                 style: TextStyle(color: scheme.primary, fontWeight: FontWeight.w700),
               ),
-              const SizedBox(height: 10),
-              Wrap(
-                spacing: 8,
-                children: [
-                  ActionChip(
-                    label: const Text('That word was clear'),
-                    onPressed: () => _markLanded(true),
-                  ),
-                  ActionChip(
-                    label: const Text('Not this one'),
-                    onPressed: () => _markLanded(false),
-                  ),
-                ],
-              ),
-              if (r != null) ...[
-                const SizedBox(height: 12),
-                _resultCard(scheme, r),
-              ],
               const SizedBox(height: 18),
               _simulationControls(scheme),
             ],
@@ -405,6 +430,12 @@ class _VisionStepState extends State<VisionStep> {
 
   @override
   Widget build(BuildContext context) {
+    // By the time Vision runs, every motor step has already resolved --
+    // route both of this step's choices through whatever input method that
+    // measured, rather than a fixed set of plain tap buttons. See GH #11 /
+    // docs/idea/30 §10.
+    final profile = widget.draft.build();
+    final method = profile.bestMethod;
     if (_pickingField) {
       return StepFrame(
         title: 'Vision',
@@ -416,22 +447,14 @@ class _VisionStepState extends State<VisionStep> {
         minTargetSize: widget.draft.minTargetSize,
         onBack: widget.onBack,
         onSkip: () => _commitField(VisualField.full),
-        child: ListView(
-          padding: const EdgeInsets.all(16),
-          children: [
-            for (final f in VisualField.values)
-              Padding(
-                padding: const EdgeInsets.only(bottom: 10),
-                child: SizedBox(
-                  height: 76,
-                  child: FilledButton.tonal(
-                    onPressed: () => _commitField(f),
-                    child: Text('${f.label} — ${f.detail}',
-                        maxLines: 2, overflow: TextOverflow.ellipsis),
-                  ),
-                ),
-              ),
+        child: DiscreteTaskView(
+          profile: profile,
+          method: method,
+          options: [
+            for (final f in VisualField.values) '${f.label} — ${f.detail}',
           ],
+          onResolve: (i, _) => _commitField(VisualField.values[i]),
+          onRaw: (_) {},
         ),
       );
     }
@@ -454,9 +477,9 @@ class _VisionStepState extends State<VisionStep> {
       child: Padding(
         padding: const EdgeInsets.all(20),
         child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Expanded(
+              flex: 2,
               child: Center(
                 child: Text(
                   _shown,
@@ -467,17 +490,16 @@ class _VisionStepState extends State<VisionStep> {
                 ),
               ),
             ),
-            for (final c in _choices)
-              Padding(
-                padding: const EdgeInsets.only(bottom: 12),
-                child: SizedBox(
-                  height: 76,
-                  child: FilledButton.tonal(
-                    onPressed: () => _answer(c),
-                    child: Text(c, style: const TextStyle(fontSize: 26)),
-                  ),
-                ),
+            Expanded(
+              flex: 3,
+              child: DiscreteTaskView(
+                profile: profile,
+                method: method,
+                options: _choices,
+                onResolve: (_, value) => _answer(value),
+                onRaw: (_) {},
               ),
+            ),
           ],
         ),
       ),
