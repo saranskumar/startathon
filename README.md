@@ -21,39 +21,30 @@ See [docs/idea/](docs/idea/README.md) for the full concept (problem, model, cali
 
 A guide to what lives where and why — each area has one job, and content doesn't move between them casually (see the "rule for keeping in sync" note in [presentation/README.md](presentation/README.md) for the one place that's explicitly a derived copy, not a source of truth).
 
-```
-.
-├── README.md                 this file — concept + latest-changes log + this map
-├── timestamp.md               auto-updated by CI on every deploy; not hand-edited
-├── docs/                      the product & technical record — source of truth, not pitch material
-│   ├── README.md              2-line pointer into idea/ and tech/
-│   ├── idea/                  the product idea itself, read in numbered order (01 → 27)
-│   │   └── README.md          reading-order index + one-line summary of every doc, incl. v1→v4 history
-│   ├── tech/                  implementation notes: what's decided, assumed, or still open
-│   │   ├── README.md          build-order, decided/assumed/undecided tracker, what's actually built
-│   │   └── research/          deep-dive research briefs (01 → 14), one per component or raised question
-│   │       └── README.md      index + headline verdict per thread
-│   └── desgin/desgin.md        one focused technical spec: how voice/text input is classified
-│                               in code/app (clarity tiers, vocal-event kinds, text compose modes)
-├── code/
-│   ├── app/                   Flutter phone/remote-control app — the input layer
-│   │   ├── lib/                calibration/, inputs/, model/, runtime/, theme/, main.dart
-│   │   ├── test/                unit + golden-screenshot tests (test/goldens/ renders every screen)
-│   │   └── README.md            what's implemented, what's simulated (speech recogniser), design decisions
-│   ├── desktop/                Node/Playwright agent-controlled-browser backend + desktop inspector
-│   │   ├── src/                  domTreeEngine (ranking), browserSession, dasherModel, server/UI
-│   │   ├── test/
-│   │   └── README.md              architecture, API surface, where doc 08's ranking formula was corrected
-│   └── mock/                   "Aperture Daily" — mock target websites the agent/phone demo operates on
-│                               (rail, pay, civic, clinic, shop, mail, plus a pattern lab + demo form)
-├── presentation/              the live pitch deck — separate from docs/, not the source of truth
-│   ├── slides.html             the deck itself
-│   ├── notes/                  outline.md (script), demo-clips.md, sources.md (traces every claim back to docs/)
-│   ├── media/                  image/video assets referenced by slides.html
-│   └── README.md
-├── .github/workflows/         CI: auto-deploy code/mock and code/app to Vercel on push to those folders
-└── .claude/launch.json         dev-server config for the Claude Code browser preview tool (not app config)
-```
+| Path | What's there | Purpose |
+|---|---|---|
+| `README.md` | — | This file: concept, this map, latest-changes log. |
+| `timestamp.md` | — | Auto-updated by CI on every deploy; not hand-edited. |
+| **`docs/`** | | **The product & technical record — source of truth, not pitch material.** |
+| `docs/README.md` | — | 2-line pointer into `idea/` and `tech/`. |
+| `docs/idea/` | 27 numbered docs | The product idea itself, meant to be read in order (01 → 27): problem, model, calibration design, scope, risks, event-submission answers, meeting notes. |
+| `docs/idea/README.md` | — | Reading-order index + one-line summary of every doc, including the v1→v4 concept history. |
+| `docs/tech/` | | Implementation notes: what's decided, assumed, or still open about the actual stack. |
+| `docs/tech/README.md` | — | Build order, decided/assumed/undecided tracker, what's actually built so far. |
+| `docs/tech/research/` | 14 numbered briefs | Deep-dive research (existing solutions, viability, build recommendation) for each component or raised question. |
+| `docs/tech/research/README.md` | — | Index + headline verdict per research thread. |
+| `docs/desgin/desgin.md` | — | One focused technical spec: how voice/text input is classified in `code/app` (clarity tiers, vocal-event kinds, text compose modes). |
+| **`code/`** | | **The actual runnable pieces.** |
+| `code/app/` | `lib/`, `test/`, `README.md` | Flutter phone/remote-control app — the input layer (calibration → capability profile → adaptive runtime). `lib/` splits into `calibration/`, `inputs/`, `model/`, `runtime/`, `theme/`; `test/goldens/` renders every screen. |
+| `code/desktop/` | `src/`, `test/`, `README.md` | Node/Playwright agent-controlled-browser backend + desktop inspector — `domTreeEngine` (ranking), `browserSession`, `dasherModel`, the inspector server/UI. |
+| `code/mock/` | — | "Aperture Daily": mock target websites the agent/phone demo operates on (rail, pay, civic, clinic, shop, mail), plus a pattern lab and demo form. |
+| **`presentation/`** | | **The live pitch deck — separate from `docs/`, not the source of truth.** |
+| `presentation/slides.html` | — | The deck itself. |
+| `presentation/notes/` | `outline.md`, `demo-clips.md`, `sources.md` | Slide-by-slide script, the video-clip shot list, and a traceability map back to the `docs/` claim each slide uses. |
+| `presentation/media/` | — | Image/video assets referenced by `slides.html`. |
+| `presentation/README.md` | — | How this directory stays in sync with `docs/` (it holds copies, never originals). |
+| `.github/workflows/` | — | CI: auto-deploys `code/mock` and `code/app` to Vercel on push to those folders. |
+| `.claude/launch.json` | — | Dev-server config for the Claude Code browser preview tool — not app config. |
 
 **Rule of thumb for "where does this go":**
 - A new idea, requirement, or raised question → a numbered doc in `docs/idea/`, added to its `README.md` index.
