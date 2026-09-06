@@ -2,15 +2,20 @@
 
 The phone side of [docs/idea/07-architecture.md](../../docs/idea/07-architecture.md), and only that side: **calibration produces a capability profile, and the profile decides how every task is operated.** Nothing here talks to an agent, a browser or a laptop. Every resolved intent is written to an on-screen output strip instead of onto a wire, so the input half can be built and judged on its own.
 
-Flutter SDK only — no third-party packages, so `flutter run` works offline.
+Flutter SDK + `web_socket_channel` / `shared_preferences` for the laptop Live link.
 
 ## Run it
 
 ```bash
-flutter run -d chrome     # or: flutter run  (any attached device)
-flutter test              # 32 tests: scoring, the fallback rule, every input pattern
-flutter test --update-goldens test/golden_screens_test.dart   # regenerate test/goldens/*.png
+flutter run -d chrome     # web (loopback relay OK)
+flutter run               # any attached device / emulator
+flutter build apk         # installable phone build (needs laptop LAN IP)
+flutter test
+flutter test --update-goldens test/golden_screens_test.dart
 ```
+
+On a phone APK: Start gate → **Laptop relay** (enter `192.168.x.x:7777`) → Setup.
+Laptop: `cd code/desktop && npm run relay`, open `http://<lan-ip>:7777/rail.html`.
 
 `test/goldens/` holds a rendered screenshot of every screen — the quickest way to see the whole app without a device.
 

@@ -419,9 +419,10 @@ class _LiveScreenState extends State<LiveScreen> {
                   fontSize: 22 * scale, fontWeight: FontWeight.w800)),
           const SizedBox(height: 8),
           Text(
-            'Same room code as the RailLink overlay. Local demo uses the '
-            'relay on port 7777. A hosted mock needs wss:// — plain ws:// '
-            'is blocked on https pages.',
+            'Same room code as the RailLink overlay. On a phone APK use '
+            'the laptop LAN IP (saved at launch). Local web can use '
+            '127.0.0.1:7777. A hosted mock needs wss:// — plain ws:// is '
+            'blocked on https pages.',
             style: TextStyle(
               color: scheme.onSurfaceVariant,
               height: 1.35,
@@ -433,7 +434,7 @@ class _LiveScreenState extends State<LiveScreen> {
             controller: _host,
             decoration: const InputDecoration(
               labelText: 'Relay host',
-              hintText: '127.0.0.1:7777',
+              hintText: LiveStore.hostHint,
               border: OutlineInputBorder(),
             ),
           ),

@@ -1,5 +1,6 @@
 import 'dart:convert';
 
+import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../model/profile.dart';
@@ -12,8 +13,14 @@ class LiveStore {
   static const _roomKey = 'kai.relayRoom';
   static const _profileKey = 'kai.calibratedProfile';
 
-  static const defaultHost = '127.0.0.1:7777';
+  /// Web can talk to the laptop via loopback. A real phone cannot — leave
+  /// blank so the early link screen asks for the laptop's LAN IP.
+  static String get defaultHost => kIsWeb ? '127.0.0.1:7777' : '';
+
   static const defaultRoom = 'DEMO';
+
+  /// Hint shown in empty host fields on mobile.
+  static const hostHint = '192.168.x.x:7777';
 
   static Future<SharedPreferences?> _prefs() async {
     try {
@@ -36,8 +43,8 @@ class LiveStore {
     required String room,
   }) async {
     final p = await _prefs();
-    await p?.setString(_hostKey, host);
-    await p?.setString(_roomKey, room);
+    await p?.setString(_hostKey, host.trim());
+    await p?.setString(_roomKey, room.trim().toUpperCase());
   }
 
   static Future<CapabilityProfile?> loadProfile() async {

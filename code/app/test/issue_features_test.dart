@@ -2,6 +2,7 @@ import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:startathon/calibration/calibration_flow.dart';
 import 'package:startathon/calibration/sense_steps.dart';
 import 'package:startathon/calibration/step_frame.dart';
@@ -17,6 +18,9 @@ import 'package:startathon/vision/field_shell.dart';
 import 'support/harness.dart';
 
 void main() {
+  TestWidgetsFlutterBinding.ensureInitialized();
+  SharedPreferences.setMockInitialValues({});
+
   group('VocabMapping (issue #3 + comment: water/tank/yellow)', () {
     test('small menu maps words onto the options themselves', () {
       final map = VocabMapping.mapWords(
@@ -109,6 +113,10 @@ void main() {
       expect(find.text('OR START FROM A SAVED PROFILE'), findsNothing);
       await tester.tap(find.byKey(const Key('start-gate')));
       await tester.pump();
+      expect(find.byKey(const Key('link-setup')), findsOneWidget);
+      await tester.pump(); // LiveStore.loadLink
+      await tester.tap(find.byKey(const Key('link-skip')));
+      await tester.pump();
       expect(find.text('Set up how you control things'), findsOneWidget);
       await tester.pump(const Duration(seconds: 9));
       await teardownTree(tester);
@@ -120,6 +128,9 @@ void main() {
       await tester.pumpWidget(const AccessLayerApp());
       await tester.pump();
       await tester.tap(find.byKey(const Key('start-gate')));
+      await tester.pump();
+      await tester.pump(); // LiveStore.loadLink
+      await tester.tap(find.byKey(const Key('link-skip')));
       await tester.pump();
       await tester.pump(); // post-frame autoplay
       expect(find.text('Playing recorded voice'), findsOneWidget);
@@ -231,6 +242,12 @@ void main() {
       expect(find.text('Someone is helping set this up'), findsNothing);
       await tester.tap(find.byKey(const Key('start-gate')));
       await tester.pump();
+      expect(find.byKey(const Key('link-setup')), findsOneWidget);
+      await tester.pump(); // LiveStore.loadLink
+      expect(find.text('Laptop relay'), findsOneWidget);
+      await tester.enterText(find.byKey(const Key('link-host')), '10.0.0.5:7777');
+      await tester.tap(find.byKey(const Key('link-continue')));
+      await tester.pump();
       expect(find.text('Set up how you control things'), findsOneWidget);
       expect(find.text('Tap anywhere to start'), findsOneWidget);
       expect(find.text('Someone is helping set this up'), findsOneWidget);
@@ -284,6 +301,9 @@ void main() {
       await tester.pumpWidget(const AccessLayerApp());
       await tester.pump();
       await tester.tap(find.byKey(const Key('start-gate')));
+      await tester.pump();
+      await tester.pump(); // LiveStore.loadLink
+      await tester.tap(find.byKey(const Key('link-skip')));
       await tester.pump();
       expect(find.text('Recorded welcome'), findsOneWidget);
       await tester.tap(find.text('Tap anywhere to start'));

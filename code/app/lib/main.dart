@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import 'calibration/calibration_flow.dart';
+import 'live/link_setup_screen.dart';
 import 'live/live_screen.dart';
 import 'live/live_store.dart';
 import 'model/profile.dart';
@@ -26,7 +27,7 @@ class AccessLayerApp extends StatefulWidget {
   State<AccessLayerApp> createState() => _AccessLayerAppState();
 }
 
-enum _Screen { start, home, calibrate, preview, demo, live }
+enum _Screen { start, link, home, calibrate, preview, demo, live }
 
 class _AccessLayerAppState extends State<AccessLayerApp> {
   final AppState _state = AppState();
@@ -150,7 +151,11 @@ class _AccessLayerAppState extends State<AccessLayerApp> {
               builder: (context) {
                 final body = switch (_screen) {
                   _Screen.start => _StartGateScreen(
-                      onStart: () => setState(() => _screen = _Screen.home),
+                      onStart: () => setState(() => _screen = _Screen.link),
+                    ),
+                  _Screen.link => LinkSetupScreen(
+                      onContinue: () =>
+                          setState(() => _screen = _Screen.home),
                     ),
                   _Screen.home => _HomeScreen(
                       onCalibrate: _beginCalibration,
@@ -221,9 +226,11 @@ class _AccessLayerAppState extends State<AccessLayerApp> {
                     ),
                 };
                 final profile = _state.profile;
-                // Start gate and Setup stay full-field. Draft.visualField is
-                // full until vision commits, then the veil applies.
+                // Start gate, laptop link, and Setup stay full-field.
+                // Draft.visualField is full until vision commits, then the
+                // veil applies.
                 final field = (_screen == _Screen.start ||
+                        _screen == _Screen.link ||
                         _screen == _Screen.home)
                     ? VisualField.full
                     : profile.visualField;

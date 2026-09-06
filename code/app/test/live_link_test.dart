@@ -10,6 +10,10 @@ void main() {
       'ws://127.0.0.1:7777/ws?room=DEMO&role=phone',
     );
     expect(
+      LiveLink.socketUrl(host: '10.0.0.5:7777', room: 'demo'),
+      'ws://10.0.0.5:7777/ws?room=DEMO&role=phone',
+    );
+    expect(
       LiveLink.socketUrl(
         host: 'https://kai-relay.example.workers.dev',
         room: 'stage',
