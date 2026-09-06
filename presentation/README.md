@@ -2,7 +2,7 @@
 
 **KAI — Capability Awareness Interface.** Event template: **5 minutes · 5 slides**, then **5 minutes demo**, then **5 minutes Q&A**. Talk + demo hard-stop at 10:00. Refer to the person as **the user**.
 
-Journey the slides follow: Problem → Evidence → Learning → Solution → What we built → What next.
+Journey the slides follow: Problem insight → What we tested → Solution / scope → What you can try → What next. Scorecard letters A–D and F are the slide tags; E (team) is Q&A only.
 
 - **[slides.html](slides.html)** — 5 slides, self-contained HTML. Open in a browser or `npx serve presentation`.
 - **[notes/outline.md](notes/outline.md)** — spoken script. Edit this first, then match `slides.html`.

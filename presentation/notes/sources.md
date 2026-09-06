@@ -2,29 +2,33 @@
 
 Traceability map. Every fact in `outline.md` / `demo-clips.md` / `slides.html` is a **copy**. Edit the source of truth first, then re-sync.
 
-**On-slide / spoken name:** KAI — Capability Awareness Interface (team, this pass). Refer to the person as **the user**.
+**On-slide / spoken name:** KAI — Capability Awareness Interface. Slide 1–2 may name the brother; after that prefer “the user.”
 
 | Claim / material | Source of truth | Used in |
 |---|---|---|
-| Event format: 5 min slides + 5 min demo + 5 min Q&A; max 5 slides | Event “Final Demo – Presentation Template” | `outline.md` header, `demo-clips.md`, `README.md` |
-| Product name: KAI — Capability Awareness Interface | Team (this pass) | all slides, `outline.md` |
-| User: a person with cerebral palsy; observed directly | [15](../../docs/idea/15-brain-dump.md) §15.1; [06](../../docs/idea/06-user-model.md), [13](../../docs/idea/13-event-submission.md) §1, [16](../../docs/idea/16-canvas-submission.md) — spoken as “the user,” not “he/brother” | slides 1–2 |
-| WhatsApp island; one tap region; voice notes | [15](../../docs/idea/15-brain-dump.md) §15.1 | slide 1 |
-| Assistant + “call amma”; caregiver for the rest | [15](../../docs/idea/15-brain-dump.md) §15.1; [01](../../docs/idea/01-problem.md) §1.3; [13](../../docs/idea/13-event-submission.md) §2 | slide 1 |
-| Existing tools each need one complete ability | [01](../../docs/idea/01-problem.md) §1.1; [15](../../docs/idea/15-brain-dump.md) §15.2; [16](../../docs/idea/16-canvas-submission.md) | slides 1, 3 |
-| Independence confined to one app | [01](../../docs/idea/01-problem.md) §1.3; [13](../../docs/idea/13-event-submission.md) §4 | slide 1 |
-| Vision of this user — do not claim | Conflict: [15](../../docs/idea/15-brain-dump.md) vs [06](../../docs/idea/06-user-model.md)/[13](../../docs/idea/13-event-submission.md)/[16](../../docs/idea/16-canvas-submission.md) | `outline.md` only |
-| Evidence: the user + community, observed | [16](../../docs/idea/16-canvas-submission.md); [13](../../docs/idea/13-event-submission.md) §4 | slide 2 |
-| Assumption: we require AI / an AI agent would solve the user’s problem | Team; [11](../../docs/idea/11-risks.md), [07](../../docs/idea/07-architecture.md), [13](../../docs/idea/13-event-submission.md) §5–6, [16](../../docs/idea/16-canvas-submission.md) | slides 2, 5 |
-| Dropped OpenClaw: overhead, security, latency | Team; [04 research](../../docs/tech/research/04-agent-execution-layer.md) §2; [17](../../docs/idea/17-meeting-notes-tree-simplification.md) | slides 2, 4 |
-| Zero AI; heuristic DOM engine | [28](../../docs/idea/28-meeting-notes-scope-lock-no-ai.md); [08 research](../../docs/tech/research/08-feature-ranking-auxiliary-tree.md); [code/desktop/README.md](../../code/desktop/README.md) | slides 2–4 |
-| Solution: profile + primitives runtime (not a screen per person) | [docs/app/README.md](../../docs/app/README.md); [02](../../docs/idea/02-core-model.md); [03](../../docs/idea/03-input-calibration.md) | slide 3 |
-| Phone: tap/hold setup, caregiver training, axis-gated calibration, vocab, visual field, contrast | [docs/app/01-feature-inventory.md](../../docs/app/01-feature-inventory.md); [ui-ux-phone-flow](../../docs/desgin/ui-ux-phone-flow.md); idea 24–27 | slides 3–4 |
-| Desktop: Playwright + ranking + act + zooming navigator; no LLM | [code/desktop/README.md](../../code/desktop/README.md) | slide 4 |
-| Primary demo = mocks; Google Form secondary | [28](../../docs/idea/28-meeting-notes-scope-lock-no-ai.md) §2 | slide 4, demo notes |
-| Speech simulated; phone unwired | [code/app/README.md](../../code/app/README.md); [docs/app/01-feature-inventory.md](../../docs/app/01-feature-inventory.md) | slides 4–5, demo |
-| If speech is added: hosted general ASR, not a fine-tuned dysarthric model, during event-scale build | [docs/tech/research/11-voice-accessibility-viability.md](../../docs/tech/research/11-voice-accessibility-viability.md) §9, §13 | slide 5 |
-| Formal user-beta of the built app is planned, not done | [16](../../docs/idea/16-canvas-submission.md) | slide 5 |
+| Event format: 5 min slides + 5 min demo + 5 min Q&A; max 5 slides | Event “Final Demo – Presentation Template” | `outline.md`, `demo-clips.md`, `README.md` |
+| Six judging dimensions A–F | [Format](https://startathon.sctcoding.club/format) | slide tags; `outline.md` sections A–F |
+| Domain: Inclusive access; “adding voice without improving accessibility” insufficient | [Inclusive access brief](https://startathon.sctcoding.club/domains/inclusive-access) | slides 1, 3 |
+| Product name: KAI — Capability Awareness Interface | Team | all slides |
+| Brother with cerebral palsy; WhatsApp island; “call amma”; caregiver | [15](../../docs/idea/15-brain-dump.md) §15.1; [16](../../docs/idea/16-canvas-submission.md) | slides 1–2 |
+| Overlapping motor + speech is a strong CP fit (qualitative) | [16](../../docs/idea/16-canvas-submission.md); [01](../../docs/idea/01-problem.md) §1.1–1.2 | slide 1 |
+| CP ~2.95 / 1000 Indian children (optional spoken) | Chauhan et al. 2019 systematic review — study estimate, not census | `outline.md` only |
+| Census 2011: 2.68 crore PwDs; 8% multiple disabilities | [14](../../docs/idea/14-market-research.md) §3.1; MOSPI Disabled Persons in India 2016 (Census 2011) | slide 1 |
+| rATA 24.5% AT need; unaffordability 36.9% | [14](../../docs/idea/14-market-research.md) §3.2 | slide 1 |
+| MouthPad ~$1,400, US-only, custom dental scan | [augmental.tech](https://www.augmental.tech/) (check price before speaking) | slide 1 |
+| Foot trackballs / dedicated adaptive hardware vs commodity phone | [21](../../docs/idea/21-meeting-notes-presentation-prep.md); [14](../../docs/idea/14-market-research.md) §5 | slide 1 |
+| Existing tools each need one complete channel | [01](../../docs/idea/01-problem.md) §1.1; [15](../../docs/idea/15-brain-dump.md) §15.2 | slides 1, 3 |
+| Vision of this user — do not claim | Conflict: [15](../../docs/idea/15-brain-dump.md) vs [06](../../docs/idea/06-user-model.md)/[16](../../docs/idea/16-canvas-submission.md) | `outline.md` only |
+| Event test = “AI agent would solve this”; formal beta not done | Team observation; [16](../../docs/idea/16-canvas-submission.md); [28](../../docs/idea/28-meeting-notes-scope-lock-no-ai.md) | slide 2 |
+| Dropped OpenClaw: overhead, security, latency | [04 research](../../docs/tech/research/04-agent-execution-layer.md) §2 | slides 2–3 |
+| Zero AI; heuristic ranking | [28](../../docs/idea/28-meeting-notes-scope-lock-no-ai.md) | slides 2–4 |
+| Phone as remote because native shell not 30-hour-viable | [07](../../docs/idea/07-architecture.md); [15](../../docs/idea/15-brain-dump.md) §15.6; [16](../../docs/idea/16-canvas-submission.md) “not building standalone smartphone yet” | slide 3 |
+| Vs Astra / agents assuming a clean channel | [15](../../docs/idea/15-brain-dump.md) §15.2 | slide 3 |
+| Vs NAI (LLM orchestrator, no measured profile) | [15 research](../../docs/tech/research/15-google-nai-comparison.md) | slide 3 / Q&A |
+| Input layer is the smallest useful thing; parsing further out | [16](../../docs/idea/16-canvas-submission.md) | slide 3 |
+| Phone build: calibration, 4×4, fusion, confirm, interrupt | [code/app/README.md](../../code/app/README.md); [docs/app](../../docs/app/README.md) | slide 4 |
+| Desktop ranking; demo relay | [code/desktop/README.md](../../code/desktop/README.md); `code/desktop/src/relay.js` | slide 4 |
+| Speech simulated | [code/app/README.md](../../code/app/README.md) | slide 4, demo |
+| Primary demo = mocks | [28](../../docs/idea/28-meeting-notes-scope-lock-no-ai.md) §2 | slide 4 |
+| Continuation: him, then his network; native phone later | Team (this pass); [12](../../docs/idea/12-roadmap.md) | slide 5 |
 | Confirmation must not become constant interruption | [11](../../docs/idea/11-risks.md) | slide 5 |
-
-Parked (not in this 5-slide deck): market size, open-source pitch, hardware analogy, competitor matrices.
