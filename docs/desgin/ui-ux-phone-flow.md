@@ -40,6 +40,7 @@ These apply once measurement has started (live draft) and after a confirmed prof
 - One short instruction line, always in the same place.
 - Progress `N of M`.
 - **Skip this test** always present; height follows measured `minTargetSize`.
+- **Back** from the second test on, same size, opposite Skip (left). Retakes the previous test as untested. Hidden on the first test — does not return to the axis picker.
 - Skip = **untested**, never failed.
 
 ---
@@ -51,7 +52,9 @@ Do not reorder these edges.
 ```mermaid
 flowchart TD
   open[App open]
-  setup[Setup: tap/hold anywhere]
+  startGate[Start gate: tap/hold]
+  setup[Setup: tap/hold block]
+  continueScreen[Continue]
   settings[Settings circle]
   demoMenu[Demo: presets, contrast, locale]
   train[Caregiver training]
@@ -63,11 +66,13 @@ flowchart TD
   review[Confirm send]
   sent[Sent]
 
-  open -->|not confirmed| setup
+  open -->|not confirmed| startGate
   open -->|confirmed this session| preview
-  setup -->|tap/hold| axes
+  startGate -->|tap/hold| setup
+  setup -->|tap/hold the block| continueScreen
   setup -->|Someone is helping| train
   setup --> settings
+  continueScreen --> axes
   preview --> settings
   settings --> demoMenu
   demoMenu -->|preset| preview
@@ -91,12 +96,15 @@ flowchart TD
 
 ### Flow notes
 
-- **Setup is the launch screen** — “Set up how you control things” / tap anywhere. Demo presets live behind the **settings circle** (top-right), not on the first screen.
+- **Start gate is first** — full-bleed tap/hold, nothing else. Then Setup.
+- **Setup** — helper / contrast / locale sit up top, out of the thumb zone. The reachable lower region is only the tap/hold-to-start block. Welcome clip autoplays. Demo presets live behind the **settings circle** (top-right).
+- **Continue** (after Setup tap) is a slim reach-zone screen. It does not replay welcome or re-ask the helper question.
 - **Presets skip measurement on purpose** (judge demo, scope item 3). Live calibration and a preset both produce the same `CapabilityProfile`.
-- **Assisted:** training → axes (not training → entry). Helper button stays on Setup at the same time as tap-anywhere.
+- **Assisted:** training → axes (not training → entry). Helper button stays on Setup at the same time as the start block.
 - **After each motor/voice/vision step**, the partial profile is live-applied before the next step.
+- **Back** during tests returns one step and starts that test over as untested. Hidden on the first test; it does not return to the axis picker.
 - **Results already use** measured size, scale, and field. “Use this setup” confirms for the session; it does not start applying the profile.
-- In-session only: killing the app returns to Setup.
+- In-session only: killing the app returns to the Start gate / Setup path.
 
 ---
 
@@ -104,26 +112,40 @@ flowchart TD
 
 Each screen: ASCII wireframe → essential → supporting → functions.
 
-### 4.1 Setup (first screen)
+### 4.0a Start gate
+
+First screen. One job: a tap or hold continues to Setup. No header, no audio, no toggles.
 
 ```
 ┌─────────────────────────────────────┐
-│                              (settings) │  ← circle, 48dp
-│  Set up how you control things      │
-│  no pass/fail copy…                 │
-│  ┌ TAP ANYWHERE TO START ┐          │
-│  Recorded welcome…                  │
-├─────────────────────────────────────┤
-│ [ Someone is helping set this up ]  │  ← outside gesture
+│                                     │
+│            (touch icon)             │  ← full-bleed tap/hold
+│                                     │
 └─────────────────────────────────────┘
 ```
 
 | Essential | Supporting |
 |---|---|
-| Full-block tap/hold → axis picker | Recorded welcome |
-| Helper outlined button, same time as tap block | Settings circle → demo sheet |
+| Full-bleed tap/hold → Setup | |
 
-**Functions:** start solo measurement; start assisted training; open settings for presets/contrast/locale.
+### 4.1 Setup
+
+```
+┌─────────────────────────────────────┐
+│ [helping] [contrast] [locale] (gear)│  ← upper, out of thumb zone
+│ Set up how you control things       │
+│ Recorded welcome (autoplay)         │
+├─────────────────────────────────────┤
+│ ┌ TAP / HOLD TO START ┐             │  ← only thing in reach zone
+└─────────────────────────────────────┘
+```
+
+| Essential | Supporting |
+|---|---|
+| Lower block tap/hold → Continue | Recorded welcome, autoplay, Play recording to replay |
+| Helper / contrast / locale in the upper region | Settings circle → demo sheet |
+
+**Functions:** start solo measurement (via Continue); start assisted training; open settings for presets/contrast/locale.
 
 ### 4.1b Settings sheet (demo / judge)
 
@@ -135,6 +157,22 @@ Each screen: ASCII wireframe → essential → supporting → functions.
 | Someone is helping set this up | |
 
 Presets jump straight to preview. Redo clears confirmation and remounts Setup.
+
+### 4.1c Continue (after Setup tap)
+
+Slim post-tap screen. Does not replay welcome or re-ask the helper question. Assisted sessions skip this and open training.
+
+```
+┌─────────────────────────────────────┐
+│ We'll measure what works.           │  ← out of thumb zone
+├─────────────────────────────────────┤
+│ ┌ CONTINUE ┐                        │  ← reach zone, tap/hold
+└─────────────────────────────────────┘
+```
+
+| Essential | Supporting |
+|---|---|
+| Large Continue tap/hold → axis picker | Settings circle if shown |
 
 ### 4.2 Caregiver training
 
@@ -178,19 +216,20 @@ Reached only via “Someone is helping…”. No scores. Practice before measure
 ┌─────────────────────────────────────┐
 │ What should we measure?             │
 │ (optional) Setting this up for…     │  ← only if helperChoseAxes
+│ All three start ON. Hold a row to skip. │
 │ WHICH ENVIRONMENTS                  │
-│ ┌ Motor ………………… ☑/○ ┐              │
-│ ┌ Speech …………… ☑/○ ┐              │
-│ ┌ Vision …………… ☑/○ ┐              │
-│ [ Start ]  or disabled if none on   │
+│ ┌ Motor ………………… ☑ hold-to-skip ┐     │
+│ ┌ Speech …………… ☑ hold-to-skip ┐     │
+│ ┌ Vision …………… ☑ hold-to-skip ┐     │
+│ [ Start ]                           │  ← always enabled
 └─────────────────────────────────────┘
 ```
 
 | Essential | Supporting |
 |---|---|
-| Motor / Speech / Vision as **large whole-row toggles** (not tiny checkboxes) | Helper provenance banner |
-| At least one axis required; Start disabled otherwise | Haiku theme begins reacting live as toggles change |
-| Start → gated step list | |
+| Motor / Speech / Vision as **large whole-row targets**. All three default **ON**. | Helper provenance banner |
+| Turning an axis **off** is a hold-to-confirm on that row (fill ring, same duration as the hold test). A tap does not turn it off; a tap on an off row turns it back on. | Haiku theme begins reacting live as rows change |
+| Start always enabled. Last remaining axis cannot be skipped. | |
 
 **Functions:** set `measureMotor` / `measureSpeech` / `measureVision`. Axes left off contribute **no** steps (speech-only never mounts joystick).
 
@@ -212,8 +251,8 @@ Only steps for axes left on. Order when all on: reach → buttons → joystick �
 
 | Essential on every step | Supporting |
 |---|---|
-| Instruction + progress + Skip | Idle timeout may skip a stuck step; toast explains |
-| Skip = untested | Simulated speech clarity chips on Voice |
+| Instruction + progress + Skip + Back (from step 2) | Idle timeout may skip a stuck step; toast explains |
+| Skip / Back = untested | Simulated speech clarity chips on Voice |
 
 **Voice buckets** after sentences: ≥6 words landed → `full`; some → `partial` + vocabulary; sounds heard → `sounds`; else `none`.
 

@@ -26,11 +26,12 @@ Do not reorder. From [ui-ux-phone-flow.md](../desgin/ui-ux-phone-flow.md) and `l
 
 ```
 open
-  ├─ no confirmed profile → Setup (tap/hold anywhere)
+  ├─ no confirmed profile → Start gate (full-bleed tap/hold)
   └─ confirmed this session → Preview (“Your controllers”)
 
+Start gate → Setup
 Setup
-  ├─ tap/hold anywhere → axis picker
+  ├─ tap/hold the start block → Continue → axis picker
   ├─ “Someone is helping” → caregiver training → axis picker
   └─ settings circle → presets / contrast / locale / redo / helper
 
@@ -52,7 +53,7 @@ Tasks (fixed order)
   6 Sent            (run again / recalibrate)
 
 Interrupt resets the current step only, never the profile.
-Killing the app returns to Setup (in-session only; no persistence).
+Killing the app returns to the Start gate (in-session only; no persistence).
 ```
 
 ---
@@ -61,18 +62,20 @@ Killing the app returns to Setup (in-session only; no persistence).
 
 | Screen | Code | Essential job |
 |---|---|---|
-| **Setup** | `calibration_flow.dart` `_entry` | Whole screen is one tap/hold. Helper button visible at the same time. Settings circle top-right. Recorded welcome (`en` / `ml`). |
+| **Start gate** | `main.dart` `_StartGateScreen` | Full-bleed tap/hold, nothing else. Continues to Setup. |
+| **Setup** | `main.dart` `_HomeScreen` | Helper / contrast / locale up top. Welcome autoplays. Reach zone is only the tap/hold-to-start block. Settings circle top-right. |
+| **Continue** | `calibration_flow.dart` `_entry` | Slim “We'll measure what works.” + large Continue. No second welcome, no helper question. |
 | **Settings sheet** | `main.dart` `_DemoSettingsSheet` | High contrast, locale chip, presets A/B/Floor, Redo setup, helper path. Presets skip measurement and jump to Preview. |
 | **Caregiver training** | `training/caregiver_training.dart` | No scores. Three motions (tap, slide left, slide up). Prompt fading: together → start-together-finish-alone → from the words alone. Three independent hits graduate a drill. Skip this motion / skip all → axis picker. |
-| **Axis picker** | `calibration_flow.dart` `_axisPicker` | Motor / Speech / Vision as large row toggles. At least one required. Haiku theme reacts live. Helper provenance banner if assisted. |
-| **Calibration steps** | `touch_steps.dart`, `sense_steps.dart` | See §5. Shared `StepFrame`: instruction, `N of M`, always-present Skip (untested ≠ fail). |
+| **Axis picker** | `calibration_flow.dart` `_axisPicker` | Motor / Speech / Vision default ON as large rows. Hold a row to skip it; tap an off row to turn it back on. Start always enabled. Last remaining axis cannot be skipped. Haiku theme reacts live. Helper provenance banner if assisted. |
+| **Calibration steps** | `touch_steps.dart`, `sense_steps.dart` | See §5. Shared `StepFrame`: instruction, `N of M`, always-present Skip (untested ≠ fail), Back from the second test (retake as untested). |
 | **Results** | `calibration/results.dart` | Four sections: Overview, Methods, Voice & text, Tasks. Redo / Use this setup. Already uses measured size, scale, field. |
 | **Preview** | `runtime/preview_screen.dart` | Output strip pinned top. Chips for Buttons / Joystick / Trackpad / Switch / Voice (best marked “yours”). Try pad. Simpler / Level up. Start tasks. |
 | **Task runtime** | `runtime/demo_screen.dart` + `*_view.dart` | Ribbon (prompt + why this method), task body + dock/overlay, interrupt bar. |
 | **Review / Sent** | `demo_screen.dart` | Consequential “Send it” gated; Go back; Run it again. |
 | **Event log** | `runtime/output_bar.dart` | Sheet from tapping the output strip. Last 200 events + live RAW. |
 
-Visual field veil (`vision/field_shell.dart`) wraps **everything after** vision commits, including results. Setup stays full-field. Mask is `IgnorePointer` so aiming is not stolen.
+Visual field veil (`vision/field_shell.dart`) wraps **everything after** vision commits, including results. Start gate and Setup stay full-field. Mask is `IgnorePointer` so aiming is not stolen.
 
 ---
 
@@ -164,7 +167,7 @@ Buckets: ≥6 words landed → `full`; some → `partial` + vocab; sounds heard 
 
 ### 5.7 Vision
 
-Forced choice, not self-report: stimulus word **shrinks**; answer buttons stay large. Then field: full / tunnel / peripheral.
+Forced choice, not self-report: stimulus word **shrinks** from a session-shuffled pool of common 2-syllable nouns; answer buttons stay large. Then field: full / tunnel / peripheral.
 
 ### 5.8 Results report
 

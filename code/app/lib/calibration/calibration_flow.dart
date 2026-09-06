@@ -3,9 +3,9 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 
 import '../model/profile.dart';
-import '../onboarding/recorded_voice.dart';
 import '../theme/haiku_theme.dart';
 import '../training/caregiver_training.dart';
+import 'hold_fill.dart';
 import 'results.dart';
 import 'sense_steps.dart';
 import 'step_frame.dart';
@@ -21,6 +21,8 @@ enum _StepKind { reach, buttons, joystick, trackpad, hold, voice, vision }
 ///
 ///  1. **No step may be a trap.** Every test can be skipped with one large
 ///     control, and every test gives up on its own if the user cannot do it.
+///     From the second test on, Back is the same size and returns to the
+///     previous test as untested -- so a mis-tap is not Redo-from-the-start.
 ///     Someone who can operate none of the methods still reaches the end --
 ///     they arrive with a low-score profile, which is a real answer, not an
 ///     error state.
@@ -32,8 +34,10 @@ class CalibrationFlow extends StatefulWidget {
     super.key,
     required this.onComplete,
     this.onAxesChanged,
+    this.onDraftChanged,
     this.startAssisted = false,
     this.locale = 'en',
+    this.showSettings,
   });
 
   final void Function(CapabilityProfile profile) onComplete;
@@ -43,6 +47,13 @@ class CalibrationFlow extends StatefulWidget {
   /// Fired the instant the intro's Motor / Speech / Vision toggles change, so
   /// the app-wide theme can react before any test has produced a score.
   final void Function(bool motor, bool speech, bool vision)? onAxesChanged;
+
+  /// Fired after every step commits or skips, with the partial profile so the
+  /// next screen (and the rest of the app) is already shaped.
+  final void Function(CapabilityProfile profile)? onDraftChanged;
+
+  /// Optional settings control shown on the Setup (entry) screen.
+  final VoidCallback? showSettings;
 
   @override
   State<CalibrationFlow> createState() => _CalibrationFlowState();
@@ -55,7 +66,7 @@ class _CalibrationFlowState extends State<CalibrationFlow> {
 
   final CalibrationDraft _draft = CalibrationDraft();
 
-  /// -3 = caregiver training, -2 = universal entry,
+  /// -3 = caregiver training, -2 = slim continue (post-Setup),
   /// -1 = axis picker, 0.._stepCount-1 = tests, _stepCount = results.
   /// Populated once the axis picker's Start is pressed, from whichever axes
   /// are still on.
@@ -112,6 +123,7 @@ class _CalibrationFlowState extends State<CalibrationFlow> {
     if (_consecutiveIdleSkips >= 3) {
       setState(() => _step = _stepCount);
       _idle?.cancel();
+      _publishDraft();
     } else {
       _next();
     }
@@ -124,8 +136,14 @@ class _CalibrationFlowState extends State<CalibrationFlow> {
     });
   }
 
+  void _publishDraft() {
+    widget.onDraftChanged?.call(_draft.build());
+  }
+
   void _next() {
+    _publishDraft();
     setState(() => _step = _step + 1);
+    if (_step >= _stepCount) _publishDraft();
     _armIdle();
   }
 
@@ -134,10 +152,68 @@ class _CalibrationFlowState extends State<CalibrationFlow> {
     _next();
   }
 
+  /// Back one step inside the gated test list.
+  ///
+  /// The destination test starts over as untested -- the same honesty as Skip
+  /// -- so back-then-forward cannot leave a mix of old and new scores.
+  /// In-progress writes on the current step are discarded too. Hidden on the
+  /// first test (back into the axis picker is out of scope).
+  void _previous() {
+    if (_step <= 0) return;
+    _clearStep(_steps[_step], _step);
+    _clearStep(_steps[_step - 1], _step - 1);
+    _consecutiveIdleSkips = 0;
+    _publishDraft();
+    setState(() => _step = _step - 1);
+    _showToast('Going back. That test starts over.');
+    _armIdle();
+  }
+
+  void _clearStep(_StepKind kind, int index) {
+    _draft.skipped.remove('idle:$index');
+    switch (kind) {
+      case _StepKind.reach:
+        _draft.reachableCells.clear();
+      case _StepKind.buttons:
+        _draft.scores[TouchMethod.buttons] = const MethodScore.untested();
+        _draft.minTargetSize = 96;
+        _draft.skipped.remove('buttons');
+      case _StepKind.joystick:
+        _draft.scores[TouchMethod.joystick] = const MethodScore.untested();
+        _draft.joystickHomeCell = null;
+        _draft.joystickOctants.clear();
+        _draft.skipped.remove('joystick');
+      case _StepKind.trackpad:
+        _draft.scores[TouchMethod.trackpad] = const MethodScore.untested();
+        _draft.axisLock = null;
+        _draft.skipped.remove('trackpad');
+      case _StepKind.hold:
+        _draft.holdCapable = false;
+        _draft.steadiness = 0.5;
+        _draft.skipped.remove('hold');
+      case _StepKind.voice:
+        _draft.clarity = SpeechClarity.none;
+        _draft.vocabulary = <String>[];
+        _draft.skipped.remove('voice');
+      case _StepKind.vision:
+        _draft.vision = VisionMode.screen;
+        _draft.visualField = VisualField.full;
+        _draft.skipped.remove('vision');
+    }
+  }
+
   /// Builds the gated step sequence from the intro's toggles and starts it.
   /// An axis left off contributes no steps at all -- a speech-only session
   /// never sees a joystick, not even a skippable one.
   void _startCalibration() {
+    // Safety net: all three start on, and the last remaining row cannot be
+    // held off, but if a caller still arrives with nothing selected, measure
+    // everything rather than producing an empty step list.
+    if (!_atLeastOneAxis) {
+      _draft.measureMotor = true;
+      _draft.measureSpeech = true;
+      _draft.measureVision = true;
+    }
     final steps = <_StepKind>[
       if (_draft.measureMotor) ...const [
         _StepKind.reach,
@@ -202,6 +278,7 @@ class _CalibrationFlowState extends State<CalibrationFlow> {
         onRedo: () => setState(() => _step = -1),
       );
     }
+    final onBack = _step > 0 ? _previous : null;
     return switch (_steps[_step]) {
       _StepKind.reach => ReachStep(
           draft: _draft,
@@ -209,6 +286,7 @@ class _CalibrationFlowState extends State<CalibrationFlow> {
           total: _stepCount,
           onNext: _next,
           onSkip: _skip,
+          onBack: onBack,
           textScale: _textScale,
         ),
       _StepKind.buttons => ButtonsStep(
@@ -217,6 +295,7 @@ class _CalibrationFlowState extends State<CalibrationFlow> {
           total: _stepCount,
           onNext: _next,
           onSkip: _skip,
+          onBack: onBack,
           textScale: _textScale,
         ),
       _StepKind.joystick => JoystickStep(
@@ -225,6 +304,7 @@ class _CalibrationFlowState extends State<CalibrationFlow> {
           total: _stepCount,
           onNext: _next,
           onSkip: _skip,
+          onBack: onBack,
           textScale: _textScale,
         ),
       _StepKind.trackpad => TrackpadStep(
@@ -233,6 +313,7 @@ class _CalibrationFlowState extends State<CalibrationFlow> {
           total: _stepCount,
           onNext: _next,
           onSkip: _skip,
+          onBack: onBack,
           textScale: _textScale,
         ),
       _StepKind.hold => HoldStep(
@@ -241,6 +322,7 @@ class _CalibrationFlowState extends State<CalibrationFlow> {
           total: _stepCount,
           onNext: _next,
           onSkip: _skip,
+          onBack: onBack,
           textScale: _textScale,
         ),
       _StepKind.voice => VoiceStep(
@@ -249,6 +331,7 @@ class _CalibrationFlowState extends State<CalibrationFlow> {
           total: _stepCount,
           onNext: _next,
           onSkip: _skip,
+          onBack: onBack,
           textScale: _textScale,
         ),
       _StepKind.vision => VisionStep(
@@ -257,12 +340,20 @@ class _CalibrationFlowState extends State<CalibrationFlow> {
           total: _stepCount,
           onNext: _next,
           onSkip: _skip,
+          onBack: onBack,
           textScale: _textScale,
         ),
     };
   }
 
   void _setAxis({bool? motor, bool? speech, bool? vision}) {
+    final nextMotor = motor ?? _draft.measureMotor;
+    final nextSpeech = speech ?? _draft.measureSpeech;
+    final nextVision = vision ?? _draft.measureVision;
+    if (!nextMotor && !nextSpeech && !nextVision) {
+      _showToast('Keep at least one environment on.');
+      return;
+    }
     setState(() {
       if (motor != null) _draft.measureMotor = motor;
       if (speech != null) _draft.measureSpeech = speech;
@@ -278,100 +369,98 @@ class _CalibrationFlowState extends State<CalibrationFlow> {
   bool get _atLeastOneAxis =>
       _draft.measureMotor || _draft.measureSpeech || _draft.measureVision;
 
-  /// The actual entry point, and the only screen that has to work for
-  /// *anyone*: no button to find, no question to parse first, no choice
-  /// required. The whole screen is one tap target -- the same standard
-  /// [ReachStep] itself uses ("tap the highlighted square, or wait, it moves
-  /// on"), except here there isn't even a target to find. A caregiver gets a
-  /// second, clearly separate way in that skips straight past the question
-  /// this screen doesn't ask (docs: issue #1 -- the entry point must never be
-  /// harder to operate than anything calibration itself measures).
+  /// Post-tap continue screen (`_step == -2`). Setup already asked the helper
+  /// question and played the welcome clip; [startAssisted] skips this screen
+  /// entirely and opens training, so neither control is repeated here.
+  ///
+  /// Reach-zone: one short line sits out of the thumb area; the lower region
+  /// is a single large tap/hold target (issue #6).
   Widget _entry() {
     final scheme = Theme.of(context).colorScheme;
-    void solo() => setState(() {
+    void continueSolo() => setState(() {
           _draft.helperChoseAxes = false;
           _step = -1;
         });
-    return Column(
+    return Stack(
       children: [
-        Expanded(
-          child: GestureDetector(
-            behavior: HitTestBehavior.opaque,
-            onTap: solo,
-            onLongPress: solo,
-            child: ListView(
-              padding: const EdgeInsets.fromLTRB(28, 28, 28, 16),
-              children: [
-                Icon(Icons.tune, size: 64, color: scheme.primary),
-                const SizedBox(height: 20),
-                const Text(
-                  'Set up how you control things',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(fontSize: 28, fontWeight: FontWeight.w700),
+        Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(28, 56, 28, 12),
+              child: Text(
+                "We'll measure what works.",
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontSize: 24,
+                  fontWeight: FontWeight.w700,
+                  color: scheme.onSurface,
                 ),
-                const SizedBox(height: 14),
-                Text(
-                  'There is no pass or fail. Each test measures what works for '
-                  'you, and anything you cannot do is skipped automatically.',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    fontSize: 17,
-                    height: 1.45,
-                    color: scheme.onSurfaceVariant,
-                  ),
-                ),
-                const SizedBox(height: 20),
-                Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 32, vertical: 20),
-                  decoration: BoxDecoration(
-                    color: scheme.primary,
-                    borderRadius: BorderRadius.circular(18),
-                  ),
-                  alignment: Alignment.center,
-                  child: Text(
-                    'Tap anywhere to start',
-                    style: TextStyle(
-                      fontSize: 20,
-                      fontWeight: FontWeight.w700,
-                      color: scheme.onPrimary,
+              ),
+            ),
+            Expanded(
+              child: Semantics(
+                button: true,
+                label: 'Continue',
+                child: GestureDetector(
+                  behavior: HitTestBehavior.opaque,
+                  onTap: continueSolo,
+                  onLongPress: continueSolo,
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(20, 8, 20, 24),
+                    child: Align(
+                      alignment: Alignment.bottomCenter,
+                      child: Container(
+                        width: double.infinity,
+                        height: 88,
+                        decoration: BoxDecoration(
+                          color: scheme.primary,
+                          borderRadius: BorderRadius.circular(18),
+                        ),
+                        alignment: Alignment.center,
+                        child: Text(
+                          'Continue',
+                          style: TextStyle(
+                            fontSize: 22,
+                            fontWeight: FontWeight.w700,
+                            color: scheme.onPrimary,
+                          ),
+                        ),
+                      ),
                     ),
                   ),
                 ),
-                const SizedBox(height: 20),
-                RecordedNarration(clipId: 'welcome', locale: widget.locale),
-              ],
+              ),
             ),
-          ),
+          ],
         ),
-        // Outside the full-screen gesture — research 11: caregiver path is a
-        // normal control, shown at the same time, not gated behind the tap.
-        Padding(
-          padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
-          child: SizedBox(
-            height: 56,
-            width: double.infinity,
-            child: OutlinedButton(
-              onPressed: () => setState(() {
-                _draft.helperChoseAxes = true;
-                _step = -3;
-              }),
-              child: const Text(
-                'Someone is helping set this up',
-                textAlign: TextAlign.center,
-                overflow: TextOverflow.ellipsis,
-                style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
+        if (widget.showSettings != null)
+          Positioned(
+            top: 8,
+            right: 8,
+            child: Material(
+              color: scheme.surfaceContainerHighest,
+              shape: const CircleBorder(),
+              elevation: 1,
+              child: InkWell(
+                customBorder: const CircleBorder(),
+                onTap: widget.showSettings,
+                child: const SizedBox(
+                  width: 48,
+                  height: 48,
+                  child: Icon(Icons.settings, size: 22),
+                ),
               ),
             ),
           ),
-        ),
       ],
     );
   }
 
   /// "What should we measure?" -- for which environments. Reached only after
-  /// [_entry] already let the person in, so large-but-multiple targets here
-  /// are fine; they are a refinement step, not the gate.
+  /// [_entry] already let the person in. All three axes start on; skipping
+  /// one is a hold, not a tap (issue #7), so this screen cannot be harder
+  /// than the motor test it gates.
   Widget _axisPicker() {
     final scheme = Theme.of(context).colorScheme;
     return SingleChildScrollView(
@@ -388,8 +477,8 @@ class _CalibrationFlowState extends State<CalibrationFlow> {
           ),
           const SizedBox(height: 10),
           Text(
-            'There is no pass or fail. Each test measures what works for you, '
-            'and anything left off or skipped is untested, not failed.',
+            'All three start on. Hold a row to skip it -- a tap will not turn '
+            'it off. Skipped is untested, not failed.',
             textAlign: TextAlign.center,
             style: TextStyle(
               fontSize: 15,
@@ -456,13 +545,11 @@ class _CalibrationFlowState extends State<CalibrationFlow> {
           SizedBox(
             height: 72,
             child: FilledButton(
-              onPressed: _atLeastOneAxis ? _startCalibration : null,
-              child: Text(
-                _atLeastOneAxis
-                    ? 'Start'
-                    : 'Choose at least one environment',
+              onPressed: _startCalibration,
+              child: const Text(
+                'Start',
                 overflow: TextOverflow.ellipsis,
-                style: const TextStyle(fontSize: 19, fontWeight: FontWeight.w700),
+                style: TextStyle(fontSize: 19, fontWeight: FontWeight.w700),
               ),
             ),
           ),
@@ -481,8 +568,9 @@ class _CalibrationFlowState extends State<CalibrationFlow> {
         ),
       );
 
-  /// A whole-row toggle, not a small checkbox -- consistent with every other
-  /// control in this flow being a large target.
+  /// A whole-row target, not a small checkbox. Defaults on; turning it off
+  /// takes a hold (issue #7), so a user with motor difficulty is not gated
+  /// by the row's own control. A tap on an off row turns it back on.
   Widget _axisToggle(
     ColorScheme scheme, {
     required Color color,
@@ -490,52 +578,116 @@ class _CalibrationFlowState extends State<CalibrationFlow> {
     required String detail,
     required bool selected,
     required void Function(bool) onChanged,
-  }) =>
-      InkWell(
-        onTap: () => onChanged(!selected),
-        borderRadius: BorderRadius.circular(16),
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-          decoration: BoxDecoration(
-            color: selected
-                ? color.withValues(alpha: 0.16)
-                : scheme.surfaceContainerHighest.withValues(alpha: 0.4),
+  }) {
+    return Semantics(
+      button: true,
+      selected: selected,
+      label:
+          '$label. ${selected ? 'Hold to skip' : 'Tap to measure'}. $detail',
+      child: HoldFill(
+        key: ValueKey('axis-$label'),
+        armed: selected,
+        onComplete: () => onChanged(false),
+        onTap: selected ? null : () => onChanged(true),
+        builder: (context, progress) {
+          final hint = progress > 0
+              ? 'Keep holding to skip'
+              : selected
+                  ? 'Hold to skip · $detail'
+                  : 'Tap to measure · $detail';
+          return ClipRRect(
             borderRadius: BorderRadius.circular(16),
-            border: Border.all(
-              color: selected ? color : scheme.outlineVariant,
-              width: selected ? 2.5 : 1,
-            ),
-          ),
-          child: Row(
-            children: [
-              Container(
-                width: 14,
-                height: 14,
-                decoration: BoxDecoration(shape: BoxShape.circle, color: color),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(label,
-                        style: const TextStyle(
-                            fontSize: 16, fontWeight: FontWeight.w700)),
-                    Text(detail,
-                        style: TextStyle(
-                            fontSize: 12, color: scheme.onSurfaceVariant)),
-                  ],
+            child: Stack(
+              children: [
+                Positioned.fill(
+                  child: DecoratedBox(
+                    decoration: BoxDecoration(
+                      color: selected
+                          ? color.withValues(alpha: 0.16)
+                          : scheme.surfaceContainerHighest
+                              .withValues(alpha: 0.4),
+                    ),
+                  ),
                 ),
-              ),
-              Icon(
-                selected ? Icons.check_circle : Icons.circle_outlined,
-                color: selected ? color : scheme.outline,
-                size: 26,
-              ),
-            ],
-          ),
-        ),
-      );
+                if (progress > 0)
+                  Positioned.fill(
+                    child: Align(
+                      alignment: Alignment.centerLeft,
+                      child: FractionallySizedBox(
+                        widthFactor: progress,
+                        heightFactor: 1,
+                        child: ColoredBox(
+                          color: color.withValues(alpha: 0.28),
+                        ),
+                      ),
+                    ),
+                  ),
+                Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(
+                      color: selected ? color : scheme.outlineVariant,
+                      width: selected ? 2.5 : 1,
+                    ),
+                  ),
+                  child: Row(
+                    children: [
+                      Container(
+                        width: 14,
+                        height: 14,
+                        decoration: BoxDecoration(
+                            shape: BoxShape.circle, color: color),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(label,
+                                style: const TextStyle(
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.w700)),
+                            Text(hint,
+                                style: TextStyle(
+                                    fontSize: 12,
+                                    color: scheme.onSurfaceVariant)),
+                          ],
+                        ),
+                      ),
+                      SizedBox(
+                        width: 28,
+                        height: 28,
+                        child: Stack(
+                          alignment: Alignment.center,
+                          children: [
+                            if (progress > 0)
+                              HoldFillRing(
+                                progress: progress,
+                                size: 28,
+                                strokeWidth: 3,
+                              ),
+                            Icon(
+                              selected
+                                  ? Icons.check_circle
+                                  : Icons.circle_outlined,
+                              color: selected ? color : scheme.outline,
+                              size: 26,
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          );
+        },
+      ),
+    );
+  }
 }
 
 class _Toast extends StatelessWidget {
