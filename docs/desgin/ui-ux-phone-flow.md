@@ -21,24 +21,25 @@ Low-fi wireframe in text: every screen, what is essential vs supporting, and the
 
 ---
 
-## 2. Global rules (after home)
+## 2. Global rules
 
-These apply on every screen once a profile is active (preview + demo), and on calibration steps where noted.
+These apply once measurement has started (live draft) and after a confirmed profile (preview + demo).
 
 | Rule | Detail |
 |---|---|
 | **Output strip** | Laptop preview: last intent + live raw signal. Sits on the row the user cannot reach (`outputAtBottom`). Tap opens the event log. |
-| **Visual field shell** | Tunnel or peripheral veil; mask uses `IgnorePointer` so aiming is never restricted to the hole. **Off on home.** |
+| **Visual field shell** | Tunnel or peripheral veil; mask uses `IgnorePointer`. Stays **full** until vision commits; then applies including on the results report. |
 | **Theme** | Haiku after axes/profile; **high contrast** is a peer palette (WCAG 4.5:1 text / 3:1 chrome), not a haiku variant. |
-| **Scale / targets** | Text scale from vision acuity; min target size from calibration. |
+| **Scale / targets** | Text scale from vision; min target size from buttons — applied to Skip and later chrome **as soon as measured**. |
 | **Input dock** | Joystick floats at stick home / reach anchor; everything else docks inside the reachable zone. |
-| **Recalibrate** | Always available from preview and demo → back to home. |
+| **Live draft** | After each test, `draft.build()` is pushed into `AppState` so the next step is already shaped. |
+| **Recalibrate / Redo** | Settings, results, or preview tune → **Setup** (clears confirmation). Never back to a blended demo home. |
 
 **Calibration step chrome** (shared `StepFrame`):
 
 - One short instruction line, always in the same place.
 - Progress `N of M`.
-- **Skip this test** always present, always the same size.
+- **Skip this test** always present; height follows measured `minTargetSize`.
 - Skip = **untested**, never failed.
 
 ---
@@ -49,24 +50,32 @@ Do not reorder these edges.
 
 ```mermaid
 flowchart TD
-  home[Home]
+  open[App open]
+  setup[Setup: tap/hold anywhere]
+  settings[Settings circle]
+  demoMenu[Demo: presets, contrast, locale]
   train[Caregiver training]
-  entry[Calibration entry]
-  axes[What should we measure]
-  tests[Gated calibration steps]
-  results[Your setup]
+  axes[What to measure]
+  tests[Tests: each uses prior results]
+  results[Your setup - already calibrated]
   preview[Your controllers]
   task[Task chain]
   review[Confirm send]
   sent[Sent]
 
-  home -->|tap or hold anywhere| entry
-  home -->|Someone is helping| train
-  home -->|preset A / B / Floor| preview
-  train -->|done or skip all| axes
-  entry -->|tap or hold anywhere| axes
-  axes -->|Start| tests
-  tests -->|all done or skipped| results
+  open -->|not confirmed| setup
+  open -->|confirmed this session| preview
+  setup -->|tap/hold| axes
+  setup -->|Someone is helping| train
+  setup --> settings
+  preview --> settings
+  settings --> demoMenu
+  demoMenu -->|preset| preview
+  demoMenu -->|Redo setup| setup
+  demoMenu -->|Someone is helping| train
+  train --> axes
+  axes --> tests
+  tests --> results
   results -->|Use this setup| preview
   results -->|Redo| axes
   preview -->|Start tasks| task
@@ -75,17 +84,19 @@ flowchart TD
   review -->|Send it| sent
   review -->|Go back| task
   sent -->|Run it again| task
-  preview -->|recalibrate| home
-  task -->|recalibrate| home
-  sent -->|Recalibrate| home
+  preview -->|recalibrate| setup
+  task -->|recalibrate| setup
+  sent -->|Recalibrate| setup
 ```
 
 ### Flow notes
 
-- **Presets skip measurement on purpose** (judge demo, scope item 3). Live calibration and a preset both produce the same `CapabilityProfile`; runtime cannot tell them apart.
-- **Assisted home:** training → axes (not training → entry).
-- **Solo home:** entry → axes.
-- Do **not** put a helper-only gate in front of the tap-anywhere entry. Helper control is visible at the same time as the primary tap block.
+- **Setup is the launch screen** — “Set up how you control things” / tap anywhere. Demo presets live behind the **settings circle** (top-right), not on the first screen.
+- **Presets skip measurement on purpose** (judge demo, scope item 3). Live calibration and a preset both produce the same `CapabilityProfile`.
+- **Assisted:** training → axes (not training → entry). Helper button stays on Setup at the same time as tap-anywhere.
+- **After each motor/voice/vision step**, the partial profile is live-applied before the next step.
+- **Results already use** measured size, scale, and field. “Use this setup” confirms for the session; it does not start applying the profile.
+- In-session only: killing the app returns to Setup.
 
 ---
 
@@ -93,39 +104,37 @@ flowchart TD
 
 Each screen: ASCII wireframe → essential → supporting → functions.
 
-### 4.1 Home
+### 4.1 Setup (first screen)
 
 ```
 ┌─────────────────────────────────────┐
-│ Access layer                        │
-│ Tap or hold this block to start…    │
-│ ┌─ Recorded welcome ──────────────┐ │
-│ │ [Play]  transcript…             │ │
-│ └─────────────────────────────────┘ │
-│ ┌─────────────────────────────────┐ │
-│ │     TAP ANYWHERE TO START       │ │  ← full-block gesture
-│ └─────────────────────────────────┘ │
+│                              (settings) │  ← circle, 48dp
+│  Set up how you control things      │
+│  no pass/fail copy…                 │
+│  ┌ TAP ANYWHERE TO START ┐          │
+│  Recorded welcome…                  │
+├─────────────────────────────────────┤
 │ [ Someone is helping set this up ]  │  ← outside gesture
-│ [ High contrast ]  [ English/ml ]   │
-│ OR START FROM A SAVED PROFILE       │
-│ ┌ Profile A · buttons ──────────┐   │
-│ ┌ Profile B · joystick ─────────┐   │
-│ ┌ Floor · switch scan ──────────┐   │
 └─────────────────────────────────────┘
 ```
 
 | Essential | Supporting |
 |---|---|
-| Full-block tap/hold to start (no small primary button) | Play-recording control (catalog + announcement until real WAVs) |
-| Recorded welcome (transcript + locale) | |
-| **Someone is helping set this up** — outlined, same time as tap block | |
-| High-contrast chip | |
-| Locale chip (`en` / `ml`) | |
-| Three preset cards: A, B, Floor (label, summary, best-method chip) | |
+| Full-block tap/hold → axis picker | Recorded welcome |
+| Helper outlined button, same time as tap block | Settings circle → demo sheet |
 
-**Functions:** start solo calibration; start assisted (training); toggle contrast/locale; jump to preview with a preset profile.
+**Functions:** start solo measurement; start assisted training; open settings for presets/contrast/locale.
 
----
+### 4.1b Settings sheet (demo / judge)
+
+| Essential | Supporting |
+|---|---|
+| High contrast + locale chips | |
+| OR START FROM A SAVED PROFILE (A / B / Floor) | |
+| Redo setup (when a profile is confirmed) | |
+| Someone is helping set this up | |
+
+Presets jump straight to preview. Redo clears confirmation and remounts Setup.
 
 ### 4.2 Caregiver training
 
@@ -163,30 +172,7 @@ Reached only via “Someone is helping…”. No scores. Practice before measure
 
 ---
 
-### 4.3 Calibration entry
-
-Solo path after home tap/hold. Same “anyone can enter” standard as home.
-
-```
-┌─────────────────────────────────────┐
-│            (full-screen tap)        │
-│  Set up how you control things      │
-│  no pass/fail copy…                 │
-│  ┌ TAP ANYWHERE TO START ┐          │
-│  Recorded welcome…                  │
-├─────────────────────────────────────┤
-│ [ Someone is helping set this up ]  │  ← outside gesture layer
-└─────────────────────────────────────┘
-```
-
-| Essential | Supporting |
-|---|---|
-| Tap/hold anywhere → axis picker (`helperChoseAxes = false`) | Recorded welcome |
-| Caregiver button **outside** the gesture so it stays hittable → training | |
-
----
-
-### 4.4 Axis picker — “What should we measure?”
+### 4.3 Axis picker — “What should we measure?”
 
 ```
 ┌─────────────────────────────────────┐
