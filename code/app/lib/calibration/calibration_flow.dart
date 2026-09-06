@@ -13,7 +13,7 @@ import 'touch_steps.dart';
 
 /// One test in the gated sequence -- which of these run is decided by the
 /// intro's Motor / Speech / Vision toggles, not fixed at seven.
-enum _StepKind { reach, buttons, joystick, trackpad, hold, voice, vision }
+enum _StepKind { reach, buttons, hold, joystick, trackpad, voice, vision }
 
 /// The whole calibration sequence.
 ///
@@ -142,9 +142,9 @@ class _CalibrationFlowState extends State<CalibrationFlow> {
       if (_draft.measureMotor) ...const [
         _StepKind.reach,
         _StepKind.buttons,
+        _StepKind.hold,
         _StepKind.joystick,
         _StepKind.trackpad,
-        _StepKind.hold,
       ],
       if (_draft.measureSpeech) _StepKind.voice,
       if (_draft.measureVision) _StepKind.vision,
@@ -430,7 +430,7 @@ class _CalibrationFlowState extends State<CalibrationFlow> {
             scheme,
             color: HaikuTheme.motorSeed,
             label: 'Motor',
-            detail: 'reach, buttons, joystick, trackpad, hold',
+            detail: 'reach, buttons, hold, joystick, trackpad',
             selected: _draft.measureMotor,
             onChanged: (v) => _setAxis(motor: v),
           ),

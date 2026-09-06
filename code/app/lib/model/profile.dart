@@ -156,9 +156,12 @@ class CapabilityProfile {
   CapabilityProfile({
     required this.methodScores,
     required this.reachableCells,
+    this.lockedCells = const <int>{},
     required this.minTargetSize,
     required this.steadiness,
     required this.holdCapable,
+    this.tappableButtonCount = 0,
+    this.holdableButtonCount = 0,
     required this.clarity,
     required this.vision,
     this.measureMotor = true,
@@ -193,13 +196,29 @@ class CapabilityProfile {
   final Map<TouchMethod, MethodScore> methodScores;
 
   /// Indices into a [reachGridCols] x [reachGridRows] grid that the user hit
-  /// reliably. Drives where input surfaces are anchored and -- the inverse --
-  /// which strip of screen is safe to use for output.
+  /// reliably -- both a single confirming tap (tentative) and a
+  /// second-tap-to-lock (see [lockedCells]) count as reachable. Drives where
+  /// input surfaces are anchored and -- the inverse -- which strip of screen
+  /// is safe to use for output.
   final Set<int> reachableCells;
+
+  /// Subset of [reachableCells] the user tapped a *second* time during the
+  /// Reach step, confirming it rather than leaving it as a one-tap tentative
+  /// guess. Higher-confidence than the plain union -- a follow-up consumer
+  /// (e.g. where Buttons/Hold place their targets) can prefer this over
+  /// [reachableCells] when it wants only confirmed cells.
+  final Set<int> lockedCells;
 
   final double minTargetSize;
   final double steadiness;
   final bool holdCapable;
+
+  /// How many distinct buttons [ButtonsStep] confirmed tappable, and how many
+  /// of those [HoldStep] also confirmed holdable -- e.g. 5 tappable, 2 also
+  /// holdable. Zero on a skipped/floor-case run, same as any other untested
+  /// axis. See [usableInputCount].
+  final int tappableButtonCount;
+  final int holdableButtonCount;
   final SpeechClarity clarity;
   final VisionMode vision;
   final VisualField visualField;
@@ -250,6 +269,10 @@ class CapabilityProfile {
   }
 
   double scoreOf(TouchMethod m) => methodScores[m]?.score ?? 0;
+
+  /// A holdable button contributes both a tap-input and a hold-input, so
+  /// 5 tappable + 2 also-holdable is 7 usable inputs, not 5.
+  int get usableInputCount => tappableButtonCount + holdableButtonCount;
 
   /// The user's genuine best method -- a relative comparison, never a threshold
   /// (3.3: an absolute cutoff would call everything non-viable for a user whose
@@ -382,9 +405,12 @@ class CapabilityProfile {
   CapabilityProfile copyWith({
     Map<TouchMethod, MethodScore>? methodScores,
     Set<int>? reachableCells,
+    Set<int>? lockedCells,
     double? minTargetSize,
     double? steadiness,
     bool? holdCapable,
+    int? tappableButtonCount,
+    int? holdableButtonCount,
     SpeechClarity? clarity,
     VisionMode? vision,
     bool? measureMotor,
@@ -400,9 +426,12 @@ class CapabilityProfile {
       CapabilityProfile(
         methodScores: methodScores ?? this.methodScores,
         reachableCells: reachableCells ?? this.reachableCells,
+        lockedCells: lockedCells ?? this.lockedCells,
         minTargetSize: minTargetSize ?? this.minTargetSize,
         steadiness: steadiness ?? this.steadiness,
         holdCapable: holdCapable ?? this.holdCapable,
+        tappableButtonCount: tappableButtonCount ?? this.tappableButtonCount,
+        holdableButtonCount: holdableButtonCount ?? this.holdableButtonCount,
         clarity: clarity ?? this.clarity,
         vision: vision ?? this.vision,
         measureMotor: measureMotor ?? this.measureMotor,

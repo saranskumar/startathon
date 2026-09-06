@@ -121,7 +121,8 @@ class _CalibrationResultsState extends State<CalibrationResults> {
                     _section_(scheme, scale, 'Other axes'),
                     _fact(scheme, scale, 'Reachable area',
                         '${profile.reachableCells.length} of '
-                        '${CapabilityProfile.reachCellCount} zones'),
+                        '${CapabilityProfile.reachCellCount} zones '
+                        '(${profile.lockedCells.length} confirmed)'),
                     _fact(scheme, scale, 'Joystick home',
                         profile.joystickHomeCell == null
                             ? 'not placed'
@@ -132,7 +133,14 @@ class _CalibrationResultsState extends State<CalibrationResults> {
                     _fact(scheme, scale, 'Steadiness',
                         profile.steadiness.toStringAsFixed(2)),
                     _fact(scheme, scale, 'Touch and hold',
-                        profile.holdCapable ? 'usable' : 'not usable'),
+                        profile.tappableButtonCount > 0
+                            ? '${profile.tappableButtonCount - profile.holdableButtonCount} '
+                                'tap-only + ${profile.holdableButtonCount} '
+                                'tap-and-hold = ${profile.usableInputCount} '
+                                'usable inputs'
+                            : profile.holdCapable
+                                ? 'usable'
+                                : 'not usable'),
                     _fact(scheme, scale, 'Voice',
                         '${profile.clarity.label} -- ${profile.clarity.grants}'),
                     _fact(scheme, scale, 'Vision',

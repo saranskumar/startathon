@@ -175,6 +175,7 @@ class ProfilePresets {
               attempts: 4),
         },
         reachableCells: {for (var i = 0; i < 12; i++) i},
+        lockedCells: {for (var i = 0; i < 12; i++) i},
         minTargetSize: 56,
         steadiness: 0.9,
         holdCapable: true,
@@ -203,6 +204,7 @@ class ProfilePresets {
         },
         // Only the lower-left region registers reliably.
         reachableCells: {6, 7, 9, 10},
+        lockedCells: {6, 9},
         minTargetSize: 120,
         steadiness: 0.35,
         holdCapable: false,
@@ -230,6 +232,7 @@ class ProfilePresets {
               attempts: 6),
         },
         reachableCells: {9, 10, 11},
+        lockedCells: {10},
         minTargetSize: 200,
         steadiness: 0.2,
         holdCapable: false,

@@ -358,7 +358,82 @@ void main() {
 
       await tester.tapAt(const Offset(60, 500));
       await tester.pump();
+      // A single tap is tentative only -- the draft isn't committed until
+      // the step ends (idle timeout), not on every tap.
+      expect(draft.reachableCells, isEmpty);
+      await tester.pump(const Duration(seconds: 2, milliseconds: 100));
       expect(draft.reachableCells, isNotEmpty);
+      expect(draft.lockedCells, isEmpty); // one tap = tentative, not locked
+      await teardownTree(tester);
+    });
+
+    testWidgets('reach: tapping a cell twice locks it in as confirmed',
+        (tester) async {
+      usePhoneSurface(tester);
+      final draft = CalibrationDraft();
+      await tester.pumpWidget(harness(
+        AppState(),
+        Scaffold(
+          body: ReachStep(
+            draft: draft,
+            index: 0,
+            total: 7,
+            onNext: () {},
+            onSkip: () {},
+          ),
+        ),
+      ));
+
+      await tester.tapAt(const Offset(60, 500));
+      await tester.pump();
+      await tester.tapAt(const Offset(60, 500));
+      await tester.pump();
+      await tester.pump(const Duration(seconds: 2, milliseconds: 100));
+      expect(draft.reachableCells, isNotEmpty);
+      expect(draft.lockedCells, isNotEmpty);
+      await teardownTree(tester);
+    });
+
+    testWidgets(
+        'hold: runs once per tappable button, records per-button holdable',
+        (tester) async {
+      usePhoneSurface(tester);
+      final draft = CalibrationDraft();
+      draft.tappableButtons.addAll([
+        ButtonTarget(cell: 0, size: 100, placement: const Alignment(-0.5, -0.5)),
+        ButtonTarget(cell: 1, size: 100, placement: const Alignment(0.5, 0.5)),
+      ]);
+      var nextCalled = 0;
+      await tester.pumpWidget(harness(
+        AppState(),
+        Scaffold(
+          body: HoldStep(
+            draft: draft,
+            index: 2,
+            total: 7,
+            onNext: () => nextCalled++,
+            onSkip: () {},
+          ),
+        ),
+      ));
+
+      // First button: hold long enough to succeed.
+      final gesture1 = await tester.startGesture(const Offset(100, 300));
+      await tester.pump(const Duration(milliseconds: 1600));
+      await gesture1.up();
+      await tester.pump();
+
+      // Second (and last) button: release early, then let the round's own
+      // timeout resolve it as a miss rather than hanging.
+      final gesture2 = await tester.startGesture(const Offset(100, 300));
+      await tester.pump(const Duration(milliseconds: 200));
+      await gesture2.up();
+      await tester.pump(const Duration(seconds: 7, milliseconds: 500));
+
+      expect(draft.tappableButtons[0].holdable, isTrue);
+      expect(draft.tappableButtons[1].holdable, isFalse);
+      expect(nextCalled, 1); // onNext fires once, after the last target
+      expect(draft.holdCapable, isTrue); // any(true) across the two buttons
       await teardownTree(tester);
     });
 
