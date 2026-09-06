@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Adaptive Access Layer — 5 slides</title>
+<title>KAI — Capability Awareness Interface</title>
 <style>
   :root{
     --bg:#fff; --fg:#111; --dim:#5c5c5c; --line:#ddd; --card:#f5f5f5;
@@ -43,42 +43,42 @@
     <div class="tag">01</div>
     <h1>Problem &amp; User</h1>
     <div class="rows">
-      <div class="row"><div class="k">User</div><div>A family member with cerebral palsy. Observed directly. Reliable motor input is limited to one region of a smartphone screen; speech is present but not consistently recognized.</div></div>
-      <div class="row"><div class="k">Problem</div><div>He can operate WhatsApp—scroll, tap that region, send a voice note. He cannot independently open other applications or place a call. Existing tools each require one complete ability he does not have.</div></div>
+      <div class="row"><div class="k">User</div><div>A team-mate's brother with cerebral palsy. Observed directly. Reliable motor input is limited to one region of a smartphone screen; speech is present but not consistently recognized.</div></div>
+      <div class="row"><div class="k">Problem</div><div>The user can operate WhatsApp—scroll, tap that region, send a voice note. The user cannot independently open other applications or place a call. Existing tools each require one complete ability the user does not have.</div></div>
       <div class="row"><div class="k">Today</div><div>Tasks outside that set are done through Google Assistant, after extensive training on phrases such as “call amma,” or by a caregiver operating the device.</div></div>
-      <div class="row"><div class="k">Why it matters</div><div>Independent use of a phone he already owns is confined to a single application. Remaining tasks are abandoned or delegated.</div></div>
+      <div class="row"><div class="k">Why it matters</div><div>Independent use of a phone the user already owns is confined to a single application. Remaining tasks are abandoned or delegated.</div></div>
     </div>
   </section>
 
   <section class="slide">
     <div class="tag">02</div>
-    <h1>Validation &amp; What You Learned</h1>
+    <h1>Validation &amp; What We Learned</h1>
     <div class="rows">
-      <div class="row"><div class="k">Evidence</div><div>Direct observation of this user, and through him others with similar conditions. Not a survey. Not a persona.</div></div>
-      <div class="row"><div class="k">Assumption</div><div>That we require AI—that an AI agent would solve his problem.</div></div>
-      <div class="row"><div class="k">Observed</div><div>He already has a small set of reliable inputs. Google Assistant, itself an AI, already fails him. The bottleneck is mapping a large application onto that set, not another agent.</div></div>
+      <div class="row"><div class="k">Evidence</div><div>Direct observation of the user, and through the user a community of people with similar conditions. Not a survey. Not a persona.</div></div>
+      <div class="row"><div class="k">Assumption</div><div>That we require AI—that an AI agent would solve the user’s problem.</div></div>
+      <div class="row"><div class="k">Observed</div><div>The user already has a small set of reliable inputs. Google Assistant, itself an AI, already fails the user. The bottleneck is mapping a large application onto that set, not another agent.</div></div>
       <div class="row"><div class="k">Changed</div><div>Dropped OpenClaw: performance overhead, security issues, and it is too slow. No AI. A deterministic DOM engine ranks the page instead.</div></div>
     </div>
   </section>
 
   <section class="slide">
     <div class="tag">03</div>
-    <h1>Your Solution</h1>
+    <h1>Our Solution</h1>
     <div class="rows">
-      <div class="row"><div class="k">What it is</div><div>A phone input layer that measures what this person can do, then maps any task onto those residual abilities. Touch selects. Voice, when usable, supplies content.</div></div>
-      <div class="row"><div class="k">How it fits</div><div>Calibration produces a capability profile. The interface uses only methods that scored, inside the reachable region, at a size he can hit. A webpage is reduced to ranked actions by a DOM engine—no model call.</div></div>
-      <div class="row"><div class="k">Value</div><div>He keeps the inputs that already work and reaches apps beyond WhatsApp, without handing the phone over.</div></div>
-      <div class="row"><div class="k">Vs today</div><div>TalkBack still needs swipe gestures he cannot land. Voice Access and Assistant still need speech that is not recognized. This system does not require one complete channel.</div></div>
+      <div class="row"><div class="k">What it is</div><div><strong>KAI — Capability Awareness Interface.</strong> Measures what the user can do, then maps any task onto those residual abilities. Touch selects. Voice, when usable, supplies content.</div></div>
+      <div class="row"><div class="k">How it fits</div><div>Calibration produces a capability profile. A runtime composes primitives: input method, target size, reach zone, voice mode, visual field. A webpage is reduced to ranked actions by a DOM engine. No AI.</div></div>
+      <div class="row"><div class="k">Value</div><div>The user keeps the inputs that already work and reaches apps beyond WhatsApp, without handing the phone over.</div></div>
+      <div class="row"><div class="k">Vs today</div><div>TalkBack still needs swipe gestures the user cannot land. Voice Access and Assistant still need speech that is not recognized. KAI does not require one complete channel.</div></div>
     </div>
   </section>
 
   <section class="slide">
     <div class="tag">04</div>
-    <h1>What You Built</h1>
+    <h1>What We Built</h1>
     <div class="rows">
-      <div class="row"><div class="k">Phone</div><div>Flutter app: seven-step calibration, a live capability profile, four task shapes through four input methods, and touch-plus-voice on text. Flutter SDK only.</div></div>
-      <div class="row"><div class="k">Desktop</div><div>Playwright reads a page’s accessibility tree. A heuristic DOM engine ranks it into navigation vs information. Inspector can act on a ranked node. No LLM.</div></div>
-      <div class="row"><div class="k">Choices</div><div>No OpenClaw (overhead, security, latency). Browser tree, not native OS apps. Phone and desktop are not yet wired. Target sites are self-built mocks (Aperture Daily).</div></div>
+      <div class="row"><div class="k">Phone</div><div>KAI on Flutter: tap-or-hold setup, optional caregiver training, axis-gated calibration, a live profile (reach, methods, voice vocabulary, visual field, contrast). Four task shapes through four methods; touch-plus-voice on text.</div></div>
+      <div class="row"><div class="k">Desktop</div><div>Playwright reads a page’s accessibility tree. A heuristic DOM engine ranks navigation vs information and can act on a node. A zooming navigator uses the same ranking. No LLM.</div></div>
+      <div class="row"><div class="k">Choices</div><div>Zero AI. No OpenClaw (overhead, security, latency). Browser tree, not native OS apps. Phone and desktop are not yet wired. Primary demo is self-built mocks (Aperture Daily).</div></div>
       <div class="row"><div class="k">Not real yet</div><div>Speech recognition is simulated. TTS / narration is not built. Phone intents stop on an on-screen strip. They do not yet drive the laptop.</div></div>
     </div>
   </section>
@@ -87,10 +87,10 @@
     <div class="tag">05</div>
     <h1>Results &amp; What Comes Next</h1>
     <div class="rows">
-      <div class="row"><div class="k">Proven</div><div>We can measure a profile and reshape the same task to match it. We can rank a real page without an AI agent. The assumption that AI would solve his problem did not hold.</div></div>
-      <div class="row"><div class="k">Uncertain</div><div>Whether he can complete more tasks independently than with WhatsApp, Assistant, and a caregiver. Whether real speech recognition works for him.</div></div>
-      <div class="row"><div class="k">Next week</div><div>Wire the phone to the desktop. Put the built input layer in front of him. Decide whether to add a real speech package.</div></div>
-      <div class="row"><div class="k">To be useful</div><div>He must reach apps he currently abandons or hands off, without confirmation becoming constant interruption, on ordinary websites—not only our mocks.</div></div>
+      <div class="row"><div class="k">Proven</div><div>KAI can measure a profile and reshape the same task to match the user. A real page can be ranked without an AI agent. The assumption that AI would solve the user’s problem did not hold.</div></div>
+      <div class="row"><div class="k">Uncertain</div><div>Whether the user can complete more tasks independently than with WhatsApp, Assistant, and a caregiver. Whether real speech recognition works for the user.</div></div>
+      <div class="row"><div class="k">Next week</div><div>Wire the phone to the desktop. Put KAI in front of the user. Decide whether to add a real speech package.</div></div>
+      <div class="row"><div class="k">To be useful</div><div>The user must reach apps currently abandoned or handed off, without confirmation becoming constant interruption, on ordinary websites—not only our mocks.</div></div>
     </div>
   </section>
 
