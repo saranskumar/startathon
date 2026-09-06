@@ -2,6 +2,8 @@
 
 Low-fi wireframe in text: every screen, what is essential vs supporting, and the only legal order. Documents what is already built in `code/app` plus the intended flow. Not a pixel mock. Not a visual redesign.
 
+**Amended 2026-09-06** per [idea/30 — Meeting Notes: Onboarding & Calibration Walkthrough](../idea/30-meeting-notes-onboarding-calibration-walkthrough.md): adds the Start gate screen (§3, §4.0a), reorders/rescopes the Hold step (§4.5), flips axis-picker defaults to all-on with a long-press skip (§4.3), and moves high-contrast/language/helper controls out of the primary reach zone on Setup (§4.1). Not yet implemented in `code/app` — this file is the target state.
+
 **Code:** `code/app/lib/main.dart` (screens), `calibration/`, `runtime/`, `training/`, `vision/`.  
 **Requirements:** [idea/08-requirements.md](../idea/08-requirements.md).  
 **Scope:** [idea/05-scope.md](../idea/05-scope.md).  
@@ -51,6 +53,7 @@ Do not reorder these edges.
 ```mermaid
 flowchart TD
   open[App open]
+  start[Start gate: one button]
   setup[Setup: tap/hold anywhere]
   settings[Settings circle]
   demoMenu[Demo: presets, contrast, locale]
@@ -63,8 +66,9 @@ flowchart TD
   review[Confirm send]
   sent[Sent]
 
-  open -->|not confirmed| setup
+  open -->|not confirmed| start
   open -->|confirmed this session| preview
+  start -->|press| setup
   setup -->|tap/hold| axes
   setup -->|Someone is helping| train
   setup --> settings
@@ -91,7 +95,8 @@ flowchart TD
 
 ### Flow notes
 
-- **Setup is the launch screen** — “Set up how you control things” / tap anywhere. Demo presets live behind the **settings circle** (top-right), not on the first screen.
+- **Start gate is the true launch screen, Setup is second.** A single low-effort button, nothing else — no header, no recorded audio, no secondary controls. Its only job is to be the user gesture that authorizes the recorded welcome to autoplay on the next screen (Setup), and to give the flow exactly one obvious first action instead of several things at once. Every cold open goes through it; recalibrate/redo from elsewhere in the app returns to **Setup** directly, not back through Start (the app is already "open" at that point).
+- **Setup is the second screen** — “Set up how you control things” / tap anywhere. Demo presets live behind the **settings circle** (top-right), not on the first or second screen.
 - **Presets skip measurement on purpose** (judge demo, scope item 3). Live calibration and a preset both produce the same `CapabilityProfile`.
 - **Assisted:** training → axes (not training → entry). Helper button stays on Setup at the same time as tap-anywhere.
 - **After each motor/voice/vision step**, the partial profile is live-applied before the next step.
@@ -104,32 +109,63 @@ flowchart TD
 
 Each screen: ASCII wireframe → essential → supporting → functions.
 
-### 4.1 Setup (first screen)
+### 4.0a Start gate (first screen, new)
 
 ```
 ┌─────────────────────────────────────┐
-│                              (settings) │  ← circle, 48dp
-│  Set up how you control things      │
-│  no pass/fail copy…                 │
-│  ┌ TAP ANYWHERE TO START ┐          │
-│  Recorded welcome…                  │
-├─────────────────────────────────────┤
-│ [ Someone is helping set this up ]  │  ← outside gesture
+│                                       │
+│                                       │
+│         ┌ PRESS TO BEGIN ┐           │
+│                                       │
+│                                       │
 └─────────────────────────────────────┘
 ```
 
 | Essential | Supporting |
 |---|---|
-| Full-block tap/hold → axis picker | Recorded welcome |
-| Helper outlined button, same time as tap block | Settings circle → demo sheet |
+| One full-block tap/hold target, nothing else on screen | — (deliberately none) |
 
-**Functions:** start solo measurement; start assisted training; open settings for presets/contrast/locale.
+**Functions:** the single user gesture that authorizes the Setup screen's recorded welcome to autoplay, and gives the whole app one unambiguous first action. No header text, no toggles, no recorded audio here — those all belong to Setup, one screen later. Never shown again once a session has started (recalibrate/redo return to Setup, not here).
 
-### 4.1b Settings sheet (demo / judge)
+### 4.1 Setup (second screen)
+
+```
+┌─────────────────────────────────────┐
+│                              (settings) │  ← circle, 48dp, upper corner —
+│                                       │     reachable via that interface,
+│  ┌ TAP ANYWHERE TO START ┐          │     not required to be in the
+│  Recorded welcome — autoplays        │     primary reach zone
+│                                       │
+├─────────────────────────────────────┤
+│ [ Someone is helping set this up ]  │  ← upper area, out of primary
+│ [ High contrast ] [ Language ]       │  ← reach zone (both correct by
+│                                       │  default; helper is caregiver-
+│                                       │  operated) — see rule below
+├─────────────────────────────────────┤
+│  (bottom / thumb-reach zone: the     │
+│   tap-anywhere block ONLY)           │
+└─────────────────────────────────────┘
+```
+
+**Reach-zone rule (per idea/30 Decisions §4):** the bottom/thumb-reachable region of this screen is reserved *exclusively* for the primary tap-to-start action. High contrast, language, and "someone is helping" all sit outside that zone (upper area) — high contrast and language don't need to be within the target user's easy reach because they're correct by default and don't require interaction; "someone is helping" doesn't need to be there either since a caregiver, not the target user, is the one who acts on it. All three remain reachable via some control on screen, just not competing with the primary action's zone.
+
+The recorded welcome **autoplays** once this screen mounts (the Start-gate tap satisfies any platform audio-gesture requirement) — no separate "Play recording" tap is needed on the primary path; the existing play/replay control (§6) stays available as a secondary affordance for a second listen, not as the only way to trigger it.
+
+High contrast defaults **ON** (opt-out). Language defaults to `en` regardless of device locale — it only changes which recorded-narration clip plays (welcome/training), not any other on-screen text, so a device-locale default would overstate what it does.
 
 | Essential | Supporting |
 |---|---|
-| High contrast + locale chips | |
+| Full-block tap/hold → axis picker | Recorded welcome (now autoplays) |
+| Helper outlined button, same time as tap block, positioned outside the reach zone | Settings circle → demo sheet |
+
+**Functions:** start solo measurement; start assisted training; open settings for demo presets.
+
+### 4.1b Settings sheet (demo / judge)
+
+**Amended:** high contrast and locale chips live on **Setup itself** (§4.1, outside the primary reach zone), not here — they're accessibility defaults every user gets, not demo-only options. Only the genuinely demo/judge-only affordance (saved-profile presets, which skip live measurement) lives behind this sheet.
+
+| Essential | Supporting |
+|---|---|
 | OR START FROM A SAVED PROFILE (A / B / Floor) | |
 | Redo setup (when a profile is confirmed) | |
 | Someone is helping set this up | |
@@ -178,35 +214,37 @@ Reached only via “Someone is helping…”. No scores. Practice before measure
 ┌─────────────────────────────────────┐
 │ What should we measure?             │
 │ (optional) Setting this up for…     │  ← only if helperChoseAxes
-│ WHICH ENVIRONMENTS                  │
-│ ┌ Motor ………………… ☑/○ ┐              │
-│ ┌ Speech …………… ☑/○ ┐              │
-│ ┌ Vision …………… ☑/○ ┐              │
-│ [ Start ]  or disabled if none on   │
+│ WHICH ENVIRONMENTS (all on by default)│
+│ ┌ Motor ………………… ☑ (hold to skip) ┐ │
+│ ┌ Speech …………… ☑ (hold to skip) ┐ │
+│ ┌ Vision …………… ☑ (hold to skip) ┐ │
+│ [ Start ]                           │
 └─────────────────────────────────────┘
 ```
 
+**Defaults (per idea/30 Decisions §3):** Motor, Speech, and Vision all start **ON** — a user who does nothing and presses Start gets the full test, not an empty one. Turning an axis **off** is a large, low-effort, long-press/hold-to-confirm action on that row (mirroring the app's existing hold-to-confirm pattern from the Hold step), not a precise tap — so someone with exactly the motor difficulty this screen exists to measure isn't blocked by the row's own control. "Start" no longer needs a disabled state for "nothing selected," since something is always selected by default.
+
 | Essential | Supporting |
 |---|---|
-| Motor / Speech / Vision as **large whole-row toggles** (not tiny checkboxes) | Helper provenance banner |
-| At least one axis required; Start disabled otherwise | Haiku theme begins reacting live as toggles change |
+| Motor / Speech / Vision as **large whole-row toggles**, all on by default | Helper provenance banner |
+| Long-press/hold-to-confirm to turn an axis off | Haiku theme begins reacting live as toggles change |
 | Start → gated step list | |
 
-**Functions:** set `measureMotor` / `measureSpeech` / `measureVision`. Axes left off contribute **no** steps (speech-only never mounts joystick).
+**Functions:** set `measureMotor` / `measureSpeech` / `measureVision`. Axes turned off contribute **no** steps (speech-only never mounts joystick).
 
 ---
 
 ### 4.5 Measurement steps
 
-Only steps for axes left on. Order when all on: reach → buttons → joystick → trackpad → hold → voice → vision.
+Only steps for axes left on. **Order when all on (amended per idea/30 Decisions §2): reach → buttons → hold → joystick → trackpad → voice → vision.** Hold moves up from last-among-motor to right after Buttons, and changes scope: it no longer runs once against an arbitrary target — it runs **once per button/cell that the Buttons step already found tappable**, so the app learns which subset of those buttons is also holdable (e.g. 5 tappable, 2 of them also holdable → 7 distinct usable inputs, not one undifferentiated capability). Calibration time for this step now scales with however many buttons Buttons found, not a fixed single attempt.
 
 | Step | Person does | Essential UI |
 |---|---|---|
 | **Reach** | Tap cells that work | 3×4 grid, skip |
 | **Buttons** | Hit large targets | Targets at measured size, skip |
+| **Hold** | Press and hold, once per button Buttons found tappable | Hold target per button, skip |
 | **Joystick** | Swing per reachable cell | Stick + home-cell result, skip |
 | **Trackpad** | Drag; axis lock if needed | Pad, skip |
-| **Hold** | Press and hold | Hold target, skip |
 | **Voice** | Say 8 sentences | Current sentence, word kept, “That word was clear” / “Not this one”, hold-to-speak, next sentence |
 | **Vision** | Read shrinking word, then field | Acuity choice → full / tunnel / peripheral |
 
@@ -329,7 +367,7 @@ Fixed order. Every task screen shares:
 ## 6. Supporting (never block the path)
 
 - Event log sheet (from output strip).
-- Play-recording button (timed transcript + screen-reader announcement until WAVs exist).
+- Replay-recording button on Setup (timed transcript + screen-reader announcement until WAVs exist) — secondary now that the welcome autoplays on arrival; still there for a second listen.
 - Toast on skip / idle.
 - Level-up / Simpler chrome on preview.
 - Haiku motif on results.
