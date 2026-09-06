@@ -67,6 +67,115 @@ class InputOverlay extends StatelessWidget {
   }
 }
 
+/// Shared highlight tokens for every input mode.
+///
+/// Item = the option that will commit. Group = the active section (scan row
+/// or page). Idle = everything else. Joystick already used this language;
+/// other modes reuse the same paint.
+enum HighlightTier { idle, group, item }
+
+class OptionHighlightStyle {
+  static HighlightTier tier({required bool item, bool group = false}) {
+    if (item) return HighlightTier.item;
+    if (group) return HighlightTier.group;
+    return HighlightTier.idle;
+  }
+
+  static BoxDecoration decoration(ColorScheme scheme, HighlightTier tier) {
+    switch (tier) {
+      case HighlightTier.item:
+        return BoxDecoration(
+          color: scheme.primary,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: scheme.primary, width: 3),
+        );
+      case HighlightTier.group:
+        return BoxDecoration(
+          color: scheme.primaryContainer.withValues(alpha: 0.55),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: scheme.primary, width: 1),
+        );
+      case HighlightTier.idle:
+        return BoxDecoration(
+          color: scheme.surfaceContainerHighest.withValues(alpha: 0.6),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: scheme.outlineVariant, width: 1),
+        );
+    }
+  }
+
+  static Color foreground(ColorScheme scheme, HighlightTier tier) =>
+      tier == HighlightTier.item ? scheme.onPrimary : scheme.onSurface;
+}
+
+/// One option row or grid cell, painted with [OptionHighlightStyle].
+class SelectionCell extends StatelessWidget {
+  const SelectionCell({
+    super.key,
+    required this.label,
+    required this.tier,
+    this.onTap,
+    this.minHeight = 56,
+    this.textScale = 1.0,
+    this.compact = false,
+    this.center = false,
+    this.showChevron = true,
+  });
+
+  final String label;
+  final HighlightTier tier;
+  final VoidCallback? onTap;
+  final double minHeight;
+  final double textScale;
+  final bool compact;
+  final bool center;
+  final bool showChevron;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    final fg = OptionHighlightStyle.foreground(scheme, tier);
+    final selected = tier == HighlightTier.item;
+    return Semantics(
+      button: true,
+      selected: selected,
+      label: label,
+      child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onTap: onTap,
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 110),
+          constraints: BoxConstraints(minHeight: compact ? 48 : minHeight),
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+          decoration: OptionHighlightStyle.decoration(scheme, tier),
+          alignment: center ? Alignment.center : Alignment.centerLeft,
+          child: Row(
+            mainAxisAlignment:
+                center ? MainAxisAlignment.center : MainAxisAlignment.start,
+            children: [
+              Expanded(
+                child: Text(
+                  label,
+                  textAlign: center ? TextAlign.center : TextAlign.start,
+                  softWrap: true,
+                  style: TextStyle(
+                    fontSize: (center ? 15 : 18) * textScale,
+                    fontWeight: selected ? FontWeight.w800 : FontWeight.w600,
+                    color: fg,
+                    height: 1.2,
+                  ),
+                ),
+              ),
+              if (showChevron && selected && !center)
+                Icon(Icons.chevron_right, color: fg),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
 /// The shared way options are shown, whatever method is driving the highlight.
 ///
 /// One list, four input methods: buttons tap it directly, the joystick and the
@@ -78,6 +187,7 @@ class OptionList extends StatelessWidget {
     super.key,
     required this.options,
     required this.highlight,
+    this.groupIndexes = const [],
     this.onTap,
     this.textScale = 1.0,
     this.minTargetSize = 56,
@@ -86,6 +196,10 @@ class OptionList extends StatelessWidget {
 
   final List<String> options;
   final int highlight;
+
+  /// Local indexes in the current section (page / scan row). Painted as group
+  /// when they are not the item highlight.
+  final List<int> groupIndexes;
   final void Function(int index)? onTap;
   final double textScale;
   final double minTargetSize;
@@ -96,7 +210,6 @@ class OptionList extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
     return Semantics(
       liveRegion: true,
       container: true,
@@ -104,62 +217,26 @@ class OptionList extends StatelessWidget {
           ? '${options[highlight]}, selected'
           : 'options',
       child: ListView.builder(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      itemCount: options.length,
-      itemBuilder: (context, i) {
-        final selected = i == highlight;
-        return Padding(
-          padding: const EdgeInsets.only(bottom: 8),
-          child: Semantics(
-            button: true,
-            selected: selected,
-            label: options[i],
-            child: GestureDetector(
-            behavior: HitTestBehavior.opaque,
-            onTap: onTap == null ? null : () => onTap!(i),
-            child: AnimatedContainer(
-              duration: const Duration(milliseconds: 110),
-              constraints: BoxConstraints(
-                minHeight: compact ? 48 : minTargetSize,
-              ),
-              padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
-              decoration: BoxDecoration(
-                color: selected
-                    ? scheme.primary
-                    : scheme.surfaceContainerHighest.withValues(alpha: 0.6),
-                borderRadius: BorderRadius.circular(16),
-                border: Border.all(
-                  color: selected ? scheme.primary : scheme.outlineVariant,
-                  width: selected ? 3 : 1,
-                ),
-              ),
-              alignment: Alignment.centerLeft,
-              child: Row(
-                children: [
-                  Expanded(
-                    child: Text(
-                      options[i],
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                      style: TextStyle(
-                        fontSize: 18 * textScale,
-                        fontWeight:
-                            selected ? FontWeight.w800 : FontWeight.w600,
-                        color:
-                            selected ? scheme.onPrimary : scheme.onSurface,
-                      ),
-                    ),
-                  ),
-                  if (selected)
-                    Icon(Icons.chevron_right, color: scheme.onPrimary),
-                ],
-              ),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        itemCount: options.length,
+        itemBuilder: (context, i) {
+          final tier = OptionHighlightStyle.tier(
+            item: i == highlight,
+            group: groupIndexes.contains(i),
+          );
+          return Padding(
+            padding: const EdgeInsets.only(bottom: 8),
+            child: SelectionCell(
+              label: options[i],
+              tier: tier,
+              textScale: textScale,
+              minHeight: minTargetSize,
+              compact: compact,
+              onTap: onTap == null ? null : () => onTap!(i),
             ),
-            ),
-          ),
-        );
-      },
-    ),
+          );
+        },
+      ),
     );
   }
 }

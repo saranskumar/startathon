@@ -85,7 +85,7 @@ class _CalibrationResultsState extends State<CalibrationResults> {
                     Text(
                       'Nothing here is a diagnosis. It is what the tests measured, '
                       'and it can be redone at any time. This report already uses '
-                      'your measured size and field.',
+                      'your measured size. Field is recorded, not applied yet.',
                       style: TextStyle(
                         fontSize: 13 * scale,
                         color: scheme.onSurfaceVariant,
@@ -146,7 +146,8 @@ class _CalibrationResultsState extends State<CalibrationResults> {
                     _fact(scheme, scale, 'Voice',
                         '${profile.clarity.label} -- ${profile.clarity.grants}'),
                     _fact(scheme, scale, 'Vision',
-                        '${profile.vision.label} · ${profile.visualField.label}'),
+                        '${profile.vision.label} · ${profile.visualField.label} '
+                        '(recorded, not applied yet)'),
                     _fact(scheme, scale, 'Input level', profile.inputLevel.label),
                     if (profile.vocabulary.isNotEmpty)
                       _fact(scheme, scale, 'Personal words',

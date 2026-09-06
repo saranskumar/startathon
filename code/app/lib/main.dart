@@ -11,6 +11,7 @@ import 'runtime/demo_screen.dart';
 import 'runtime/preview_screen.dart';
 import 'theme/contrast_theme.dart';
 import 'theme/haiku_theme.dart';
+import 'playground/playground_screen.dart';
 import 'vision/field_shell.dart';
 
 /// Adaptive Capability-Profile Access Layer -- input layer only.
@@ -27,7 +28,7 @@ class AccessLayerApp extends StatefulWidget {
   State<AccessLayerApp> createState() => _AccessLayerAppState();
 }
 
-enum _Screen { start, link, home, calibrate, preview, demo, live }
+enum _Screen { start, link, home, calibrate, preview, demo, live, playground }
 
 class _AccessLayerAppState extends State<AccessLayerApp> {
   final AppState _state = AppState();
@@ -36,6 +37,9 @@ class _AccessLayerAppState extends State<AccessLayerApp> {
 
   /// Bumped on redo so CalibrationFlow remounts with a fresh draft.
   int _setupEpoch = 0;
+
+  /// Screen to restore when leaving Playground.
+  _Screen _afterPlayground = _Screen.home;
 
   /// Live during calibration: updated the moment the intro's axis toggles
   /// change, so the theme reacts before any test has produced a score.
@@ -123,6 +127,13 @@ class _AccessLayerAppState extends State<AccessLayerApp> {
         onHelping: () {
           Navigator.pop(ctx);
           _redoSetup(assisted: true);
+        },
+        onPlayground: () {
+          Navigator.pop(ctx);
+          setState(() {
+            _afterPlayground = _screen;
+            _screen = _Screen.playground;
+          });
         },
       ),
     );
@@ -223,6 +234,14 @@ class _AccessLayerAppState extends State<AccessLayerApp> {
                           ),
                         ),
                       ],
+                    ),
+                  _Screen.playground => PlaygroundScreen(
+                      profile: _state.profile,
+                      onClose: () => setState(() => _screen = _afterPlayground),
+                      onRaw: (s) => _state.emitRaw(s),
+                      onIntent: (text) => _state.emit(
+                        InputEvent(kind: 'INTENT', text: text),
+                      ),
                     ),
                 };
                 final profile = _state.profile;
@@ -442,12 +461,14 @@ class _DemoSettingsSheet extends StatelessWidget {
     required this.onPreset,
     required this.onRedoSetup,
     required this.onHelping,
+    required this.onPlayground,
   });
 
   final AppState state;
   final void Function(CapabilityProfile) onPreset;
   final VoidCallback onRedoSetup;
   final VoidCallback onHelping;
+  final VoidCallback onPlayground;
 
   @override
   Widget build(BuildContext context) {
@@ -472,6 +493,15 @@ class _DemoSettingsSheet extends StatelessWidget {
             style: TextStyle(color: scheme.onSurfaceVariant, height: 1.35),
           ),
           const SizedBox(height: 16),
+          SizedBox(
+            height: 56,
+            width: double.infinity,
+            child: FilledButton(
+              onPressed: onPlayground,
+              child: const Text('Playground'),
+            ),
+          ),
+          const SizedBox(height: 10),
           if (state.setupConfirmed) ...[
             SizedBox(
               height: 56,

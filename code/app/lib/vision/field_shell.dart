@@ -2,14 +2,15 @@ import 'package:flutter/material.dart';
 
 import '../model/profile.dart';
 
-/// Visual-field overlay (issue #4).
+/// Visual-field shell (issue #4).
 ///
-/// Tunnel: input still hits anywhere (the mask ignores pointers); *output*
-/// is condensed into one window so they do not have to scan the whole screen.
-/// Peripheral: issue #4 flagged this as research-first. The shipped pattern
-/// for central vision loss is eccentric viewing — keep information off the
-/// scotoma (the center) and on the ring, plus high contrast on the theme.
-/// The veil is IgnorePointer so aiming is not constrained to the visible hole.
+/// The overlay is **not painted** right now — tunnel / peripheral values stay
+/// on the profile for later. When the real tunnel layout ships, all buttons,
+/// text, and options live inside one square (see docs/app/04).
+///
+/// Keep this widget in the tree so callers do not special-case field. The
+/// mask painter is retained unused so the later layout can reuse the window
+/// math.
 class VisualFieldShell extends StatelessWidget {
   const VisualFieldShell({
     super.key,
@@ -23,38 +24,16 @@ class VisualFieldShell extends StatelessWidget {
   final bool outputAtBottom;
 
   @override
-  Widget build(BuildContext context) {
-    if (field == VisualField.full) return child;
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final size = Size(constraints.maxWidth, constraints.maxHeight);
-        return Stack(
-          fit: StackFit.expand,
-          children: [
-            child,
-            IgnorePointer(
-              child: CustomPaint(
-                size: size,
-                painter: _FieldMaskPainter(
-                  field: field,
-                  window: _window(size),
-                ),
-              ),
-            ),
-          ],
-        );
-      },
-    );
-  }
+  Widget build(BuildContext context) => child;
 
-  Rect _window(Size size) {
+  /// Visible-window rect the later tunnel layout will use. Not painted today.
+  Rect windowFor(Size size) {
     if (field == VisualField.tunnel) {
       final w = size.width * 0.72;
       final h = size.height * 0.34;
       final top = outputAtBottom ? size.height - h - 16 : 16.0;
       return Rect.fromLTWH((size.width - w) / 2, top, w, h);
     }
-    // Peripheral: the *blocked* region is the center. The painter inverts.
     final w = size.width * 0.46;
     final h = size.height * 0.40;
     return Rect.fromCenter(
@@ -65,8 +44,9 @@ class VisualFieldShell extends StatelessWidget {
   }
 }
 
-class _FieldMaskPainter extends CustomPainter {
-  _FieldMaskPainter({required this.field, required this.window});
+/// Kept for the later field layout. Not mounted while the overlay is deferred.
+class FieldMaskPainter extends CustomPainter {
+  FieldMaskPainter({required this.field, required this.window});
 
   final VisualField field;
   final Rect window;
@@ -91,12 +71,11 @@ class _FieldMaskPainter extends CustomPainter {
         rim,
       );
     } else {
-      // Peripheral-only: veil the center, leave the edges.
       canvas.drawPath(hole, veil);
     }
   }
 
   @override
-  bool shouldRepaint(covariant _FieldMaskPainter old) =>
+  bool shouldRepaint(covariant FieldMaskPainter old) =>
       old.field != field || old.window != window;
 }

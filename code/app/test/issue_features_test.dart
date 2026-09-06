@@ -492,6 +492,29 @@ void main() {
       );
     });
 
+    testWidgets('shell is a passthrough — overlay is not painted',
+        (tester) async {
+      usePhoneSurface(tester);
+      for (final field in VisualField.values) {
+        await tester.pumpWidget(
+          MaterialApp(
+            home: VisualFieldShell(
+              field: field,
+              child: const Scaffold(body: Text('field-child')),
+            ),
+          ),
+        );
+        expect(find.text('field-child'), findsOneWidget);
+        expect(
+          tester
+              .widgetList<CustomPaint>(find.byType(CustomPaint))
+              .where((p) => p.painter is FieldMaskPainter),
+          isEmpty,
+        );
+      }
+      await teardownTree(tester);
+    });
+
     testWidgets('tunnel mask does not steal taps under the veil', (tester) async {
       usePhoneSurface(tester);
       var taps = 0;

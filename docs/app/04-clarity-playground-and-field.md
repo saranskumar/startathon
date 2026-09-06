@@ -2,7 +2,7 @@
 
 Planning note for the next phone-app pass. **Issue #20 is already shipped** (`f6aa6bb`, Live discrete paging + Floor dwell). This doc records the follow-on work and the extra requirements that came with it.
 
-**Status:** planned. Implementation waits on an approved plan. Do not treat the items below as built until the feature record in [01](01-feature-inventory.md) is updated after the code lands.
+**Status:** implemented (overlay passthrough, shared selection cells, Live highlight for pick/fill/confirm, gear-menu Playground hub). Issue #20 paging/dwell unchanged.
 
 **Code today:** `code/app/lib/live/` (Live lists), `runtime/discrete_view.dart` (paging + joystick section highlight), `vision/field_shell.dart` (tunnel / peripheral veil), `runtime/preview_screen.dart` (post-calibration controller preview), `main.dart` settings sheet.
 

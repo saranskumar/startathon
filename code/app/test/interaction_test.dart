@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:startathon/calibration/hold_fill.dart';
 import 'package:startathon/calibration/touch_steps.dart';
 import 'package:startathon/calibration/step_frame.dart';
 import 'package:startathon/inputs/surfaces.dart';
@@ -136,6 +137,52 @@ void main() {
       await tester.pump();
       expect(index, isNotNull);
       expect(index, inInclusiveRange(0, options.length - 1));
+      await teardownTree(tester);
+    });
+
+    testWidgets('long option labels stay readable, not clipped to Se',
+        (tester) async {
+      usePhoneSurface(tester);
+      const seats = ['Seat 12 Window', 'Seat 12 Aisle', 'Seat 14 Window'];
+      await tester.pumpWidget(harness(
+        AppState(),
+        Scaffold(
+          body: DiscreteTaskView(
+            profile: ProfilePresets.profileA,
+            method: TouchMethod.buttons,
+            options: seats,
+            livePaging: true,
+            onRaw: (_) {},
+            onResolve: (_, _) {},
+          ),
+        ),
+      ));
+      await tester.pump();
+      expect(find.text('Seat 12 Window'), findsOneWidget);
+      expect(find.text('Se'), findsNothing);
+      await teardownTree(tester);
+    });
+
+    testWidgets('joystick highlight paints the current option', (tester) async {
+      usePhoneSurface(tester);
+      final hits = <OptionHighlight>[];
+      await tester.pumpWidget(harness(
+        AppState(),
+        Scaffold(
+          body: DiscreteTaskView(
+            profile: ProfilePresets.profileA,
+            method: TouchMethod.joystick,
+            options: options,
+            onRaw: (_) {},
+            onHighlight: hits.add,
+            onResolve: (_, _) {},
+          ),
+        ),
+      ));
+      await tester.pump();
+      expect(hits, isNotEmpty);
+      expect(hits.last.value, 'Starter');
+      expect(find.text('Starter'), findsWidgets);
       await teardownTree(tester);
     });
   });
@@ -384,9 +431,12 @@ void main() {
       await tester.tapAt(const Offset(60, 500));
       await tester.pump();
       // A single tap is tentative only -- the draft isn't committed until
-      // the step ends (idle timeout), not on every tap.
+      // the step ends (overall timer), not on every tap.
       expect(draft.reachableCells, isEmpty);
       await tester.pump(const Duration(seconds: 2, milliseconds: 100));
+      expect(draft.reachableCells, isEmpty,
+          reason: '2s idle must not end the step while the 10s timer remains');
+      await tester.pump(const Duration(seconds: 10));
       expect(draft.reachableCells, isNotEmpty);
       expect(draft.lockedCells, isEmpty); // one tap = tentative, not locked
       await teardownTree(tester);
@@ -413,9 +463,101 @@ void main() {
       await tester.pump();
       await tester.tapAt(const Offset(60, 500));
       await tester.pump();
-      await tester.pump(const Duration(seconds: 2, milliseconds: 100));
+      await tester.pump(const Duration(seconds: 11));
       expect(draft.reachableCells, isNotEmpty);
       expect(draft.lockedCells, isNotEmpty);
+      await teardownTree(tester);
+    });
+
+    testWidgets('reach: locking every cell starts the moving-on countdown',
+        (tester) async {
+      usePhoneSurface(tester);
+      final draft = CalibrationDraft();
+      var nextCalled = 0;
+      await tester.pumpWidget(harness(
+        AppState(),
+        Scaffold(
+          body: ReachStep(
+            draft: draft,
+            index: 0,
+            total: 7,
+            onNext: () => nextCalled++,
+            onSkip: () {},
+          ),
+        ),
+      ));
+
+      for (var n = 1; n <= CapabilityProfile.reachCellCount; n++) {
+        await tester.tap(find.text('$n'));
+        await tester.pump();
+        await tester.tap(find.text('$n'));
+        await tester.pump();
+      }
+      expect(find.textContaining('Locked. Next input method'), findsOneWidget);
+      expect(nextCalled, 0);
+      await tester.pump(const Duration(seconds: 4));
+      expect(nextCalled, 1);
+      expect(draft.lockedCells, hasLength(CapabilityProfile.reachCellCount));
+      await teardownTree(tester);
+    });
+
+    testWidgets('buttons: a miss does not end the round before the timer',
+        (tester) async {
+      usePhoneSurface(tester);
+      final draft = CalibrationDraft();
+      var nextCalled = 0;
+      await tester.pumpWidget(harness(
+        AppState(),
+        Scaffold(
+          body: ButtonsStep(
+            draft: draft,
+            index: 1,
+            total: 7,
+            onNext: () => nextCalled++,
+            onSkip: () {},
+          ),
+        ),
+      ));
+
+      expect(find.text('140'), findsOneWidget);
+      await tester.tapAt(const Offset(24, 280));
+      await tester.pump();
+      expect(find.text('140'), findsOneWidget);
+      expect(find.text('104'), findsNothing);
+
+      await tester.tap(find.text('140'));
+      await tester.pump();
+      expect(find.text('104'), findsOneWidget);
+      expect(nextCalled, 0);
+      await teardownTree(tester);
+    });
+
+    testWidgets('buttons: last round shows locked countdown before onNext',
+        (tester) async {
+      usePhoneSurface(tester);
+      final draft = CalibrationDraft();
+      var nextCalled = 0;
+      await tester.pumpWidget(harness(
+        AppState(),
+        Scaffold(
+          body: ButtonsStep(
+            draft: draft,
+            index: 1,
+            total: 7,
+            onNext: () => nextCalled++,
+            onSkip: () {},
+          ),
+        ),
+      ));
+
+      for (final label in ['140', '104', '76', '54']) {
+        await tester.tap(find.text(label));
+        await tester.pump();
+      }
+      expect(find.textContaining('Locked. Next input method'), findsOneWidget);
+      expect(nextCalled, 0);
+      await tester.pump(const Duration(seconds: 4));
+      expect(nextCalled, 1);
       await teardownTree(tester);
     });
 
@@ -442,23 +584,67 @@ void main() {
         ),
       ));
 
+      expect(find.text('100'), findsNWidgets(2));
+
       // First button: hold long enough to succeed.
-      final gesture1 = await tester.startGesture(const Offset(100, 300));
+      final gesture1 = await tester.startGesture(
+        tester.getCenter(find.byType(HoldFill)),
+      );
       await tester.pump(const Duration(milliseconds: 1600));
       await gesture1.up();
       await tester.pump();
+      expect(draft.tappableButtons[0].holdable, isTrue);
 
       // Second (and last) button: release early, then let the round's own
       // timeout resolve it as a miss rather than hanging.
-      final gesture2 = await tester.startGesture(const Offset(100, 300));
+      final gesture2 = await tester.startGesture(
+        tester.getCenter(find.byType(HoldFill)),
+      );
       await tester.pump(const Duration(milliseconds: 200));
       await gesture2.up();
       await tester.pump(const Duration(seconds: 7, milliseconds: 500));
 
-      expect(draft.tappableButtons[0].holdable, isTrue);
       expect(draft.tappableButtons[1].holdable, isFalse);
-      expect(nextCalled, 1); // onNext fires once, after the last target
+      expect(nextCalled, 0); // locked countdown still running
+      expect(find.textContaining('Locked. Next input method'), findsOneWidget);
+      await tester.pump(const Duration(seconds: 4));
+      expect(nextCalled, 1);
       expect(draft.holdCapable, isTrue); // any(true) across the two buttons
+      await teardownTree(tester);
+    });
+
+    testWidgets('hold: round timer does not fail a hold in progress',
+        (tester) async {
+      usePhoneSurface(tester);
+      final draft = CalibrationDraft();
+      draft.tappableButtons.add(
+        ButtonTarget(cell: 0, size: 100, placement: Alignment.center),
+      );
+      var nextCalled = 0;
+      await tester.pumpWidget(harness(
+        AppState(),
+        Scaffold(
+          body: HoldStep(
+            draft: draft,
+            index: 2,
+            total: 7,
+            onNext: () => nextCalled++,
+            onSkip: () {},
+          ),
+        ),
+      ));
+
+      await tester.pump(const Duration(seconds: 6));
+      final gesture = await tester.startGesture(
+        tester.getCenter(find.byType(HoldFill)),
+      );
+      await tester.pump(const Duration(milliseconds: 1600));
+      await gesture.up();
+      await tester.pump();
+      expect(draft.tappableButtons[0].holdable, isTrue);
+      expect(nextCalled, 0);
+      await tester.pump(const Duration(seconds: 4));
+      expect(nextCalled, 1);
       await teardownTree(tester);
     });
 

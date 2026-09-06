@@ -50,6 +50,7 @@ class DiscreteTaskView extends StatefulWidget {
     required this.onRaw,
     this.onHighlight,
     this.livePaging = false,
+    this.preferList = false,
   });
 
   final CapabilityProfile profile;
@@ -67,6 +68,10 @@ class DiscreteTaskView extends StatefulWidget {
   /// Offline demo tasks leave this false so their lists stay as they are.
   final bool livePaging;
 
+  /// Force the switch path onto [OptionList] (vertical scan) instead of the
+  /// compact offline grid. Playground demos and long-label Live pages use this.
+  final bool preferList;
+
   @override
   State<DiscreteTaskView> createState() => _DiscreteTaskViewState();
 }
@@ -82,6 +87,8 @@ class _DiscreteTaskViewState extends State<DiscreteTaskView> {
   late final HoldRepeater _repeater;
 
   double get _scale => widget.profile.vision.textScale;
+
+  bool get _listScan => widget.livePaging || widget.preferList;
 
   /// Buttons always page. Other methods only page on the Live path.
   bool get _pages =>
@@ -164,7 +171,7 @@ class _DiscreteTaskViewState extends State<DiscreteTaskView> {
   /// visible page as the group and the current option as the item.
   String get _highlightPhase {
     if (widget.method == TouchMethod.switchScan &&
-        !widget.livePaging &&
+        !_listScan &&
         _scanPhase == 0) {
       return 'group';
     }
@@ -173,7 +180,7 @@ class _DiscreteTaskViewState extends State<DiscreteTaskView> {
 
   List<int> get _groupIndexes {
     if (widget.method == TouchMethod.switchScan &&
-        !widget.livePaging &&
+        !_listScan &&
         _scanPhase == 0) {
       final cols = _scanCols;
       final start = _scanRow * cols;
@@ -258,10 +265,10 @@ class _DiscreteTaskViewState extends State<DiscreteTaskView> {
   ///
   /// Live paging already caps the page, so it scans the current page as a
   /// single column and auto-advances when that pass wraps.
-  int get _scanCols => widget.livePaging
+  int get _scanCols => _listScan
       ? 1
       : math.max(1, math.sqrt(widget.options.length).ceil());
-  int get _scanRows => widget.livePaging
+  int get _scanRows => _listScan
       ? math.max(1, _slice.length)
       : (widget.options.length / _scanCols).ceil();
 
@@ -272,7 +279,7 @@ class _DiscreteTaskViewState extends State<DiscreteTaskView> {
   void _tickScan() {
     if (!mounted) return;
     Haptics.navigate();
-    if (widget.livePaging) {
+    if (_listScan) {
       _tickLiveScan();
       return;
     }
@@ -303,8 +310,12 @@ class _DiscreteTaskViewState extends State<DiscreteTaskView> {
     var row = _scanRow + 1;
     var page = _page;
     if (row >= n) {
-      page = (_page + 1) % _pageCount;
-      row = 0;
+      if (widget.livePaging && _pageCount > 1) {
+        page = (_page + 1) % _pageCount;
+        row = 0;
+      } else {
+        row = 0;
+      }
     }
     setState(() {
       _page = page;
@@ -323,7 +334,7 @@ class _DiscreteTaskViewState extends State<DiscreteTaskView> {
 
   void _startScan() {
     _scan?.cancel();
-    if (widget.livePaging) {
+    if (_listScan) {
       _scanPhase = 1;
       _scanRow = 0;
       _scanCol = 0;
@@ -340,7 +351,7 @@ class _DiscreteTaskViewState extends State<DiscreteTaskView> {
   /// running timer just switches what it increments -- no restart needed.
   /// Live paging is already a short column, so one press selects.
   void _switchPress() {
-    if (widget.livePaging) {
+    if (_listScan) {
       final index = _pageStart + _scanRow;
       if (index < widget.options.length) {
         _resolve(index);
@@ -472,7 +483,8 @@ class _DiscreteTaskViewState extends State<DiscreteTaskView> {
       content: _fitContent((per, start, slice) {
         return OptionList(
           options: slice,
-          highlight: -1,
+          highlight: _localHighlight(start, slice),
+          groupIndexes: [for (var i = 0; i < slice.length; i++) i],
           textScale: _scale,
           minTargetSize: widget.profile.minTargetSize,
           onTap: (i) {
@@ -548,6 +560,7 @@ class _DiscreteTaskViewState extends State<DiscreteTaskView> {
           return OptionList(
             options: slice,
             highlight: _localHighlight(start, slice),
+            groupIndexes: [for (var i = 0; i < slice.length; i++) i],
             textScale: _scale,
             minTargetSize: widget.profile.minTargetSize,
             compact: !widget.livePaging,
@@ -573,6 +586,7 @@ class _DiscreteTaskViewState extends State<DiscreteTaskView> {
           return OptionList(
             options: slice,
             highlight: _localHighlight(start, slice),
+            groupIndexes: [for (var i = 0; i < slice.length; i++) i],
             textScale: _scale,
             minTargetSize: widget.profile.minTargetSize,
             compact: !widget.livePaging,
@@ -631,7 +645,18 @@ class _DiscreteTaskViewState extends State<DiscreteTaskView> {
         profile: widget.profile,
         content: Padding(
           padding: const EdgeInsets.all(16),
-          child: _fitContent((per, start, slice) => _scanGrid(slice)),
+          child: _fitContent((per, start, slice) {
+            if (_listScan) {
+              return OptionList(
+                options: slice,
+                highlight: _localHighlight(start, slice),
+                groupIndexes: [for (var i = 0; i < slice.length; i++) i],
+                textScale: _scale,
+                minTargetSize: widget.profile.minTargetSize,
+              );
+            }
+            return _scanGrid(slice);
+          }),
         ),
         dock: SwitchTrigger(
           label: 'PRESS TO SELECT',
@@ -640,7 +665,6 @@ class _DiscreteTaskViewState extends State<DiscreteTaskView> {
       );
 
   Widget _scanGrid(List<String> options) {
-    final scheme = Theme.of(context).colorScheme;
     final cols = widget.livePaging
         ? 1
         : math.max(1, math.sqrt(widget.options.length).ceil());
@@ -654,7 +678,7 @@ class _DiscreteTaskViewState extends State<DiscreteTaskView> {
             child: Row(
               children: [
                 for (var c = 0; c < cols; c++)
-                  Expanded(child: _scanCell(scheme, r, c, cols, options)),
+                  Expanded(child: _scanCell(r, c, cols, options)),
               ],
             ),
           ),
@@ -663,7 +687,6 @@ class _DiscreteTaskViewState extends State<DiscreteTaskView> {
   }
 
   Widget _scanCell(
-    ColorScheme scheme,
     int row,
     int col,
     int cols,
@@ -671,53 +694,25 @@ class _DiscreteTaskViewState extends State<DiscreteTaskView> {
   ) {
     final index = row * cols + col;
     final has = index < options.length;
+    if (!has) {
+      return const SizedBox.shrink();
+    }
     final rowActive = row == _scanRow;
     final cellActive = _scanPhase == 1 && rowActive && col == _scanCol;
     final rowOnlyActive = _scanPhase == 0 && rowActive;
-    final minH = widget.livePaging ? widget.profile.minTargetSize : 56.0;
+    final tier = OptionHighlightStyle.tier(
+      item: cellActive,
+      group: rowOnlyActive,
+    );
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 4),
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 110),
-        constraints: BoxConstraints(minHeight: minH),
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
-        decoration: BoxDecoration(
-          color: !has
-              ? Colors.transparent
-              : cellActive
-                  ? scheme.primary
-                  : rowOnlyActive
-                      ? scheme.primaryContainer.withValues(alpha: 0.55)
-                      : scheme.surfaceContainerHighest.withValues(alpha: 0.5),
-          borderRadius: BorderRadius.circular(14),
-          border: has
-              ? Border.all(
-                  color: cellActive || rowOnlyActive
-                      ? scheme.primary
-                      : scheme.outlineVariant,
-                  width: cellActive ? 3 : 1,
-                )
-              : null,
-        ),
-        alignment: Alignment.center,
-        child: has
-            ? Semantics(
-                button: true,
-                selected: cellActive,
-                label: options[index],
-                child: Text(
-                  options[index],
-                  textAlign: TextAlign.center,
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                  style: TextStyle(
-                    fontSize: 14 * _scale,
-                    fontWeight: cellActive ? FontWeight.w800 : FontWeight.w600,
-                    color: cellActive ? scheme.onPrimary : scheme.onSurface,
-                  ),
-                ),
-              )
-            : null,
+      child: SelectionCell(
+        label: options[index],
+        tier: tier,
+        textScale: _scale,
+        minHeight: 56,
+        center: true,
+        showChevron: false,
       ),
     );
   }

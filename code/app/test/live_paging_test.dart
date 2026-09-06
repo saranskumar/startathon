@@ -214,5 +214,55 @@ void main() {
       expect(hits.last.groupIndexes, [0, 1]);
       await teardownTree(tester);
     });
+
+    testWidgets('buttons paging still emits highlight + group', (tester) async {
+      usePhoneSurface(tester);
+      final hits = <OptionHighlight>[];
+      final profile =
+          ProfilePresets.profileA.copyWith(inputLevel: InputLevel.two);
+      await tester.pumpWidget(liveDiscrete(
+        TouchMethod.buttons,
+        profile,
+        options: const ['A', 'B', 'C', 'D'],
+        onHighlight: hits.add,
+      ));
+      await tester.pump();
+      expect(hits, isNotEmpty);
+      expect(hits.last.phase, 'item');
+      expect(hits.last.groupIndexes, [0, 1]);
+      await teardownTree(tester);
+    });
+
+    testWidgets('fill-style list keeps phase and groupIndexes', (tester) async {
+      usePhoneSurface(tester);
+      final hits = <OptionHighlight>[];
+      await tester.pumpWidget(liveDiscrete(
+        TouchMethod.trackpad,
+        ProfilePresets.profileA,
+        options: const ['Window', 'Aisle', 'None'],
+        onHighlight: hits.add,
+      ));
+      await tester.pump();
+      expect(hits.last.phase, 'item');
+      expect(hits.last.groupIndexes, isNotEmpty);
+      expect(hits.last.value, anyOf('Window', 'Aisle', 'None'));
+      await teardownTree(tester);
+    });
+
+    testWidgets('confirm-style two options emit a highlight', (tester) async {
+      usePhoneSurface(tester);
+      final hits = <OptionHighlight>[];
+      await tester.pumpWidget(liveDiscrete(
+        TouchMethod.joystick,
+        ProfilePresets.profileA,
+        options: const ['Send it', 'Go back'],
+        onHighlight: hits.add,
+      ));
+      await tester.pump();
+      expect(hits, isNotEmpty);
+      expect(hits.last.phase, 'item');
+      expect(hits.last.groupIndexes, [0, 1]);
+      await teardownTree(tester);
+    });
   });
 }

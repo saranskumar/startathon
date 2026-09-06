@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:math' as math;
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
 import '../inputs/surfaces.dart';
@@ -44,9 +45,11 @@ abstract class CalibrationStep extends StatefulWidget {
 /// A first tap marks a cell tentative; a second tap on that same cell locks
 /// it in as confirmed. A cell tapped only once still counts as reachable
 /// (see [CapabilityProfile.reachableCells]) -- it is just lower-confidence
-/// than a locked one ([CapabilityProfile.lockedCells]). The step ends after
-/// a couple of seconds without a tap, using whatever state every cell is in
-/// at that point -- an unconfirmed guess is data, not a failure.
+/// than a locked one ([CapabilityProfile.lockedCells]). The step ends when
+/// the visible overall timer runs out, using whatever state every cell is in
+/// at that point -- an unconfirmed guess is data, not a failure. If every
+/// cell is locked before then, a short countdown at the top precedes the
+/// next input method.
 class ReachStep extends CalibrationStep {
   const ReachStep({
     super.key,
@@ -64,47 +67,43 @@ class ReachStep extends CalibrationStep {
 }
 
 class _ReachStepState extends State<ReachStep> {
-  // Resets on every tap -- a run of inactivity, not a fixed countdown, is
-  // what ends the step, so a slow-but-still-working user is never cut off
-  // mid-attempt.
-  static const _idleTimeout = Duration(seconds: 2);
-  // Hard ceiling regardless of activity, so a user who keeps finding new
-  // cells forever doesn't run this step indefinitely.
+  // Hard ceiling -- the visible top bar is this window, and it is the only
+  // clock that can end the step (plus Skip, plus locking every cell).
   static const _overallTimeout = Duration(seconds: 10);
 
   /// Per-cell state: 0 untouched, 1 tentative (tapped once), 2 locked
   /// (tapped a second time -- final, no further change via tap).
   late final List<int> _stage;
-  Timer? _idleTimer;
   late final TimedCue _overallCue;
+  final MovingOnLock _movingOn = MovingOnLock();
   bool _finished = false;
 
   @override
   void initState() {
     super.initState();
     _stage = List<int>.filled(CapabilityProfile.reachCellCount, 0);
-    _resetIdleTimer();
     _overallCue = TimedCue(duration: _overallTimeout, onEnd: _finish)..start();
   }
 
   @override
   void dispose() {
-    _idleTimer?.cancel();
+    _movingOn.dispose();
     _overallCue.dispose();
     super.dispose();
   }
 
-  void _resetIdleTimer() {
-    _idleTimer?.cancel();
-    _idleTimer = Timer(_idleTimeout, _finish);
-  }
-
   void _tap(int cell) {
-    if (_finished) return;
+    if (_finished || _movingOn.active) return;
     final stage = _stage[cell];
     if (stage >= 2) return; // locked -- no further change via tap
     setState(() => _stage[cell] = stage + 1);
-    _resetIdleTimer();
+    if (_stage.every((s) => s == 2)) _beginMovingOn();
+  }
+
+  void _beginMovingOn() {
+    _overallCue.cancel();
+    _movingOn.start(onEnd: _finish);
+    setState(() {});
   }
 
   /// Any tap -- even one that never gets confirmed -- is proof the user
@@ -120,7 +119,7 @@ class _ReachStepState extends State<ReachStep> {
   void _finish() {
     if (_finished || !mounted) return;
     _finished = true;
-    _idleTimer?.cancel();
+    _movingOn.cancel();
     _overallCue.cancel();
     _commit();
     widget.onNext();
@@ -138,52 +137,81 @@ class _ReachStepState extends State<ReachStep> {
     return ((rows - 1 - row) * cols) + col + 1;
   }
 
-  @override
-  Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
-    final locked = _stage.where((s) => s == 2).length;
-    final tentative = _stage.where((s) => s == 1).length;
+  StepFrame _frame({
+    required String instruction,
+    required String status,
+    required bool locked,
+    required ValueListenable<double>? elapsed,
+    required Widget child,
+  }) {
     return StepFrame(
       title: 'Reachable zone',
-      instruction:
-          'Try to tap every square you can reach. Tap it again to confirm.',
-      status: '$locked confirmed, $tentative tentative so far. '
-          'Stops after a couple of seconds without a tap.',
+      instruction: instruction,
+      status: status,
       index: widget.index,
       total: widget.total,
       textScale: widget.textScale,
       minTargetSize: widget.draft.minTargetSize,
       onBack: widget.onBack,
       onSkip: () {
-        _idleTimer?.cancel();
+        _movingOn.cancel();
         _overallCue.cancel();
         _commit();
         widget.onSkip();
       },
-      elapsedFraction: _overallCue.elapsed,
-      child: Padding(
-        padding: const EdgeInsets.all(12),
-        child: Column(
-          children: [
-            for (var row = 0; row < CapabilityProfile.reachGridRows; row++)
-              Expanded(
-                child: Row(
-                  children: [
-                    for (var col = 0;
-                        col < CapabilityProfile.reachGridCols;
-                        col++)
-                      Expanded(
-                        child: _cell(
-                          scheme,
-                          row * CapabilityProfile.reachGridCols + col,
-                        ),
+      elapsedFraction: elapsed,
+      locked: locked,
+      child: child,
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    final locked = _stage.where((s) => s == 2).length;
+    final tentative = _stage.where((s) => s == 1).length;
+    final grid = Padding(
+      padding: const EdgeInsets.all(12),
+      child: Column(
+        children: [
+          for (var row = 0; row < CapabilityProfile.reachGridRows; row++)
+            Expanded(
+              child: Row(
+                children: [
+                  for (var col = 0;
+                      col < CapabilityProfile.reachGridCols;
+                      col++)
+                    Expanded(
+                      child: _cell(
+                        scheme,
+                        row * CapabilityProfile.reachGridCols + col,
                       ),
-                  ],
-                ),
+                    ),
+                ],
               ),
-          ],
-        ),
+            ),
+        ],
       ),
+    );
+    if (_movingOn.active) {
+      return MovingOnListener(
+        lock: _movingOn,
+        builder: (context, instruction) => _frame(
+          instruction: instruction,
+          status: 'Every square is locked in.',
+          locked: true,
+          elapsed: _movingOn.elapsed,
+          child: grid,
+        ),
+      );
+    }
+    return _frame(
+      instruction:
+          'Try to tap every square you can reach. Tap it again to confirm.',
+      status: '$locked confirmed, $tentative tentative so far.',
+      locked: false,
+      elapsed: _overallCue.elapsed,
+      child: grid,
     );
   }
 
@@ -251,14 +279,16 @@ class _ButtonsStepState extends State<ButtonsStep> {
   final _trials = TrialCollector(referenceMs: 4000, referenceError: 140);
   final _stopwatch = Stopwatch();
   final math.Random _rng = math.Random(11);
+  final MovingOnLock _movingOn = MovingOnLock();
 
   int _round = 0;
   double? _smallestHit;
-  Offset _buttonCenter = Offset.zero;
   Alignment _placement = const Alignment(0, 0.2);
   int _cell = 0;
   TimedCue? _cue;
   String _feedback = '';
+  bool _roundClosed = false;
+  bool _lastHit = false;
 
   @override
   void initState() {
@@ -268,6 +298,7 @@ class _ButtonsStepState extends State<ButtonsStep> {
 
   @override
   void dispose() {
+    _movingOn.dispose();
     _cue?.dispose();
     super.dispose();
   }
@@ -287,6 +318,7 @@ class _ButtonsStepState extends State<ButtonsStep> {
     _cell = cell;
     final col = cell % CapabilityProfile.reachGridCols;
     final row = cell ~/ CapabilityProfile.reachGridCols;
+    _roundClosed = false;
     setState(() {
       _placement = Alignment(
         ((col + 0.5) / CapabilityProfile.reachGridCols) * 2 - 1,
@@ -296,15 +328,28 @@ class _ButtonsStepState extends State<ButtonsStep> {
     _stopwatch
       ..reset()
       ..start();
-    _cue?.dispose();
+    _cue?.cancel();
     _cue = TimedCue(
       duration: _timeout,
       onEnd: () => _finishRound(hit: false, error: 140),
     )..start();
   }
 
+  void _onHit() {
+    if (_movingOn.active || _roundClosed) return;
+    _finishRound(hit: true, error: 0);
+  }
+
+  void _onMiss() {
+    if (_movingOn.active || _roundClosed) return;
+    setState(() {
+      _feedback = 'Missed -- keep trying until the timer runs out.';
+    });
+  }
+
   void _finishRound({required bool hit, required double error}) {
-    if (!mounted) return;
+    if (!mounted || _roundClosed || _movingOn.active) return;
+    _roundClosed = true;
     _cue?.cancel();
     _stopwatch.stop();
     _trials.record(
@@ -321,6 +366,7 @@ class _ButtonsStepState extends State<ButtonsStep> {
         ButtonTarget(cell: _cell, size: size, placement: _placement),
       );
     }
+    _lastHit = hit;
     setState(() {
       _feedback = hit
           ? 'Got it (${_stopwatch.elapsedMilliseconds} ms)'
@@ -329,10 +375,19 @@ class _ButtonsStepState extends State<ButtonsStep> {
     });
     if (_round >= _sizes.length) {
       _commit();
-      widget.onNext();
+      _beginMovingOn();
     } else {
       _startRound();
     }
+  }
+
+  void _beginMovingOn() {
+    _cue?.cancel();
+    _movingOn.start(onEnd: () {
+      if (!mounted) return;
+      widget.onNext();
+    });
+    setState(() {});
   }
 
   void _commit() {
@@ -343,66 +398,73 @@ class _ButtonsStepState extends State<ButtonsStep> {
   @override
   Widget build(BuildContext context) {
     final size = _sizes[math.min(_round, _sizes.length - 1)];
-    return StepFrame(
-      title: 'Buttons',
-      instruction: 'Try to press the button.',
-      status: 'It gets smaller each time. Missing is useful data, not failure. '
-          '$_feedback',
-      index: widget.index,
-      total: widget.total,
-      textScale: widget.textScale,
-      minTargetSize: widget.draft.minTargetSize,
-      onBack: widget.onBack,
-      onSkip: () {
-        _cue?.cancel();
-        widget.draft.skipped.add('buttons');
-        widget.onSkip();
-      },
-      elapsedFraction: _cue?.elapsed,
-      child: LayoutBuilder(
-        builder: (context, constraints) {
-          final area = Size(constraints.maxWidth, constraints.maxHeight);
-          _buttonCenter = Offset(
-            (_placement.x + 1) / 2 * area.width,
-            (_placement.y + 1) / 2 * area.height,
-          );
-          return Listener(
-            behavior: HitTestBehavior.deferToChild,
-            // Every press in the whole area is measured, so a near-miss lands
-            // in the error term instead of being silently discarded.
-            onPointerDown: (event) {
-              final d = distanceBetween(event.localPosition, _buttonCenter);
-              final hit = d <= size / 2;
-              _finishRound(hit: hit, error: hit ? d : math.max(d, size));
-            },
-            child: Container(
-              color: Colors.transparent,
-              child: Align(
-                alignment: _placement,
-                child: IgnorePointer(
-                  child: Container(
-                    width: size,
-                    height: size,
-                    decoration: BoxDecoration(
-                      color: Theme.of(context).colorScheme.primary,
-                      shape: BoxShape.circle,
-                    ),
-                    alignment: Alignment.center,
-                    child: Text(
-                      '${size.round()}',
-                      style: TextStyle(
-                        color: Theme.of(context).colorScheme.onPrimary,
-                        fontWeight: FontWeight.w800,
-                        fontSize: 18,
-                      ),
-                    ),
-                  ),
-                ),
-              ),
+    final pad = Stack(
+      children: [
+        Positioned.fill(
+          child: GestureDetector(
+            behavior: HitTestBehavior.opaque,
+            onTapDown: (_) => _onMiss(),
+          ),
+        ),
+        Align(
+          alignment: _placement,
+          child: GestureDetector(
+            onTapDown: (_) => _onHit(),
+            child: _CalCircle(
+              size: size,
+              label: '${size.round()}',
+              showCheck: _movingOn.active && _lastHit,
             ),
-          );
+          ),
+        ),
+      ],
+    );
+
+    StepFrame frame({
+      required String instruction,
+      required String status,
+      required bool locked,
+      required ValueListenable<double>? elapsed,
+    }) {
+      return StepFrame(
+        title: 'Buttons',
+        instruction: instruction,
+        status: status,
+        index: widget.index,
+        total: widget.total,
+        textScale: widget.textScale,
+        minTargetSize: widget.draft.minTargetSize,
+        onBack: widget.onBack,
+        onSkip: () {
+          _movingOn.cancel();
+          _cue?.cancel();
+          widget.draft.skipped.add('buttons');
+          widget.onSkip();
         },
-      ),
+        elapsedFraction: elapsed,
+        locked: locked,
+        child: pad,
+      );
+    }
+
+    if (_movingOn.active) {
+      return MovingOnListener(
+        lock: _movingOn,
+        builder: (context, instruction) => frame(
+          instruction: instruction,
+          status: 'Those buttons are locked in.',
+          locked: true,
+          elapsed: _movingOn.elapsed,
+        ),
+      );
+    }
+    return frame(
+      instruction: 'Try to press the button.',
+      status:
+          'It gets smaller each time. Missing is useful data, not failure. '
+          '$_feedback',
+      locked: false,
+      elapsed: _cue?.elapsed,
     );
   }
 }
@@ -1001,14 +1063,14 @@ class _HoldStepState extends State<HoldStep> {
   late final List<ButtonTarget> _targets;
   int _targetIndex = 0;
   final List<double> _roundSteadiness = <double>[];
+  final MovingOnLock _movingOn = MovingOnLock();
 
   // Floor-case-only aggregate (no button targets to attach a result to).
   bool? _floorHoldable;
 
-  Timer? _roundTimer;
-  // Audio/haptic only -- HoldFillRing already shows visual progress, so this
-  // doesn't bind an elapsedFraction into StepFrame.
+  TimedCue? _roundCue;
   TimedCue? _feedbackCue;
+  bool _holding = false;
 
   Offset? _origin;
   double _jitter = 0;
@@ -1026,7 +1088,8 @@ class _HoldStepState extends State<HoldStep> {
 
   @override
   void dispose() {
-    _roundTimer?.cancel();
+    _movingOn.dispose();
+    _roundCue?.dispose();
     _feedbackCue?.dispose();
     super.dispose();
   }
@@ -1035,15 +1098,23 @@ class _HoldStepState extends State<HoldStep> {
   // would otherwise hang until the flow's own 20s global idle-skip -- this
   // bounds a single round the same way every other timed step does.
   void _armRoundTimeout() {
-    _roundTimer?.cancel();
-    _roundTimer = Timer(_roundTimeout, () => _complete(false));
+    _roundCue?.cancel();
+    _roundCue = TimedCue(
+      duration: _roundTimeout,
+      onEnd: () => _complete(false),
+    )..start();
   }
 
   void _onDown(Offset p) {
+    if (_movingOn.active || _done) return;
+    // Cancel the round ceiling so a hold in progress cannot lose to it.
+    _roundCue?.cancel();
     _origin = p;
     _jitter = 0;
-    _feedbackCue?.dispose();
+    _holding = true;
+    _feedbackCue?.cancel();
     _feedbackCue = TimedCue(duration: HoldFill.standard)..start();
+    setState(() {});
   }
 
   void _onMove(Offset p) {
@@ -1053,8 +1124,10 @@ class _HoldStepState extends State<HoldStep> {
   }
 
   void _onCancel(Duration held) {
-    if (_done) return;
+    if (_done || _movingOn.active) return;
+    _holding = false;
     _feedbackCue?.cancel();
+    _armRoundTimeout();
     setState(() {
       _feedback =
           'Released after ${held.inMilliseconds}ms -- try once more, or skip.';
@@ -1062,9 +1135,10 @@ class _HoldStepState extends State<HoldStep> {
   }
 
   void _complete(bool ok) {
-    if (_done) return;
+    if (_done || _movingOn.active) return;
     _done = true;
-    _roundTimer?.cancel();
+    _holding = false;
+    _roundCue?.cancel();
     _feedbackCue?.cancel();
     // 60 logical pixels of wander during a still hold is the point at which
     // hold-based controls start firing by accident.
@@ -1081,7 +1155,7 @@ class _HoldStepState extends State<HoldStep> {
     final isLast = _floorCase || _targetIndex >= _targets.length - 1;
     if (isLast) {
       _commit();
-      widget.onNext();
+      _beginMovingOn();
       return;
     }
     setState(() {
@@ -1094,11 +1168,21 @@ class _HoldStepState extends State<HoldStep> {
     _armRoundTimeout();
   }
 
+  void _beginMovingOn() {
+    _roundCue?.cancel();
+    _feedbackCue?.cancel();
+    _movingOn.start(onEnd: () {
+      if (!mounted) return;
+      widget.onNext();
+    });
+    setState(() {});
+  }
+
   /// Distinct from [CalibrationStep.onSkip] (abandon the whole test) -- this
   /// keeps whatever buttons were already confirmed holdable and only leaves
   /// the remaining ones untested, per docs/idea/30 §8's own open question.
   void _skipRemaining() {
-    _roundTimer?.cancel();
+    _roundCue?.cancel();
     _feedbackCue?.cancel();
     _commit();
     widget.onNext();
@@ -1113,95 +1197,223 @@ class _HoldStepState extends State<HoldStep> {
         : _roundSteadiness.reduce((a, b) => a + b) / _roundSteadiness.length;
   }
 
+  ValueListenable<double>? get _elapsed {
+    if (_movingOn.active) return _movingOn.elapsed;
+    if (_holding) return _feedbackCue?.elapsed;
+    return _roundCue?.elapsed;
+  }
+
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
-    final status = _feedback.isNotEmpty
-        ? _feedback
-        : _floorCase
-            ? 'About one and a half seconds. Shaking is fine -- it is '
-                'measured, not judged.'
-            : 'Button ${_targetIndex + 1} of ${_targets.length}. About one '
-                'and a half seconds each.';
-    return StepFrame(
-      title: 'Touch and hold',
-      instruction: _floorCase
-          ? 'Try to press anywhere below and hold still.'
-          : 'Try to hold down on this button.',
-      status: status,
-      index: widget.index,
-      total: widget.total,
-      textScale: widget.textScale,
-      minTargetSize: widget.draft.minTargetSize,
-      onBack: widget.onBack,
-      onSkip: () {
-        _roundTimer?.cancel();
-        _feedbackCue?.cancel();
-        widget.draft.skipped.add('hold');
-        widget.draft.holdCapable = false;
-        widget.onSkip();
-      },
-      footer: (!_floorCase && _targetIndex < _targets.length - 1)
-          ? Align(
-              alignment: Alignment.centerRight,
-              child: TextButton(
-                onPressed: _skipRemaining,
-                child: const Text('Skip remaining buttons'),
-              ),
-            )
-          : null,
-      // Constrained to the zone the reach test already found, same as every
-      // other control -- there is no point measuring hold in a spot the user
-      // cannot otherwise reach.
-      child: LayoutBuilder(
-        builder: (context, constraints) {
-          final area = Size(constraints.maxWidth, constraints.maxHeight);
-          final reach = widget.draft.build().reachableRect(area);
-          final target = _floorCase ? null : _targets[_targetIndex];
-          final diameter =
-              target == null ? 160.0 : math.max(target.size, 120.0);
-          final holdWidget = HoldFill(
-            onDown: _onDown,
-            onMove: _onMove,
-            onComplete: () => _complete(true),
-            onCancel: _onCancel,
-            builder: (context, progress) => Container(
-              decoration: BoxDecoration(
-                color: scheme.surfaceContainerHighest.withValues(alpha: 0.5),
-                borderRadius: BorderRadius.circular(20),
-                border: Border.all(color: scheme.outlineVariant),
-              ),
-              alignment: Alignment.center,
-              child: HoldFillRing(
-                progress: progress,
-                size: diameter,
-                strokeWidth: 12,
-                child: Text(
-                  progress >= 1 ? 'done' : '${(progress * 100).round()}%',
-                  style: const TextStyle(
-                    fontSize: 22,
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-              ),
-            ),
-          );
+    final status = _movingOn.active
+        ? 'Those buttons are locked in.'
+        : _feedback.isNotEmpty
+            ? _feedback
+            : _floorCase
+                ? 'About one and a half seconds. Shaking is fine -- it is '
+                    'measured, not judged.'
+                : 'Button ${_targetIndex + 1} of ${_targets.length}. About one '
+                    'and a half seconds each.';
+    final instruction = _floorCase
+        ? 'Try to press anywhere below and hold still.'
+        : 'Try to hold down on this button.';
+
+    final pad = LayoutBuilder(
+      builder: (context, constraints) {
+        final area = Size(constraints.maxWidth, constraints.maxHeight);
+        final reach = widget.draft.build().reachableRect(area);
+        if (_floorCase) {
           return Stack(
             children: [
-              if (target == null)
-                Positioned.fromRect(rect: reach.deflate(8), child: holdWidget)
-              else
-                Align(
-                  alignment: target.placement,
-                  child: SizedBox(
-                    width: diameter + 24,
-                    height: diameter + 24,
-                    child: holdWidget,
-                  ),
-                ),
+              Positioned.fromRect(
+                rect: reach.deflate(8),
+                child: _movingOn.active
+                    ? IgnorePointer(
+                        child: _floorHoldVisual(scheme, progress: 0),
+                      )
+                    : HoldFill(
+                        onDown: _onDown,
+                        onMove: _onMove,
+                        onComplete: () => _complete(true),
+                        onCancel: _onCancel,
+                        builder: (context, progress) =>
+                            _floorHoldVisual(scheme, progress: progress),
+                      ),
+              ),
             ],
           );
+        }
+        return Stack(
+          children: [
+            for (var i = 0; i < _targets.length; i++) _placedButton(scheme, i),
+          ],
+        );
+      },
+    );
+
+    StepFrame frame({
+      required String instruction,
+      required String status,
+      required bool locked,
+      required ValueListenable<double>? elapsed,
+    }) {
+      return StepFrame(
+        title: 'Touch and hold',
+        instruction: instruction,
+        status: status,
+        index: widget.index,
+        total: widget.total,
+        textScale: widget.textScale,
+        minTargetSize: widget.draft.minTargetSize,
+        onBack: widget.onBack,
+        onSkip: () {
+          _movingOn.cancel();
+          _roundCue?.cancel();
+          _feedbackCue?.cancel();
+          widget.draft.skipped.add('hold');
+          widget.draft.holdCapable = false;
+          widget.onSkip();
         },
+        footer: (!_floorCase &&
+                !_movingOn.active &&
+                _targetIndex < _targets.length - 1)
+            ? Align(
+                alignment: Alignment.centerRight,
+                child: TextButton(
+                  onPressed: _skipRemaining,
+                  child: const Text('Skip remaining buttons'),
+                ),
+              )
+            : null,
+        elapsedFraction: elapsed,
+        locked: locked,
+        child: pad,
+      );
+    }
+
+    if (_movingOn.active) {
+      return MovingOnListener(
+        lock: _movingOn,
+        builder: (context, movingInstruction) => frame(
+          instruction: movingInstruction,
+          status: status,
+          locked: true,
+          elapsed: _movingOn.elapsed,
+        ),
+      );
+    }
+    return frame(
+      instruction: instruction,
+      status: status,
+      locked: false,
+      elapsed: _elapsed,
+    );
+  }
+
+  Widget _floorHoldVisual(ColorScheme scheme, {required double progress}) {
+    const diameter = 160.0;
+    return Container(
+      decoration: BoxDecoration(
+        color: scheme.surfaceContainerHighest.withValues(alpha: 0.5),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: scheme.outlineVariant),
+      ),
+      alignment: Alignment.center,
+      child: HoldFillRing(
+        progress: progress,
+        size: diameter,
+        strokeWidth: 12,
+        child: Text(
+          progress >= 1 ? 'done' : '${(progress * 100).round()}%',
+          style: const TextStyle(
+            fontSize: 22,
+            fontWeight: FontWeight.w700,
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _placedButton(ColorScheme scheme, int i) {
+    final target = _targets[i];
+    final isActive = i == _targetIndex && !_movingOn.active && !_done;
+    final holdable = target.holdable;
+    Widget circle({double progress = 0}) => _CalCircle(
+          size: target.size,
+          label: '${target.size.round()}',
+          showCheck: holdable == true,
+          dimmed: !isActive && holdable != true,
+          progress: isActive ? progress : 0,
+        );
+    return Align(
+      alignment: target.placement,
+      child: isActive
+          ? HoldFill(
+              onDown: _onDown,
+              onMove: _onMove,
+              onComplete: () => _complete(true),
+              onCancel: _onCancel,
+              builder: (context, progress) => circle(progress: progress),
+            )
+          : IgnorePointer(child: circle()),
+    );
+  }
+}
+
+/// Shared circular target used by [ButtonsStep] (tap) and [HoldStep] (hold)
+/// so the two tests share a layout.
+class _CalCircle extends StatelessWidget {
+  const _CalCircle({
+    required this.size,
+    required this.label,
+    this.dimmed = false,
+    this.showCheck = false,
+    this.progress = 0,
+  });
+
+  final double size;
+  final String label;
+  final bool dimmed;
+  final bool showCheck;
+  final double progress;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    final fill = dimmed
+        ? scheme.primary.withValues(alpha: 0.35)
+        : scheme.primary;
+    final circle = Container(
+      width: size,
+      height: size,
+      decoration: BoxDecoration(color: fill, shape: BoxShape.circle),
+      alignment: Alignment.center,
+      child: showCheck
+          ? Icon(Icons.check, color: scheme.onPrimary, size: (size * 0.4).clamp(16.0, 36.0))
+          : Text(
+              label,
+              style: TextStyle(
+                color: scheme.onPrimary,
+                fontWeight: FontWeight.w800,
+                fontSize: 18,
+              ),
+            ),
+    );
+    if (progress <= 0) return circle;
+    return SizedBox(
+      width: size + 24,
+      height: size + 24,
+      child: Stack(
+        alignment: Alignment.center,
+        children: [
+          HoldFillRing(
+            progress: progress,
+            size: size + 24,
+            strokeWidth: 8,
+          ),
+          circle,
+        ],
       ),
     );
   }

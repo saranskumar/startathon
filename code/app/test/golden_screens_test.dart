@@ -16,6 +16,7 @@ import 'package:startathon/runtime/demo_screen.dart';
 import 'package:startathon/runtime/preview_screen.dart';
 import 'package:startathon/runtime/pointing_view.dart';
 import 'package:startathon/main.dart';
+import 'package:startathon/playground/playground_screen.dart';
 import 'package:startathon/runtime/text_view.dart';
 
 import 'support/harness.dart';
@@ -92,7 +93,25 @@ void main() {
       '04-buttons',
     );
     await step(
-      HoldStep(draft: draft, index: 2, total: 7, onNext: () {}, onSkip: () {}),
+      HoldStep(
+        draft: CalibrationDraft()
+          ..tappableButtons.addAll([
+            ButtonTarget(
+              cell: 9,
+              size: 104,
+              placement: const Alignment(-0.4, 0.35),
+            ),
+            ButtonTarget(
+              cell: 11,
+              size: 76,
+              placement: const Alignment(0.45, 0.55),
+            ),
+          ]),
+        index: 2,
+        total: 7,
+        onNext: () {},
+        onSkip: () {},
+      ),
       '05-hold',
     );
     await step(
@@ -138,6 +157,23 @@ void main() {
     await tester.tap(find.text('Voice'));
     await tester.pump();
     await shoot(tester, '10c-controllers-voice');
+    await teardownTree(tester);
+  });
+
+  testWidgets('gear-menu playground hub', (tester) async {
+    usePhoneSurface(tester);
+    await tester.pumpWidget(harness(
+      AppState()..setProfile(ProfilePresets.profileA),
+      PlaygroundScreen(profile: ProfilePresets.profileA, onClose: () {}),
+    ));
+    await tester.pump();
+    await shoot(tester, '10d-playground-hub');
+    await tester.tap(find.text('Buttons'));
+    await tester.pump();
+    await shoot(tester, '10e-playground-buttons');
+    await tester.tap(find.text('Try a demo'));
+    await tester.pump();
+    await shoot(tester, '10f-playground-demo');
     await teardownTree(tester);
   });
 

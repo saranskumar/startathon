@@ -112,6 +112,19 @@ class _LiveScreenState extends State<LiveScreen> {
     await _link.connect(host: _host.text, room: _room.text);
   }
 
+  void _applyHighlight(
+    OptionHighlight h, {
+    List<Map<String, dynamic>>? items,
+    String? id,
+  }) {
+    if (items != null) {
+      _focusItems(items, h);
+      return;
+    }
+    if (id == null || id.isEmpty) return;
+    _link.focus(id, phase: h.phase, groupIds: [id]);
+  }
+
   void _focusItems(List<Map<String, dynamic>> items, OptionHighlight h) {
     if (h.index < 0 || h.index >= items.length) return;
     final id = items[h.index]['id']?.toString();
@@ -307,9 +320,7 @@ class _LiveScreenState extends State<LiveScreen> {
         options: const ['Send it', 'Go back'],
         onRaw: raw,
         livePaging: true,
-        onHighlight: (_) {
-          if (confirmId != null) _link.focus(confirmId);
-        },
+        onHighlight: (h) => _applyHighlight(h, id: confirmId),
         onResolve: (i, _) => _confirmPay(i == 0),
       );
     }
@@ -386,7 +397,7 @@ class _LiveScreenState extends State<LiveScreen> {
         options: options,
         onRaw: raw,
         livePaging: true,
-        onHighlight: (_) => _link.focus(it['id'] as String),
+        onHighlight: (h) => _applyHighlight(h, id: it['id']?.toString()),
         onResolve: (i, value) {
           _link.act(it['id'] as String, value: value);
           state.emit(InputEvent(
@@ -422,7 +433,7 @@ class _LiveScreenState extends State<LiveScreen> {
       ],
       onRaw: raw,
       livePaging: true,
-      onHighlight: (h) => _focusItems(items, h),
+      onHighlight: (h) => _applyHighlight(h, items: items),
       onResolve: (i, _) => _pick(items[i]),
     );
   }

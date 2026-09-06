@@ -1,7 +1,66 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
+import '../inputs/timed_cue.dart';
 import '../model/profile.dart';
+
+/// Short countdown after a step's targets are all locked, before advancing.
+/// The visible top timer is this window -- the next input method must not
+/// appear while it still has time left.
+class MovingOnLock {
+  static const duration = Duration(seconds: 3);
+
+  TimedCue? _cue;
+  bool active = false;
+
+  ValueListenable<double>? get elapsed => _cue?.elapsed;
+
+  void start({required VoidCallback onEnd}) {
+    if (active) return;
+    active = true;
+    _cue?.dispose();
+    _cue = TimedCue(duration: duration, onEnd: onEnd)..start();
+  }
+
+  static String instructionFor(double elapsedFraction) {
+    final remaining = (duration.inMilliseconds * (1 - elapsedFraction) / 1000)
+        .ceil()
+        .clamp(0, duration.inSeconds);
+    return 'Locked. Next input method in ${remaining}s.';
+  }
+
+  void cancel() => _cue?.cancel();
+
+  void dispose() {
+    _cue?.dispose();
+    _cue = null;
+  }
+}
+
+/// Rebuilds as [lock] ticks so the headline can show remaining seconds.
+class MovingOnListener extends StatelessWidget {
+  const MovingOnListener({
+    super.key,
+    required this.lock,
+    required this.builder,
+  });
+
+  final MovingOnLock lock;
+  final Widget Function(BuildContext context, String instruction) builder;
+
+  @override
+  Widget build(BuildContext context) {
+    final elapsed = lock.elapsed;
+    if (elapsed == null) {
+      return builder(context, MovingOnLock.instructionFor(0));
+    }
+    return ValueListenableBuilder<double>(
+      valueListenable: elapsed,
+      builder: (context, value, _) =>
+          builder(context, MovingOnLock.instructionFor(value)),
+    );
+  }
+}
 
 /// One button [ButtonsStep] placed and confirmed as tappable, carried forward
 /// so [HoldStep] can re-visit the exact same spot instead of an arbitrary one
@@ -131,6 +190,7 @@ class StepFrame extends StatelessWidget {
     this.minTargetSize = 56,
     this.footer,
     this.elapsedFraction,
+    this.locked = false,
   });
 
   final String title;
@@ -157,6 +217,11 @@ class StepFrame extends StatelessWidget {
   /// see [TimedCue]. Null when the step has no timed window of its own.
   final ValueListenable<double>? elapsedFraction;
 
+  /// True once this step's targets are locked in and the moving-on countdown
+  /// is running. Adds a lock mark next to the step label; the instruction
+  /// should already be the countdown copy from [MovingOnLock].
+  final bool locked;
+
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
@@ -180,9 +245,14 @@ class StepFrame extends StatelessWidget {
                       color: scheme.primary,
                     ),
                   ),
+                  if (locked) ...[
+                    const SizedBox(width: 6),
+                    Icon(Icons.lock, size: 14, color: scheme.primary),
+                  ],
                   const Spacer(),
                   Text(
                     title,
+                    overflow: TextOverflow.ellipsis,
                     style: TextStyle(
                       fontSize: 12 * textScale,
                       color: scheme.onSurfaceVariant,
