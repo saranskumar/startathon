@@ -1,12 +1,12 @@
 # Presentation
 
-Everything for the live pitch deck lives here, separate from `docs/` (which is the product/tech record, not pitch material).
+Event template: **5 minutes · 5 slides**, then **5 minutes demo**, then **5 minutes Q&A**. Talk + demo hard-stop at 10:00.
 
-## Layout
+Journey the slides follow: Problem → Evidence → Learning → Solution → What we built → What next.
 
-- **[slides.html](slides.html)** — the actual deck. Self-contained HTML, one `<section class="slide">` per slide, each with a slot for an image or short video clip. Open directly in a browser or `npx serve presentation`.
-- **[notes/outline.md](notes/outline.md)** — slide-by-slide script: what's on the slide, what gets said, max ~2 sentences per slide. Edit this first when the pitch structure changes, then update `slides.html` to match.
-- **[notes/demo-clips.md](notes/demo-clips.md)** — every video/screen-capture clip needed, each capped at 5–10s: what it must show, where it comes from, current status (needed / recorded / cut in).
+- **[slides.html](slides.html)** — 5 slides, self-contained HTML. Open in a browser or `npx serve presentation`.
+- **[notes/outline.md](notes/outline.md)** — spoken script. Edit this first, then match `slides.html`.
+- **[notes/demo-clips.md](notes/demo-clips.md)** — live 5-minute demo script (one workflow) and what must be disclosed as simulated.
 - **[notes/sources.md](notes/sources.md)** — traceability map back to `docs/idea/` and `docs/tech/research/` for every claim used in the deck, so a fact only has one owning file.
 - **[media/](media/)** — actual image/video assets referenced by `slides.html`. Not committed until real clips exist; see `media/README.md` for naming.
 
