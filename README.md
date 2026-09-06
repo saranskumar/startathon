@@ -17,6 +17,53 @@ See [docs/idea/](docs/idea/README.md) for the full concept (problem, model, cali
 
 ---
 
+## Repository structure
+
+A guide to what lives where and why — each area has one job, and content doesn't move between them casually (see the "rule for keeping in sync" note in [presentation/README.md](presentation/README.md) for the one place that's explicitly a derived copy, not a source of truth).
+
+```
+.
+├── README.md                 this file — concept + latest-changes log + this map
+├── timestamp.md               auto-updated by CI on every deploy; not hand-edited
+├── docs/                      the product & technical record — source of truth, not pitch material
+│   ├── README.md              2-line pointer into idea/ and tech/
+│   ├── idea/                  the product idea itself, read in numbered order (01 → 27)
+│   │   └── README.md          reading-order index + one-line summary of every doc, incl. v1→v4 history
+│   ├── tech/                  implementation notes: what's decided, assumed, or still open
+│   │   ├── README.md          build-order, decided/assumed/undecided tracker, what's actually built
+│   │   └── research/          deep-dive research briefs (01 → 14), one per component or raised question
+│   │       └── README.md      index + headline verdict per thread
+│   └── desgin/desgin.md        one focused technical spec: how voice/text input is classified
+│                               in code/app (clarity tiers, vocal-event kinds, text compose modes)
+├── code/
+│   ├── app/                   Flutter phone/remote-control app — the input layer
+│   │   ├── lib/                calibration/, inputs/, model/, runtime/, theme/, main.dart
+│   │   ├── test/                unit + golden-screenshot tests (test/goldens/ renders every screen)
+│   │   └── README.md            what's implemented, what's simulated (speech recogniser), design decisions
+│   ├── desktop/                Node/Playwright agent-controlled-browser backend + desktop inspector
+│   │   ├── src/                  domTreeEngine (ranking), browserSession, dasherModel, server/UI
+│   │   ├── test/
+│   │   └── README.md              architecture, API surface, where doc 08's ranking formula was corrected
+│   └── mock/                   "Aperture Daily" — mock target websites the agent/phone demo operates on
+│                               (rail, pay, civic, clinic, shop, mail, plus a pattern lab + demo form)
+├── presentation/              the live pitch deck — separate from docs/, not the source of truth
+│   ├── slides.html             the deck itself
+│   ├── notes/                  outline.md (script), demo-clips.md, sources.md (traces every claim back to docs/)
+│   ├── media/                  image/video assets referenced by slides.html
+│   └── README.md
+├── .github/workflows/         CI: auto-deploy code/mock and code/app to Vercel on push to those folders
+└── .claude/launch.json         dev-server config for the Claude Code browser preview tool (not app config)
+```
+
+**Rule of thumb for "where does this go":**
+- A new idea, requirement, or raised question → a numbered doc in `docs/idea/`, added to its `README.md` index.
+- Research backing a doc/idea (external prior art, feasibility, viability) → a numbered brief in `docs/tech/research/`, cross-linked from the `docs/idea/` doc it supports.
+- A build/architecture decision (what's chosen, assumed, or still undecided about the actual stack) → `docs/tech/README.md`, not a new doc.
+- Actual runnable code → `code/app/` (phone), `code/desktop/` (agent/browser backend), or `code/mock/` (target websites the demo operates on) — each has its own `README.md` for what's implemented vs. simulated.
+- Anything only needed to give the pitch (script, slide content, clip list) → `presentation/`, as a traceable copy of the underlying `docs/` doc, never authored fresh there.
+
+---
+
 ## Latest changes
 
 Reverse-chronological log of changes to the idea/project — most recent first. Each entry links to the doc(s) that carry the full detail; this is a pointer trail, not a duplicate of their content.
