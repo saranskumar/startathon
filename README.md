@@ -17,10 +17,51 @@ See [docs/idea/](docs/idea/README.md) for the full concept (problem, model, cali
 
 ---
 
+## Repository structure
+
+A guide to what lives where and why — each area has one job, and content doesn't move between them casually (see the "rule for keeping in sync" note in [presentation/README.md](presentation/README.md) for the one place that's explicitly a derived copy, not a source of truth).
+
+| Path | What's there | Purpose |
+|---|---|---|
+| `README.md` | — | This file: concept, this map, latest-changes log. |
+| `timestamp.md` | — | Auto-updated by CI on every deploy; not hand-edited. |
+| **`docs/`** | | **The product & technical record — source of truth, not pitch material.** |
+| `docs/README.md` | — | Pointer into `idea/`, `tech/`, `app/`, and `desgin/`. |
+| `docs/idea/` | 27 numbered docs | The product idea itself, meant to be read in order (01 → 27): problem, model, calibration design, scope, risks, event-submission answers, meeting notes. |
+| `docs/idea/README.md` | — | Reading-order index + one-line summary of every doc, including the v1→v4 concept history. |
+| `docs/tech/` | | Implementation notes: what's decided, assumed, or still open about the actual stack. |
+| `docs/tech/README.md` | — | Build order, decided/assumed/undecided tracker, what's actually built so far. |
+| `docs/tech/research/` | 14 numbered briefs | Deep-dive research (existing solutions, viability, build recommendation) for each component or raised question. |
+| `docs/tech/research/README.md` | — | Index + headline verdict per research thread. |
+| `docs/desgin/desgin.md` | — | One focused technical spec: how voice/text input is classified in `code/app` (clarity tiers, vocal-event kinds, text compose modes). |
+| `docs/app/` | feature inventory, adaptation argument, Expo port | Record of what the Flutter phone app implements, why you do not design a screen per user, and how to rebuild it in Expo without copying the combinatorial trap. |
+| **`code/`** | | **The actual runnable pieces.** |
+| `code/app/` | `lib/`, `test/`, `README.md` | Flutter phone/remote-control app — the input layer (calibration → capability profile → adaptive runtime). `lib/` splits into `calibration/`, `inputs/`, `model/`, `runtime/`, `theme/`; `test/goldens/` renders every screen. |
+| `code/desktop/` | `src/`, `test/`, `README.md` | Node/Playwright agent-controlled-browser backend + desktop inspector — `domTreeEngine` (ranking), `browserSession`, `dasherModel`, the inspector server/UI. |
+| `code/mock/` | — | "Aperture Daily": mock target websites the agent/phone demo operates on (rail, pay, civic, clinic, shop, mail), plus a pattern lab and demo form. |
+| **`presentation/`** | | **The live pitch deck — separate from `docs/`, not the source of truth.** |
+| `presentation/slides.html` | — | The deck itself. |
+| `presentation/notes/` | `outline.md`, `demo-clips.md`, `sources.md` | Slide-by-slide script, the video-clip shot list, and a traceability map back to the `docs/` claim each slide uses. |
+| `presentation/media/` | — | Image/video assets referenced by `slides.html`. |
+| `presentation/README.md` | — | How this directory stays in sync with `docs/` (it holds copies, never originals). |
+| `.github/workflows/` | — | CI: auto-deploys `code/mock` and `code/app` to Vercel on push to those folders. |
+| `.claude/launch.json` | — | Dev-server config for the Claude Code browser preview tool — not app config. |
+
+**Rule of thumb for "where does this go":**
+- A new idea, requirement, or raised question → a numbered doc in `docs/idea/`, added to its `README.md` index.
+- Research backing a doc/idea (external prior art, feasibility, viability) → a numbered brief in `docs/tech/research/`, cross-linked from the `docs/idea/` doc it supports.
+- A build/architecture decision (what's chosen, assumed, or still undecided about the actual stack) → `docs/tech/README.md`, not a new doc.
+- A record of what the phone app actually implements (screens, primitives, port plan) → `docs/app/`, not a new `idea/` number.
+- Actual runnable code → `code/app/` (phone), `code/desktop/` (agent/browser backend), or `code/mock/` (target websites the demo operates on) — each has its own `README.md` for what's implemented vs. simulated.
+- Anything only needed to give the pitch (script, slide content, clip list) → `presentation/`, as a traceable copy of the underlying `docs/` doc, never authored fresh there.
+
+---
+
 ## Latest changes
 
 Reverse-chronological log of changes to the idea/project — most recent first. Each entry links to the doc(s) that carry the full detail; this is a pointer trail, not a duplicate of their content.
 
+- **Documented the Flutter phone app as a feature record, and settled the Expo rewrite rule.** Adaptation is a capability profile plus primitives plus a mapping — not a unique Flutter (or Expo) screen per user. Full inventory, the argument, and a port map: [docs/app/](docs/app/README.md).
 - **Locked the pitch's logistics and restructured the deck around them.** 15 minutes total for presentation + demo + Q&A, demo-first running order (prove it, then explain it), a hardware analogy for "adaptive input" (foot trackball, tongue mouse — hardware precedent for the same idea we do in software), and an explicit on-stage correction that this isn't an AI-first product. See [docs/idea/21-meeting-notes-presentation-prep.md](docs/idea/21-meeting-notes-presentation-prep.md) and the updated [presentation/](presentation/README.md) (`outline.md`, `slides.html`, `demo-clips.md`, `sources.md`).
 - **Built the phone input layer for real: full calibration plus every input pattern, with no agent attached.** Seven calibration steps (reach, buttons, joystick, trackpad, touch-and-hold, voice, vision) produce a live capability profile, and the runtime renders four task shapes through all four touch methods — the whole 3×4 fallback matrix, not just the two the demo needs — with touch+voice fusion on the text task. Resolved intents go to an on-screen output strip placed in the screen region calibration found the user cannot reach, since nothing is wired to a laptop yet; speech recognition is the one stubbed piece, behind a single interface. See [code/app/README.md](code/app/README.md) and the rendered screens in [code/app/test/goldens/](code/app/test/goldens/).
 - **Researched input modes beyond touch/speech/switch-scanning, and captured the meeting behind it.** Web-researched gaze/eye-tracking, head-tracking, sip-and-puff, EMG, and non-invasive BCI (all roadmap, not build-scope — mostly need hardware a phone doesn't have), confirmed Android Voice Access's "show grid" already ships the meeting's "grid-based voice input" idea, and followed up on four calibration-primitive gaps the meeting raised (touch-and-hold, pattern/per-axis swipes, a sound-count voice vocabulary, predictive-text-with-minimal-confirm). See [docs/idea/20-meeting-notes-input-modes.md](docs/idea/20-meeting-notes-input-modes.md) and [docs/tech/research/10-additional-input-modes.md](docs/tech/research/10-additional-input-modes.md).

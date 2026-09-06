@@ -3,6 +3,7 @@ import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 
+import '../inputs/haptics.dart';
 import '../inputs/surfaces.dart';
 import '../model/profile.dart';
 import 'dock.dart';
@@ -88,6 +89,7 @@ class _ContinuousTaskViewState extends State<ContinuousTaskView> {
     _scan?.cancel();
     _scan = Timer.periodic(_dwell, (_) {
       if (!mounted) return;
+      Haptics.navigate();
       setState(() => _switchMode = (_switchMode + 1) % _switchModes.length);
       widget.onRaw('scan -> ${_switchModes[_switchMode]}');
     });
@@ -132,6 +134,7 @@ class _ContinuousTaskViewState extends State<ContinuousTaskView> {
   }
 
   void _commit() {
+    Haptics.confirm();
     _scan?.cancel();
     _motion?.cancel();
     _joyTicker?.cancel();

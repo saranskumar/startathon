@@ -18,18 +18,40 @@ Most implementation decisions haven't been made yet — this is a short, honest 
 ## Not yet decided
 - Which speech-to-text API, and whether it exposes per-utterance confidence directly or needs a self-computed word-error-rate.
 - Which TTS engine/voice for narration output.
+- **Whether real STT/TTS are in scope at all** — both need an external package (`speech_to_text` / `flutter_tts` or a platform channel), and this build has otherwise stayed dependency-free by design. See [idea/22-input-methods-scope.md](../idea/22-input-methods-scope.md) §4. Haptic feedback has no such blocker (`HapticFeedback` is SDK-only) and isn't gated on this decision.
 - Which LLM provider/model for intent inference.
 - How calibration scores and the capability profile are persisted (local storage vs. a backend).
 
 ## Deployed pieces
-- `code/mock/` — Aperture, the mock target-website (plain HTML/CSS/JS). Auto-deploys to Vercel via [.github/workflows/deploy-mock-web.yml](../../.github/workflows/deploy-mock-web.yml) on every push to that folder. **Needs a Vercel project created (Root Directory: `code/mock`) and a `VERCEL_PROJECT_ID_MOCK` repo secret before this workflow will succeed** — it reuses the existing `VERCEL_ORG_ID`/`VERCEL_TOKEN`.
+- `code/mock/` — Aperture Daily: a hub of mock everyday websites (rail, pay, civic, clinic, shop, mail) plus the original pattern lab and demo form. Auto-deploys to Vercel via [.github/workflows/deploy-mock-web.yml](../../.github/workflows/deploy-mock-web.yml) on every push to that folder. **Needs a Vercel project created (Root Directory: `code/mock`) and a `VERCEL_PROJECT_ID_MOCK` repo secret before this workflow will succeed** — it reuses the existing `VERCEL_ORG_ID`/`VERCEL_TOKEN`.
 - `code/app/` — the Flutter phone/remote-control app, deployed the same way via [.github/workflows/deploy-flutter-web.yml](../../.github/workflows/deploy-flutter-web.yml).
 
 ## Built so far (phone side)
 
 `code/app/` is no longer a placeholder: the **input layer is implemented end to end** — the seven calibration steps, the capability profile they produce, and all four touch methods driving all four task shapes, plus touch+voice fusion. It runs standalone: intents stop at an on-screen output strip instead of going to an agent. Flutter SDK only, no packages. See [code/app/README.md](../../code/app/README.md) for what is real, what is stubbed (speech recognition, behind one `SpeechSource` interface) and the design decisions behind the calibration flow.
 
-This covers build-order step (2). Step (1) — browser/agent automation — and the phone↔agent transport are still unstarted; when they land, the seam is `AppState.emit` in `lib/model/session.dart`, which is where every resolved intent already passes through.
+This covers build-order step (2). The phone↔agent transport is still unstarted; when it lands, the seam is `AppState.emit` in `lib/model/session.dart`, which is where every resolved intent already passes through.
+
+## Built so far (desktop side)
+
+`code/desktop/` covers build-order step (1) as far as reading and ranking goes. A Playwright-driven
+Chromium reads each page's accessibility tree; the **DOM tree engine** (`src/domTreeEngine.js`) ranks
+it into the two-bucket auxiliary tree with no LLM in the path, and a **desktop inspector**
+(`npm run ui`) shows the live page, the full tree with a reason recorded for every node it dropped,
+and the exact score terms behind every ranking. New-page detection is wired (history API +
+MutationObserver), so the tree regenerates when a screen actually changes rather than after every
+click. See [code/desktop/README.md](../../code/desktop/README.md), including where doc 08 §5's
+formula needed correcting once it met real pages.
+
+The same ranking also drives a second interface: a **zooming navigator** (Dasher-style
+probability-sized regions steered by one continuous axis), which doubles as free-text entry. It
+overturns part of [research/07-dasher-integration.md](research/07-dasher-integration.md)'s
+recommendation — see §7.5 there for what changed and why.
+
+Still missing from step (1): the LLM intent-matching step, and the phone↔agent transport. The
+inspector's routes (`/api/state`, `/api/goto`, `/api/act`, `/api/events`) are already the shape that
+transport needs — every feature it emits carries the `taskShape` the phone renders and the `action`
+Playwright dispatches.
 
 ## Next steps
 Once tech choices are made, add one doc per component (client, agent, speech, TTS) here rather than expanding this file further.

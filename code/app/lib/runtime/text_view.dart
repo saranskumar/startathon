@@ -4,6 +4,7 @@ import '../inputs/voice.dart';
 import '../inputs/voice_modes.dart';
 import '../model/profile.dart';
 import 'discrete_view.dart';
+import 'dock.dart';
 
 /// Free text: the one screen where two weak channels are used together.
 ///
@@ -64,25 +65,27 @@ class _TextTaskViewState extends State<TextTaskView> {
   bool get _soundsOnly =>
       textComposeModeFor(widget.profile.clarity) == TextComposeMode.vocalConfirm;
 
-  Future<void> _onUtterance(int sounds, int heldMs) async {
-    if (_soundsOnly) {
-      final kind = VocalClassifier.classify(
-        soundCount: sounds,
-        heldMs: heldMs,
-        clarity: widget.profile.clarity,
-      );
-      widget.onRaw('${kind.label}: $sounds burst(s), ${heldMs}ms');
-      // Burst count is the vocabulary: 2+ = next, 1 = yes (nod, sound, or hum).
-      if (sounds >= 2) {
-        setState(() => _suggestion = (_suggestion + 1) % _suggestions.length);
-        widget.onNote('${kind.label} = next suggestion');
-      } else if (sounds == 1) {
-        widget.onNote('${kind.label} = accept');
-        setState(() => _proposal = _suggestions[_suggestion]);
-      }
-      return;
+  void _onSoundGesture(int sounds, int heldMs) {
+    final kind = VocalClassifier.classify(
+      soundCount: sounds,
+      heldMs: heldMs,
+      clarity: widget.profile.clarity,
+    );
+    widget.onRaw('${kind.label}: $sounds burst(s), ${heldMs}ms');
+    if (kind.acceptsSuggestion) {
+      setState(() {
+        _proposal = _suggestions[_suggestion];
+        _confidence = 0;
+      });
+    } else if (kind.skipsSuggestion) {
+      setState(() {
+        _suggestion = (_suggestion + 1) % _suggestions.length;
+      });
+      widget.onNote('next suggestion: ${_suggestions[_suggestion]}');
     }
+  }
 
+  Future<void> _onUtterance(int sounds, int heldMs) async {
     setState(() => _listening = true);
     final r = await _speech.capture(
       heldMs: heldMs,
@@ -195,15 +198,11 @@ class _TextTaskViewState extends State<TextTaskView> {
                   )),
               const SizedBox(height: 6),
               Text(
-                _soundsOnly || !_canDictate
-                    ? _suggestions[_suggestion]
-                    : 'empty',
+                _canDictate ? 'empty' : _suggestions[_suggestion],
                 style: TextStyle(
                   fontSize: 20 * _scale,
                   fontWeight: FontWeight.w600,
-                  color: _soundsOnly || !_canDictate
-                      ? scheme.onSurface
-                      : scheme.outline,
+                  color: _canDictate ? scheme.outline : scheme.onSurface,
                 ),
               ),
             ],
@@ -222,53 +221,53 @@ class _TextTaskViewState extends State<TextTaskView> {
   Widget _contentInput(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
 
+    // Both voice-input branches dock the control in the reachable zone the
+    // reach test found, same as every touch surface -- a prompt can sit
+    // wherever there is room, but the thing you actually press cannot.
     if (_canDictate) {
-      return Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          children: [
-            HoldToSpeak(
-              height: 150,
-              label: 'Hold and say the note',
-              onUtterance: _onUtterance,
+      return InputOverlay(
+        profile: widget.profile,
+        content: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Text(
+            'Touch picks the field, voice fills it. '
+            'Nothing is entered until you confirm it.',
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              fontSize: 13 * _scale,
+              color: scheme.onSurfaceVariant,
             ),
-            const SizedBox(height: 12),
-            Text(
-              'Touch picks the field, voice fills it. '
-              'Nothing is entered until you confirm it.',
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                fontSize: 13 * _scale,
-                color: scheme.onSurfaceVariant,
-              ),
-            ),
-          ],
+          ),
+        ),
+        dock: HoldToSpeak(
+          height: 150,
+          label: 'Hold and say the note',
+          onUtterance: _onUtterance,
         ),
       );
     }
 
     if (_soundsOnly) {
-      return Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          children: [
-            HoldToSpeak(
-              height: 130,
-              label: 'Nod, sound, or hum = yes · two sounds = next',
-              onUtterance: _onUtterance,
+      // SpeechClarity.sounds: one sound / nod / hum accepts, two sounds
+      // advance. Marker-grid burst-picking stays available as its own
+      // surface; the floor case is this two-way vocabulary (docs/idea/20).
+      return InputOverlay(
+        profile: widget.profile,
+        content: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Text(
+            'A short sound means yes. Two sounds means the next phrase.',
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              fontSize: 13 * _scale,
+              color: scheme.onSurfaceVariant,
             ),
-            const SizedBox(height: 12),
-            Text(
-              'Suggestion ${_suggestion + 1} of ${_suggestions.length}. '
-              'A short nod or sound, or a longer hum, accepts. '
-              'Two sounds skips to the next phrase.',
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                fontSize: 13 * _scale,
-                color: scheme.onSurfaceVariant,
-              ),
-            ),
-          ],
+          ),
+        ),
+        dock: HoldToSpeak(
+          height: 150,
+          label: 'Sound once to accept, twice for next',
+          onUtterance: _onSoundGesture,
         ),
       );
     }

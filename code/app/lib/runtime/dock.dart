@@ -53,7 +53,10 @@ class InputOverlay extends StatelessWidget {
             if (overlay != null)
               Positioned.fill(
                 child: Align(
-                  alignment: profile.reachAnchor,
+                  // The joystick swing test (if it ran) knows exactly which
+                  // reachable cell the stick is steadiest at; fall back to the
+                  // reachable area's centroid otherwise.
+                  alignment: profile.joystickAnchor,
                   child: overlay!,
                 ),
               ),
@@ -94,14 +97,24 @@ class OptionList extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
-    return ListView.builder(
+    return Semantics(
+      liveRegion: true,
+      container: true,
+      label: highlight >= 0 && highlight < options.length
+          ? '${options[highlight]}, selected'
+          : 'options',
+      child: ListView.builder(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       itemCount: options.length,
       itemBuilder: (context, i) {
         final selected = i == highlight;
         return Padding(
           padding: const EdgeInsets.only(bottom: 8),
-          child: GestureDetector(
+          child: Semantics(
+            button: true,
+            selected: selected,
+            label: options[i],
+            child: GestureDetector(
             behavior: HitTestBehavior.opaque,
             onTap: onTap == null ? null : () => onTap!(i),
             child: AnimatedContainer(
@@ -140,9 +153,11 @@ class OptionList extends StatelessWidget {
                 ],
               ),
             ),
+            ),
           ),
         );
       },
+    ),
     );
   }
 }

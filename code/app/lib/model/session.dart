@@ -44,6 +44,8 @@ class InputEvent {
 class AppState extends ChangeNotifier {
   CapabilityProfile _profile = CapabilityProfile.blank();
   final List<InputEvent> _events = <InputEvent>[];
+  bool highContrast = false;
+  String locale = 'en';
 
   /// Raw, high-frequency events (joystick ticks, trackpad drags) are useful to
   /// watch live but would flood the log, so they are kept separately and only
@@ -61,6 +63,23 @@ class AppState extends ChangeNotifier {
   void setProfile(CapabilityProfile p) {
     _profile = p;
     emit(InputEvent(kind: 'SYSTEM', text: 'profile loaded: ${p.label}'));
+  }
+
+  void setHighContrast(bool value) {
+    if (highContrast == value) return;
+    highContrast = value;
+    notifyListeners();
+  }
+
+  void setLocale(String value) {
+    if (locale == value) return;
+    locale = value;
+    notifyListeners();
+  }
+
+  void setInputLevel(InputLevel level) {
+    _profile = _profile.copyWith(inputLevel: level);
+    emit(InputEvent(kind: 'SYSTEM', text: 'input level: ${level.label}'));
   }
 
   /// Transient signal from an input surface -- shown live, not logged.
@@ -161,6 +180,7 @@ class ProfilePresets {
         holdCapable: true,
         clarity: SpeechClarity.full,
         vision: VisionMode.screen,
+        inputLevel: InputLevel.many,
       );
 
   /// Imprecise-but-present touch + slurred-but-present speech: the composition
@@ -188,6 +208,8 @@ class ProfilePresets {
         holdCapable: false,
         clarity: SpeechClarity.partial,
         vision: VisionMode.large,
+        vocabulary: const ['water', 'tank', 'yellow'],
+        inputLevel: InputLevel.two,
       );
 
   /// The 3.5 floor case: no touch method works well, no usable speech.
@@ -213,6 +235,8 @@ class ProfilePresets {
         holdCapable: false,
         clarity: SpeechClarity.sounds,
         vision: VisionMode.large,
+        visualField: VisualField.tunnel,
+        inputLevel: InputLevel.one,
       );
 
   static List<CapabilityProfile> get all => [profileA, profileB, profileFloor];

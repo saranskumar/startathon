@@ -215,6 +215,9 @@ class _HoldToSpeakState extends State<HoldToSpeak> {
                   : active
                       ? 'listening...'
                       : widget.label,
+              textAlign: TextAlign.center,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
               style: TextStyle(
                 fontWeight: FontWeight.w700,
                 color: widget.enabled ? scheme.onSurface : scheme.outline,

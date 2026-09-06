@@ -114,7 +114,8 @@ void main() {
       expect(index, options.length - 1);
     });
 
-    testWidgets('switch scan: the highlight advances on its own', (tester) async {
+    testWidgets('switch scan: row-then-column, two presses to select',
+        (tester) async {
       usePhoneSurface(tester);
       int? index;
       await tester.pumpWidget(
@@ -122,12 +123,19 @@ void main() {
             profile: ProfilePresets.profileFloor),
       );
 
-      // Two dwells: highlight should have moved from 0 to 2.
+      // 4 options -> a 2x2 grid. First press locks whichever row the scan
+      // has dwelt on, it does not select yet.
+      await tester.pump(const Duration(milliseconds: 3600));
+      await tester.tap(find.byType(SwitchTrigger));
+      await tester.pump();
+      expect(index, isNull, reason: 'first press only locks the row in a 2x2 grid');
+
+      // Column phase, then the second press actually selects.
       await tester.pump(const Duration(milliseconds: 3600));
       await tester.tap(find.byType(SwitchTrigger));
       await tester.pump();
       expect(index, isNotNull);
-      expect(index, greaterThan(0));
+      expect(index, inInclusiveRange(0, options.length - 1));
       await teardownTree(tester);
     });
   });
@@ -402,6 +410,8 @@ void main() {
       );
 
       await tester.tap(find.text('Buttons'));
+      await tester.pump();
+      await tester.ensureVisible(find.text('Option A'));
       await tester.pump();
       await tester.tap(find.text('Option A'));
       await tester.pump();

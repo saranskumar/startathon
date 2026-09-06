@@ -4,7 +4,12 @@
     {
       "name": "mock-web",
       "runtimeExecutable": "npx",
-      "runtimeArgs": ["serve", "code/mock", "-l", "4173"],
+      "runtimeArgs": [
+        "serve",
+        "code/mock",
+        "-l",
+        "4173"
+      ],
       "port": 4173
     },
     {
@@ -21,6 +26,20 @@
       ],
       "cwd": "code/app",
       "port": 5599
+    },
+    {
+      "name": "dom-inspector",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": [
+        "run",
+        "ui",
+        "--",
+        "--headless",
+        "--port",
+        "7777"
+      ],
+      "cwd": "code/desktop",
+      "port": 7777
     }
   ]
 }

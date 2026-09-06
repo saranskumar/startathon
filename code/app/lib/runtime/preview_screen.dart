@@ -5,6 +5,7 @@ import '../inputs/voice.dart';
 import '../inputs/voice_modes.dart';
 import '../model/profile.dart';
 import '../model/session.dart';
+import 'dock.dart';
 import 'output_bar.dart';
 
 /// After calibration (or a preset), show the actual controllers and the
@@ -64,74 +65,113 @@ class _InputPreviewScreenState extends State<InputPreviewScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
+                  Expanded(
+                    child: ListView(
+                      padding: const EdgeInsets.fromLTRB(12, 12, 12, 8),
+                      children: [
+                        Row(
+                          children: [
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    'Your controllers',
+                                    style: TextStyle(
+                                      fontSize: 22 * scale,
+                                      fontWeight: FontWeight.w800,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 2),
+                                  Text(
+                                    'Try them. The dark strip above is the laptop '
+                                    'preview -- live signal on the right, last '
+                                    'intent on the left.',
+                                    style: TextStyle(
+                                      fontSize: 12 * scale,
+                                      color: Theme.of(context)
+                                          .colorScheme
+                                          .onSurfaceVariant,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            IconButton(
+                              onPressed: widget.onRecalibrate,
+                              icon: const Icon(Icons.tune),
+                              tooltip: 'Recalibrate',
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 10),
+                        Wrap(
+                          spacing: 8,
+                          runSpacing: 8,
+                          children: [
+                            for (final s in _Surface.values)
+                              ChoiceChip(
+                                label: Text(_chipLabel(s, profile)),
+                                selected: surface == s,
+                                onSelected: (_) =>
+                                    setState(() => _surface = s),
+                              ),
+                          ],
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          _hint(surface, profile),
+                          style: TextStyle(
+                            fontSize: 13 * scale,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        SizedBox(
+                          height: 280,
+                          child: _pad(state, profile, surface),
+                        ),
+                      ],
+                    ),
+                  ),
                   Padding(
-                    padding: const EdgeInsets.fromLTRB(16, 12, 8, 0),
+                    padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
                     child: Row(
                       children: [
                         Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                'Your controllers',
-                                style: TextStyle(
-                                  fontSize: 22 * scale,
-                                  fontWeight: FontWeight.w800,
-                                ),
-                              ),
-                              const SizedBox(height: 2),
-                              Text(
-                                'Try them. The dark strip above is the laptop '
-                                'preview -- live signal on the right, last '
-                                'intent on the left.',
-                                style: TextStyle(
-                                  fontSize: 12 * scale,
-                                  color: Theme.of(context)
-                                      .colorScheme
-                                      .onSurfaceVariant,
-                                ),
-                              ),
-                            ],
+                          child: OutlinedButton(
+                            onPressed: profile.inputLevel == InputLevel.one
+                                ? null
+                                : () => state.setInputLevel(
+                                      profile.inputLevel.previous,
+                                    ),
+                            child: const Text('Simpler'),
                           ),
                         ),
-                        IconButton(
-                          onPressed: widget.onRecalibrate,
-                          icon: const Icon(Icons.tune),
-                          tooltip: 'Recalibrate',
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            'Level: ${profile.inputLevel.label}',
+                            textAlign: TextAlign.center,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(
+                              fontSize: 12 * scale,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: OutlinedButton(
+                            onPressed: profile.inputLevel == InputLevel.many
+                                ? null
+                                : () => state.setInputLevel(
+                                      profile.inputLevel.next,
+                                    ),
+                            child: const Text('Level up'),
+                          ),
                         ),
                       ],
-                    ),
-                  ),
-                  const SizedBox(height: 10),
-                  Padding(
-                    padding: const EdgeInsets.fromLTRB(12, 0, 12, 0),
-                    child: Wrap(
-                      spacing: 8,
-                      runSpacing: 8,
-                      children: [
-                        for (final s in _Surface.values)
-                          ChoiceChip(
-                            label: Text(_chipLabel(s, profile)),
-                            selected: surface == s,
-                            onSelected: (_) => setState(() => _surface = s),
-                          ),
-                      ],
-                    ),
-                  ),
-                  Padding(
-                    padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
-                    child: Text(
-                      _hint(surface, profile),
-                      style: TextStyle(
-                        fontSize: 13 * scale,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                  ),
-                  Expanded(
-                    child: Padding(
-                      padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
-                      child: _pad(state, profile, surface),
                     ),
                   ),
                   Padding(
@@ -207,7 +247,6 @@ class _InputPreviewScreenState extends State<InputPreviewScreen> {
           child: ConstrainedBox(
             constraints: const BoxConstraints(maxWidth: 420),
             child: ListView(
-              shrinkWrap: true,
               children: [
                 for (final label in const ['Option A', 'Option B', 'Option C'])
                   CalibratedButton(
@@ -273,37 +312,37 @@ class _VoicePad extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final mode = textComposeModeFor(profile.clarity);
-    return Column(
-      children: [
-        Expanded(
-          child: Center(
-            child: Text(
-              mode.title,
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                fontSize: 18 * profile.vision.textScale,
-                fontWeight: FontWeight.w700,
-              ),
-            ),
+    return InputOverlay(
+      profile: profile,
+      content: Center(
+        child: Text(
+          mode.title,
+          textAlign: TextAlign.center,
+          style: TextStyle(
+            fontSize: 18 * profile.vision.textScale,
+            fontWeight: FontWeight.w700,
           ),
         ),
-        HoldToSpeak(
-          enabled: profile.clarity != SpeechClarity.none,
-          onUtterance: (sounds, heldMs) {
-            final kind = VocalClassifier.classify(
-              soundCount: sounds,
-              heldMs: heldMs,
-              clarity: profile.clarity,
-            );
-            state.emitRaw('${kind.label}: $sounds burst(s), ${heldMs}ms');
-            state.emit(InputEvent(
-              kind: 'VOICE',
-              method: profile.bestMethod,
-              text: 'preview ${kind.label} ($sounds, ${heldMs}ms)',
-            ));
-          },
-        ),
-      ],
+      ),
+      // Prompts can sit anywhere; the control itself docks inside the
+      // reachable zone the calibration reach test actually found, same as
+      // every other input surface in this app.
+      dock: HoldToSpeak(
+        enabled: profile.clarity != SpeechClarity.none,
+        onUtterance: (sounds, heldMs) {
+          final kind = VocalClassifier.classify(
+            soundCount: sounds,
+            heldMs: heldMs,
+            clarity: profile.clarity,
+          );
+          state.emitRaw('${kind.label}: $sounds burst(s), ${heldMs}ms');
+          state.emit(InputEvent(
+            kind: 'VOICE',
+            method: profile.bestMethod,
+            text: 'preview ${kind.label} ($sounds, ${heldMs}ms)',
+          ));
+        },
+      ),
     );
   }
 }

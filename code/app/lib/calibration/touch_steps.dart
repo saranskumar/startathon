@@ -352,9 +352,13 @@ class _ButtonsStepState extends State<ButtonsStep> {
 // 3. Joystick
 // ---------------------------------------------------------------------------
 
-/// 3.1 -- "show a target direction/zone; ask the user to move the stick there
-/// and hold". The hold requirement is what separates this from a flick: it
-/// measures sustained control, which is what continuous tasks need.
+/// Reach tells us where a finger *lands*; this tells us where the stick can
+/// *swing*, which is a different question -- someone can plant a finger fine
+/// in a spot they cannot then steer from. So this runs one swing-round per
+/// cell [ReachStep] already proved reachable (centre-most cell first), rather
+/// than the old single-spot 8-direction hold test -- that old test survives
+/// verbatim as the fallback for the floor case where reach found nothing to
+/// place the stick on at all.
 class JoystickStep extends CalibrationStep {
   const JoystickStep({
     super.key,
@@ -371,41 +375,134 @@ class JoystickStep extends CalibrationStep {
 }
 
 class _JoystickStepState extends State<JoystickStep> {
-  // All 8 positions, not just the 4 cardinals -- a stick that is accurate on
-  // the axes but sloppy on the diagonals would otherwise score as fully
-  // calibrated while still under-serving half of a free-pointing task.
-  static const _targets = <String>[
+  static final double _diag = math.sqrt(0.5); // unit-length diagonal component
+
+  static const _octantNames = <String>[
+    'right', 'down-right', 'down', 'down-left',
+    'left', 'up-left', 'up', 'up-right',
+  ];
+
+  /// Which of the 8 swept directions a live vector currently falls in, or
+  /// null inside the dead zone. Order matches [_octantNames].
+  static String? _octantOf(Offset v) {
+    if (v.distance < 0.45) return null;
+    final a = math.atan2(v.dy, v.dx);
+    final idx = (a / (math.pi / 4)).round() % 8;
+    return _octantNames[(idx + 8) % 8];
+  }
+
+  final _trials = TrialCollector(referenceMs: 6000, referenceError: 1.0);
+  final Stopwatch _stopwatch = Stopwatch();
+  Timer? _timeoutTimer;
+  String _feedback = '';
+
+  /// True once reach found at least one usable cell -- the normal path. False
+  /// only for the floor case, which keeps today's single-centre hold test.
+  bool get _sweepMode => widget.draft.reachableCells.isNotEmpty;
+
+  // --- sweep mode: one round per reachable cell -------------------------
+
+  static const _sweepTimeout = Duration(seconds: 6);
+  static const _octantsNeeded = 6;
+
+  late final List<int> _cellOrder;
+  int _cellRound = 0;
+  final Set<String> _visitedOctants = <String>{};
+
+  List<int> _orderCellsCenterFirst(Set<int> cells) {
+    const cols = CapabilityProfile.reachGridCols;
+    const rows = CapabilityProfile.reachGridRows;
+    const cx = (cols - 1) / 2, cy = (rows - 1) / 2;
+    double distanceToCenter(int i) {
+      final col = i % cols, row = i ~/ cols;
+      return math.sqrt(math.pow(col - cx, 2) + math.pow(row - cy, 2));
+    }
+
+    return cells.toList()
+      ..sort((a, b) => distanceToCenter(a).compareTo(distanceToCenter(b)));
+  }
+
+  void _startSweepRound() {
+    _visitedOctants.clear();
+    _stopwatch
+      ..reset()
+      ..start();
+    _timeoutTimer?.cancel();
+    _timeoutTimer = Timer(_sweepTimeout, _finishSweepRound);
+  }
+
+  void _onSweepVector(Offset v) {
+    final octant = _octantOf(v);
+    if (octant == null) return;
+    final isNew = _visitedOctants.add(octant);
+    if (isNew) setState(() {});
+    if (_visitedOctants.length >= _octantsNeeded) _finishSweepRound();
+  }
+
+  void _finishSweepRound() {
+    if (!mounted) return;
+    _timeoutTimer?.cancel();
+    _stopwatch.stop();
+    final cell = _cellOrder[_cellRound];
+    final octants = _visitedOctants.length;
+    widget.draft.joystickOctants[cell] = octants;
+    _trials.record(
+      success: octants >= _octantsNeeded,
+      ms: _stopwatch.elapsedMilliseconds,
+      error: 1 - octants / 8,
+    );
+    setState(() {
+      _feedback = octants >= _octantsNeeded
+          ? 'Full circle. '
+          : 'Got $octants of 8 here -- moving on. ';
+      _cellRound++;
+    });
+    if (_cellRound >= _cellOrder.length) {
+      _commitSweep();
+      widget.onNext();
+    } else {
+      _startSweepRound();
+    }
+  }
+
+  /// The steadiest cell wins; on a tie the centre-most one does, since
+  /// [_cellOrder] is already sorted that way and `reduce` only replaces the
+  /// running best on a strict improvement.
+  void _commitSweep() {
+    widget.draft.scores[TouchMethod.joystick] = _trials.build();
+    final entries = widget.draft.joystickOctants.entries
+        .where((e) => _cellOrder.contains(e.key));
+    if (entries.isEmpty) return;
+    final best = entries.reduce((a, b) => b.value > a.value ? b : a);
+    if (best.value > 0) widget.draft.joystickHomeCell = best.key;
+  }
+
+  Alignment _cellAlignment(int cell) {
+    const cols = CapabilityProfile.reachGridCols;
+    const rows = CapabilityProfile.reachGridRows;
+    final col = cell % cols, row = cell ~/ cols;
+    return Alignment(
+      ((col + 0.5) / cols) * 2 - 1,
+      ((row + 0.5) / rows) * 2 - 1,
+    );
+  }
+
+  // --- floor-case fallback: today's single-centre 8-direction hold test -
+
+  static const _holdTargets = <String>[
     'up', 'up-right', 'right', 'down-right',
     'down', 'down-left', 'left', 'up-left',
   ];
   static const _holdMs = 500;
-  static const _timeout = Duration(seconds: 9);
+  static const _holdTimeout = Duration(seconds: 9);
 
-  final _trials = TrialCollector(referenceMs: 5000, referenceError: 1.2);
-  final Stopwatch _stopwatch = Stopwatch();
-
-  int _round = 0;
-  Timer? _timeoutTimer;
+  int _holdRound = 0;
   Timer? _holdTimer;
   double _errorSum = 0;
   int _errorSamples = 0;
-  String _feedback = '';
   bool _onTarget = false;
 
-  @override
-  void initState() {
-    super.initState();
-    _startRound();
-  }
-
-  @override
-  void dispose() {
-    _timeoutTimer?.cancel();
-    _holdTimer?.cancel();
-    super.dispose();
-  }
-
-  void _startRound() {
+  void _startHoldRound() {
     _errorSum = 0;
     _errorSamples = 0;
     _onTarget = false;
@@ -413,10 +510,8 @@ class _JoystickStepState extends State<JoystickStep> {
       ..reset()
       ..start();
     _timeoutTimer?.cancel();
-    _timeoutTimer = Timer(_timeout, () => _finish(false));
+    _timeoutTimer = Timer(_holdTimeout, () => _finishHold(false));
   }
-
-  static final double _diag = math.sqrt(0.5); // unit-length diagonal component
 
   Offset _targetVector(String dir) => switch (dir) {
         'up' => const Offset(0, -1),
@@ -429,8 +524,8 @@ class _JoystickStepState extends State<JoystickStep> {
         _ => Offset(-_diag, -_diag), // 'up-left'
       };
 
-  void _onVector(Offset v) {
-    final want = _targetVector(_targets[_round]);
+  void _onHoldVector(Offset v) {
+    final want = _targetVector(_holdTargets[_holdRound]);
     if (v.distance < 0.45) {
       _holdTimer?.cancel();
       _holdTimer = null;
@@ -448,7 +543,7 @@ class _JoystickStepState extends State<JoystickStep> {
       setState(() => _onTarget = true);
       _holdTimer = Timer(
         const Duration(milliseconds: _holdMs),
-        () => _finish(true),
+        () => _finishHold(true),
       );
     } else if (!within) {
       _holdTimer?.cancel();
@@ -457,7 +552,7 @@ class _JoystickStepState extends State<JoystickStep> {
     }
   }
 
-  void _finish(bool success) {
+  void _finishHold(bool success) {
     if (!mounted) return;
     _holdTimer?.cancel();
     _holdTimer = null;
@@ -471,25 +566,110 @@ class _JoystickStepState extends State<JoystickStep> {
     );
     setState(() {
       _feedback = success ? 'Held it. ' : 'Not this time. ';
-      _round++;
+      _holdRound++;
       _onTarget = false;
     });
-    if (_round >= _targets.length) {
+    if (_holdRound >= _holdTargets.length) {
       widget.draft.scores[TouchMethod.joystick] = _trials.build();
       widget.onNext();
     } else {
-      _startRound();
+      _startHoldRound();
+    }
+  }
+
+  // --- lifecycle ----------------------------------------------------------
+
+  @override
+  void initState() {
+    super.initState();
+    if (_sweepMode) {
+      _cellOrder = _orderCellsCenterFirst(widget.draft.reachableCells);
+      _startSweepRound();
+    } else {
+      _cellOrder = const [];
+      _startHoldRound();
     }
   }
 
   @override
+  void dispose() {
+    _timeoutTimer?.cancel();
+    _holdTimer?.cancel();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
+    return _sweepMode ? _buildSweep(context) : _buildHold(context);
+  }
+
+  Widget _buildSweep(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
-    final dir = _targets[math.min(_round, _targets.length - 1)];
+    // Defensive: onNext() has already fired once _cellRound reaches the end
+    // (see _finishSweepRound), but this widget may still be asked to build
+    // one more frame before the parent replaces it -- same reason
+    // _buildHold clamps _holdRound below.
+    final cell = _cellOrder[math.min(_cellRound, _cellOrder.length - 1)];
+    return StepFrame(
+      title: 'Joystick',
+      instruction: 'Circle the stick all the way around, right here.',
+      status: '$_feedback Spot ${_cellRound + 1} of ${_cellOrder.length}. '
+          'Need $_octantsNeeded of 8 directions.',
+      index: widget.index,
+      total: widget.total,
+      textScale: widget.textScale,
+      onSkip: () {
+        _timeoutTimer?.cancel();
+        widget.draft.skipped.add('joystick');
+        widget.onSkip();
+      },
+      child: Stack(
+        children: [
+          Align(
+            alignment: const Alignment(0, -0.55),
+            child: _octantDots(scheme),
+          ),
+          Align(
+            alignment: _cellAlignment(cell),
+            child: JoystickPad(
+              size: 170,
+              onVector: _onSweepVector,
+              tint: _visitedOctants.length >= _octantsNeeded
+                  ? scheme.primary
+                  : null,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _octantDots(ColorScheme scheme) => Wrap(
+        alignment: WrapAlignment.center,
+        spacing: 8,
+        children: [
+          for (final o in _octantNames)
+            Container(
+              width: 14,
+              height: 14,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: _visitedOctants.contains(o)
+                    ? scheme.primary
+                    : scheme.surfaceContainerHighest,
+                border: Border.all(color: scheme.outlineVariant),
+              ),
+            ),
+        ],
+      );
+
+  Widget _buildHold(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    final dir = _holdTargets[math.min(_holdRound, _holdTargets.length - 1)];
     return StepFrame(
       title: 'Joystick',
       instruction: 'Push the stick $dir and hold it there.',
-      status: '$_feedback${_round + 1} of ${_targets.length}. '
+      status: '$_feedback${_holdRound + 1} of ${_holdTargets.length}. '
           'Hold for half a second to register.',
       index: widget.index,
       total: widget.total,
@@ -524,7 +704,7 @@ class _JoystickStepState extends State<JoystickStep> {
           const SizedBox(height: 18),
           JoystickPad(
             size: 210,
-            onVector: _onVector,
+            onVector: _onHoldVector,
             tint: _onTarget ? scheme.primary : null,
           ),
         ],
@@ -809,48 +989,64 @@ class _HoldStepState extends State<HoldStep> {
         widget.draft.holdCapable = false;
         widget.onSkip();
       },
-      child: Listener(
-        behavior: HitTestBehavior.opaque,
-        onPointerDown: (e) => _down(e.localPosition),
-        onPointerMove: (e) => _move(e.localPosition),
-        onPointerUp: (_) => _up(),
-        onPointerCancel: (_) => _up(),
-        child: Container(
-          margin: const EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            color: scheme.surfaceContainerHighest.withValues(alpha: 0.5),
-            borderRadius: BorderRadius.circular(20),
-            border: Border.all(color: scheme.outlineVariant),
-          ),
-          child: Center(
-            child: SizedBox(
-              width: 160,
-              height: 160,
-              child: Stack(
-                alignment: Alignment.center,
-                children: [
-                  SizedBox(
-                    width: 140,
-                    height: 140,
-                    child: CircularProgressIndicator(
-                      value: progress,
-                      strokeWidth: 12,
+      // Constrained to the zone the reach test already found, same as every
+      // other control -- there is no point measuring hold in a spot the user
+      // cannot otherwise reach.
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final reach = widget.draft.build().reachableRect(
+                Size(constraints.maxWidth, constraints.maxHeight),
+              );
+          return Stack(
+            children: [
+              Positioned.fromRect(
+                rect: reach.deflate(8),
+                child: Listener(
+                  behavior: HitTestBehavior.opaque,
+                  onPointerDown: (e) => _down(e.localPosition),
+                  onPointerMove: (e) => _move(e.localPosition),
+                  onPointerUp: (_) => _up(),
+                  onPointerCancel: (_) => _up(),
+                  child: Container(
+                    decoration: BoxDecoration(
+                      color: scheme.surfaceContainerHighest.withValues(alpha: 0.5),
+                      borderRadius: BorderRadius.circular(20),
+                      border: Border.all(color: scheme.outlineVariant),
+                    ),
+                    child: Center(
+                      child: SizedBox(
+                        width: 160,
+                        height: 160,
+                        child: Stack(
+                          alignment: Alignment.center,
+                          children: [
+                            SizedBox(
+                              width: 140,
+                              height: 140,
+                              child: CircularProgressIndicator(
+                                value: progress,
+                                strokeWidth: 12,
+                              ),
+                            ),
+                            Text(
+                              progress >= 1
+                                  ? 'done'
+                                  : '${(progress * 100).round()}%',
+                              style: const TextStyle(
+                                fontSize: 22,
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
                     ),
                   ),
-                  Text(
-                    progress >= 1
-                        ? 'done'
-                        : '${(progress * 100).round()}%',
-                    style: const TextStyle(
-                      fontSize: 22,
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-                ],
+                ),
               ),
-            ),
-          ),
-        ),
+            ],
+          );
+        },
       ),
     );
   }

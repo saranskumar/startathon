@@ -20,6 +20,31 @@ class CalibrationDraft {
 
   SpeechClarity clarity = SpeechClarity.none;
   VisionMode vision = VisionMode.screen;
+  VisualField visualField = VisualField.full;
+  InputLevel inputLevel = InputLevel.one;
+  List<String> vocabulary = <String>[];
+  String locale = 'en';
+
+  /// Which environments this session measures, chosen on the intro screen.
+  /// An axis left off is untested, same status as a skipped step -- never a
+  /// failed one. At least one is always true (the intro enforces it).
+  bool measureMotor = true;
+  bool measureSpeech = true;
+  bool measureVision = true;
+
+  /// True when a friend/helper picked the axes above and handed the phone
+  /// back, rather than the tested person choosing for themselves. Does not
+  /// change scoring -- it is provenance, not a different profile shape.
+  bool helperChoseAxes = false;
+
+  /// Reachable-cell index the joystick was steadiest at, from the per-cell
+  /// swing test (see JoystickStep) -- where the stick should be docked at
+  /// runtime. Null when untested or every cell failed.
+  int? joystickHomeCell;
+
+  /// Cell index -> how many of the 8 octants were reliably reached there
+  /// (0..8), for the results screen and for picking [joystickHomeCell].
+  final Map<int, int> joystickOctants = <int, int>{};
 
   /// Steps the user skipped or that timed out, for honesty on the results
   /// screen -- an untested method must not look like a failed one.
@@ -33,6 +58,14 @@ class CalibrationDraft {
         holdCapable: holdCapable,
         clarity: clarity,
         vision: vision,
+        measureMotor: measureMotor,
+        measureSpeech: measureSpeech,
+        measureVision: measureVision,
+        joystickHomeCell: joystickHomeCell,
+        visualField: visualField,
+        inputLevel: inputLevel,
+        vocabulary: List.of(vocabulary),
+        locale: locale,
         label: 'Calibrated',
       );
 }

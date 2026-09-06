@@ -3,23 +3,97 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Mock UI — Interaction Pattern Demo</title>
+  <title>Aperture Daily — mock everyday web</title>
   <link rel="stylesheet" href="style.css" />
 </head>
-<body>
+<body class="hub">
   <div class="glow glow-1" aria-hidden="true"></div>
   <div class="glow glow-2" aria-hidden="true"></div>
   <div class="glow glow-3" aria-hidden="true"></div>
   <header id="top" role="banner">
-    <span class="label">Mock UI — Interaction Pattern Demo</span>
-    <span class="step-indicator" id="step-indicator"></span>
+    <span class="label">Aperture Daily</span>
+    <span class="step-indicator">Mock · nothing is sent anywhere</span>
   </header>
-  <main id="screen" role="main" aria-live="polite"></main>
-  <footer id="nav" role="navigation" aria-label="Step navigation">
-    <button type="button" class="btn" id="btn-back">Back</button>
-    <div class="dots" id="dots" aria-hidden="true"></div>
-    <button type="button" class="btn primary" id="btn-next">Next</button>
-  </footer>
-  <script src="app.js"></script>
+  <main role="main">
+    <div class="hub-hero">
+      <h1>Everyday websites, as people actually meet them.</h1>
+      <p>
+        Real daily chores — trains, money, certificates, clinics, groceries, mail —
+        built as local mocks so the phone and the desktop tree can drive them.
+        Each one is a little too dense, a little too small, a little too many steps.
+      </p>
+    </div>
+    <nav class="hub-grid" aria-label="Mock worlds">
+      <a class="world-card" href="rail.html">
+        <div class="kicker">raillink.in</div>
+        <h2>RailLink</h2>
+        <p class="blurb">Search a train, pick a seat on a cramped map, fill passenger details, pay with OTP.</p>
+        <p class="why">Hard: forty tiny seats, then a form, then six digits.</p>
+        <div class="pills"><span class="pill">discrete</span><span class="pill">pointing</span><span class="pill">text</span></div>
+      </a>
+      <a class="world-card" href="pay.html">
+        <div class="kicker">nagarpays.in</div>
+        <h2>NagarPay</h2>
+        <p class="blurb">Pay a person or a bill — pick a payee, type an amount, confirm with a PIN pad.</p>
+        <p class="why">Hard: lookalike payees, a number field, a 12-key pad.</p>
+        <div class="pills"><span class="pill">discrete</span><span class="pill">text</span></div>
+      </a>
+      <a class="world-card" href="civic.html">
+        <div class="kicker">civicdesk.gov</div>
+        <h2>CivicDesk</h2>
+        <p class="blurb">Apply for an income or residence certificate. Long form, same-looking fields, a review gate.</p>
+        <p class="why">Hard: fourteen labeled fields that all score about the same.</p>
+        <div class="pills"><span class="pill">text</span><span class="pill">confirm</span></div>
+      </a>
+      <a class="world-card" href="clinic.html">
+        <div class="kicker">clinicslot.care</div>
+        <h2>ClinicSlot</h2>
+        <p class="blurb">Pick a specialty, a doctor, a day on the calendar, a time chip, then the patient name.</p>
+        <p class="why">Hard: cards, a date grid, then more text.</p>
+        <div class="pills"><span class="pill">discrete</span><span class="pill">pointing</span><span class="pill">text</span></div>
+      </a>
+      <a class="world-card" href="shop.html">
+        <div class="kicker">kiranacart.store</div>
+        <h2>KiranaCart</h2>
+        <p class="blurb">Add groceries with quantity steppers, open the cart, drop an address, place the order.</p>
+        <p class="why">Hard: many +/− controls, then checkout text.</p>
+        <div class="pills"><span class="pill">continuous</span><span class="pill">discrete</span><span class="pill">text</span></div>
+      </a>
+      <a class="world-card" href="mail.html">
+        <div class="kicker">postlane.mail</div>
+        <h2>PostLane</h2>
+        <p class="blurb">Read the inbox, open a thread, compose a reply with To / Subject / Body.</p>
+        <p class="why">Hard: a long list, then free text — the daily mail chore.</p>
+        <div class="pills"><span class="pill">discrete</span><span class="pill">text</span></div>
+      </a>
+      <a class="world-card" href="patterns.html">
+        <div class="kicker">lab</div>
+        <h2>Pattern lab</h2>
+        <p class="blurb">The original isolated patterns: scroll, cards, tabs, free tap, text, confirm — plus a tiny generic app.</p>
+        <p class="why">Use this when you want one task shape at a time.</p>
+        <div class="pills"><span class="pill">all shapes</span></div>
+      </a>
+      <a class="world-card" href="form.html">
+        <div class="kicker">lab</div>
+        <h2>Demo form</h2>
+        <p class="blurb">The consequential submit stand-in — rating, choice, section, tap result, message.</p>
+        <p class="why">Hard: every field is equally important. Ambiguity should fire.</p>
+        <div class="pills"><span class="pill">text</span><span class="pill">confirm</span></div>
+      </a>
+    </nav>
+    <p class="hub-note">
+      These pages are the target the desktop inspector opens on
+      (<code>npm run ui</code> from <code>code/desktop</code>).
+      They use real landmarks, labels, and <code>pushState</code> so the tree
+      regenerates when a screen actually changes — not after every click.
+    </p>
+  </main>
+  <script>
+    const params = new URLSearchParams(location.search);
+    const mode = params.get('mode');
+    if (mode === 'simple' || mode === 'complex') {
+      location.replace('patterns.html' + location.search);
+    }
+  </script>
 </body>
 </html>

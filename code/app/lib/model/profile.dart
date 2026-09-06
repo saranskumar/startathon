@@ -1,6 +1,8 @@
 import 'dart:math' as math;
 import 'package:flutter/painting.dart';
 
+import '../theme/haiku_theme.dart';
+
 /// The four touch input methods the system can drive a task with.
 ///
 /// `switchScan` is the floor case from docs/idea/03-input-calibration.md 3.5 --
@@ -66,6 +68,58 @@ extension VisionModeLabel on VisionMode {
       };
 }
 
+/// Visual *field* shape — independent of acuity ([VisionMode]).
+/// Issue #4 / research 09 covers size; this covers how much of the screen
+/// is visible at once, and where.
+enum VisualField { full, tunnel, peripheral }
+
+extension VisualFieldLabel on VisualField {
+  String get label => switch (this) {
+        VisualField.full => 'full field',
+        VisualField.tunnel => 'tunnel',
+        VisualField.peripheral => 'peripheral only',
+      };
+
+  String get detail => switch (this) {
+        VisualField.full => 'the whole screen is in play',
+        VisualField.tunnel =>
+          'output sits in one window; input still works anywhere',
+        VisualField.peripheral =>
+          'center is unused; information lives on the edges',
+      };
+}
+
+/// Progressive input complexity (issue #1 item 5). Everyone starts at
+/// [one]; they opt into more choices. The capability profile still picks
+/// *which* method — this only caps how many targets that method shows.
+enum InputLevel { one, two, many }
+
+extension InputLevelLabel on InputLevel {
+  String get label => switch (this) {
+        InputLevel.one => 'one target',
+        InputLevel.two => 'two targets',
+        InputLevel.many => 'full set',
+      };
+
+  int get optionCap => switch (this) {
+        InputLevel.one => 1,
+        InputLevel.two => 2,
+        InputLevel.many => 99,
+      };
+
+  InputLevel get next => switch (this) {
+        InputLevel.one => InputLevel.two,
+        InputLevel.two => InputLevel.many,
+        InputLevel.many => InputLevel.many,
+      };
+
+  InputLevel get previous => switch (this) {
+        InputLevel.one => InputLevel.one,
+        InputLevel.two => InputLevel.one,
+        InputLevel.many => InputLevel.two,
+      };
+}
+
 /// One method's calibration result. Kept as its three components rather than a
 /// bare number so the results screen can show *why* a method scored what it did.
 class MethodScore {
@@ -107,6 +161,14 @@ class CapabilityProfile {
     required this.holdCapable,
     required this.clarity,
     required this.vision,
+    this.measureMotor = true,
+    this.measureSpeech = true,
+    this.measureVision = true,
+    this.joystickHomeCell,
+    this.visualField = VisualField.full,
+    this.inputLevel = InputLevel.one,
+    this.vocabulary = const [],
+    this.locale = 'en',
     this.label = 'Calibrated',
   });
 
@@ -121,6 +183,10 @@ class CapabilityProfile {
         holdCapable: false,
         clarity: SpeechClarity.none,
         vision: VisionMode.screen,
+        visualField: VisualField.full,
+        inputLevel: InputLevel.one,
+        vocabulary: const [],
+        locale: 'en',
         label: 'Uncalibrated',
       );
 
@@ -136,6 +202,31 @@ class CapabilityProfile {
   final bool holdCapable;
   final SpeechClarity clarity;
   final VisionMode vision;
+  final VisualField visualField;
+
+  /// How many discrete targets to show at once. Starts at [InputLevel.one]
+  /// after calibration; the user levels up (issue #1).
+  final InputLevel inputLevel;
+
+  /// Words this person can say and have recognized (issue #3). Empty when
+  /// unused. Size can be 2 or 160 — mapping switches on option count.
+  final List<String> vocabulary;
+
+  /// Onboarding-audio / script locale (`en`, `ml`). Recorded clips do not
+  /// localize for free; this is the key they are looked up under.
+  final String locale;
+
+  /// Which environments this session measured -- chosen on the calibration
+  /// intro, at least one always true. An axis left off stays untested, the
+  /// same status as any other skipped step; it never reads as a failure.
+  final bool measureMotor;
+  final bool measureSpeech;
+  final bool measureVision;
+
+  /// Reachable-cell index the joystick swing test found steadiest, or null
+  /// when untested / nothing reached 6 of 8 octants anywhere.
+  final int? joystickHomeCell;
+
   final String label;
 
   static const int reachGridCols = 3;
@@ -143,6 +234,20 @@ class CapabilityProfile {
   static const int reachCellCount = reachGridCols * reachGridRows;
 
   bool get speechAvailable => clarity != SpeechClarity.none;
+
+  /// Middle voice tier: some words, not free dictation. Issue #3.
+  bool get usesWordVocab =>
+      vocabulary.isNotEmpty &&
+      clarity != SpeechClarity.full &&
+      clarity != SpeechClarity.none;
+
+  /// Discrete lists show this many options, capped by both the level-up
+  /// path and the measured [maxControls].
+  int get visibleOptionCount {
+    final cap = inputLevel.optionCap;
+    if (inputLevel == InputLevel.many) return maxControls;
+    return cap.clamp(1, maxControls);
+  }
 
   double scoreOf(TouchMethod m) => methodScores[m]?.score ?? 0;
 
@@ -230,6 +335,50 @@ class CapabilityProfile {
 
   bool get outputAtBottom => outputRow >= reachGridRows - 1;
 
+  /// Where the joystick overlay should float: the swing test's own home cell
+  /// when it found one, otherwise the reachable area's centroid.
+  Alignment get joystickAnchor {
+    final cell = joystickHomeCell;
+    if (cell == null) return reachAnchor;
+    final col = cell % reachGridCols, row = cell ~/ reachGridCols;
+    return Alignment(
+      ((col + 0.5) / reachGridCols) * 2 - 1,
+      ((row + 0.5) / reachGridRows) * 2 - 1,
+    );
+  }
+
+  /// 0..1 versions of the three measured axes, for the haiku theme blend --
+  /// a depiction of the measured mix, not a diagnosis.
+  double get motorScore01 => measureMotor
+      ? TouchMethod.values.map(scoreOf).reduce(math.max).clamp(0.0, 1.0)
+      : 0.0;
+  double get speechScore01 => measureSpeech
+      ? switch (clarity) {
+          SpeechClarity.full => 1.0,
+          SpeechClarity.partial => 0.65,
+          SpeechClarity.sounds => 0.35,
+          SpeechClarity.none => 0.0,
+        }
+      : 0.0;
+  double get visionScore01 => measureVision
+      ? switch (vision) {
+          VisionMode.screen => 1.0,
+          VisionMode.large => 0.55,
+          VisionMode.none => 0.2,
+        }
+      : 0.0;
+
+  /// The measured mix, as a theme. See [HaikuTheme] for what this is and
+  /// (deliberately) is not.
+  HaikuTheme get haikuTheme => HaikuTheme.compute(
+        motor: measureMotor,
+        speech: measureSpeech,
+        vision: measureVision,
+        motorScore: motorScore01,
+        speechScore: speechScore01,
+        visionScore: visionScore01,
+      );
+
   CapabilityProfile copyWith({
     Map<TouchMethod, MethodScore>? methodScores,
     Set<int>? reachableCells,
@@ -238,6 +387,14 @@ class CapabilityProfile {
     bool? holdCapable,
     SpeechClarity? clarity,
     VisionMode? vision,
+    bool? measureMotor,
+    bool? measureSpeech,
+    bool? measureVision,
+    int? joystickHomeCell,
+    VisualField? visualField,
+    InputLevel? inputLevel,
+    List<String>? vocabulary,
+    String? locale,
     String? label,
   }) =>
       CapabilityProfile(
@@ -248,6 +405,14 @@ class CapabilityProfile {
         holdCapable: holdCapable ?? this.holdCapable,
         clarity: clarity ?? this.clarity,
         vision: vision ?? this.vision,
+        measureMotor: measureMotor ?? this.measureMotor,
+        measureSpeech: measureSpeech ?? this.measureSpeech,
+        measureVision: measureVision ?? this.measureVision,
+        joystickHomeCell: joystickHomeCell ?? this.joystickHomeCell,
+        visualField: visualField ?? this.visualField,
+        inputLevel: inputLevel ?? this.inputLevel,
+        vocabulary: vocabulary ?? this.vocabulary,
+        locale: locale ?? this.locale,
         label: label ?? this.label,
       );
 
@@ -259,6 +424,8 @@ class CapabilityProfile {
         .join('  ');
     return '$scores | reach ${reachableCells.length}/$reachCellCount '
         '| target ${minTargetSize.round()}dp | voice ${clarity.label} '
-        '| vision ${vision.label}';
+        '| vision ${vision.label} ${visualField.label} '
+        '| level ${inputLevel.label}'
+        '${vocabulary.isEmpty ? '' : ' | vocab ${vocabulary.length}'}';
   }
 }
