@@ -53,19 +53,17 @@ void main() {
         Scaffold(body: CalibrationFlow(onComplete: (_) {})),
       ));
 
-      // The universal entry screen: any tap gets past it, straight to the
-      // axis picker (docs: issue #1 -- entry must not gate on anything
-      // harder than a single tap anywhere).
-      await tester.ensureVisible(find.text('Tap anywhere to start'));
+      // The continue screen: a large thumb-zone tap gets past it, straight
+      // to the axis picker (docs: issue #1 / #6 -- no harder than tap/hold).
+      await tester.ensureVisible(find.text('Continue'));
       await tester.pump();
-      await tester.tap(find.text('Tap anywhere to start'));
+      await tester.tap(find.text('Continue'));
       await tester.pump();
 
-      // Turn Motor and Vision off, leaving only Speech.
-      await tester.tap(find.text('Motor'));
-      await tester.pump();
-      await tester.tap(find.text('Vision'));
-      await tester.pump();
+      // Hold Motor and Vision to skip them, leaving only Speech.
+      // Off is a hold, not a tap -- a tap must not skip an axis (issue #7).
+      await holdToConfirm(tester, find.byKey(const ValueKey('axis-Motor')));
+      await holdToConfirm(tester, find.byKey(const ValueKey('axis-Vision')));
       await tester.ensureVisible(find.text('Start'));
       await tester.pump();
       await tester.tap(find.text('Start'));

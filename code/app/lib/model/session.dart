@@ -44,7 +44,7 @@ class InputEvent {
 class AppState extends ChangeNotifier {
   CapabilityProfile _profile = CapabilityProfile.blank();
   final List<InputEvent> _events = <InputEvent>[];
-  bool highContrast = false;
+  bool highContrast = true;
   String locale = 'en';
 
   /// Raw, high-frequency events (joystick ticks, trackpad drags) are useful to
@@ -60,9 +60,27 @@ class AppState extends ChangeNotifier {
   bool get isCalibrated => _profile.reachableCells.isNotEmpty ||
       _profile.methodScores.values.any((s) => s.tested);
 
-  void setProfile(CapabilityProfile p) {
+  /// Confirmed for use (preset or "Use this setup"). Live draft pushes do not
+  /// set this -- they only reshape the UI while measuring.
+  bool setupConfirmed = false;
+
+  void setProfile(CapabilityProfile p, {bool confirm = true}) {
     _profile = p;
-    emit(InputEvent(kind: 'SYSTEM', text: 'profile loaded: ${p.label}'));
+    if (confirm) {
+      setupConfirmed = true;
+      emit(InputEvent(kind: 'SYSTEM', text: 'profile loaded: ${p.label}'));
+    } else {
+      notifyListeners();
+    }
+  }
+
+  /// Push a partial profile mid-calibration so the next step is already shaped.
+  void applyLiveProfile(CapabilityProfile p) => setProfile(p, confirm: false);
+
+  void clearProfile() {
+    _profile = CapabilityProfile.blank();
+    setupConfirmed = false;
+    emit(InputEvent(kind: 'SYSTEM', text: 'setup cleared -- measuring again'));
   }
 
   void setHighContrast(bool value) {

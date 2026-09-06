@@ -1,6 +1,8 @@
 @Tags(['golden'])
 library;
 
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:startathon/calibration/calibration_flow.dart';
@@ -108,7 +110,14 @@ void main() {
       '08-voice',
     );
     await step(
-      VisionStep(draft: draft, index: 6, total: 7, onNext: () {}, onSkip: () {}),
+      VisionStep(
+        draft: draft,
+        index: 6,
+        total: 7,
+        onNext: () {},
+        onSkip: () {},
+        random: math.Random(3),
+      ),
       '09-vision',
     );
     await step(

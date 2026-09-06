@@ -27,6 +27,7 @@ class VoiceStep extends CalibrationStep {
     required super.total,
     required super.onNext,
     required super.onSkip,
+    super.onBack,
     super.textScale,
   });
 
@@ -113,13 +114,15 @@ class _VoiceStepState extends State<VoiceStep> {
     final r = _result;
     return StepFrame(
       title: 'Voice',
-      instruction: 'Say: "${_current.sentence}"',
+      instruction: 'Try to say: "${_current.sentence}"',
       status: 'Sentence ${_probe + 1} of ${kVoiceProbes.length}. '
           'The word we keep is "${_current.target}". '
           'Any sound still becomes a yes/no signal.',
       index: widget.index,
       total: widget.total,
       textScale: widget.textScale,
+      minTargetSize: widget.draft.minTargetSize,
+      onBack: widget.onBack,
       onSkip: () {
         widget.draft.skipped.add('voice');
         widget.draft.clarity = SpeechClarity.none;
@@ -260,6 +263,70 @@ class _VoiceStepState extends State<VoiceStep> {
 // 7. Vision
 // ---------------------------------------------------------------------------
 
+/// Common 2-syllable nouns in the same length/familiarity band as the original
+/// four (`river`, `candle`, `window`, `pocket`). Issue #12: a four-word pool
+/// with a fixed seed made every run show the same two words.
+const kVisionWords = <String>[
+  'river',
+  'candle',
+  'window',
+  'pocket',
+  'garden',
+  'button',
+  'pencil',
+  'table',
+  'bottle',
+  'jacket',
+  'flower',
+  'basket',
+  'pillow',
+  'forest',
+  'castle',
+  'mirror',
+  'camera',
+  'rocket',
+  'lemon',
+  'rabbit',
+  'market',
+  'engine',
+  'onion',
+  'planet',
+  'hammer',
+  'cookie',
+  'temple',
+  'village',
+];
+
+/// One acuity trial: the shrinking stimulus and the two large answer buttons.
+class VisionWordRound {
+  const VisionWordRound({required this.shown, required this.choices});
+
+  final String shown;
+  final List<String> choices;
+}
+
+/// Session-shuffled deck so consecutive rungs deal distinct words.
+class VisionWordDeck {
+  VisionWordDeck({math.Random? random, List<String> words = kVisionWords})
+      : _rng = random ?? math.Random(),
+        _deck = List<String>.of(words) {
+    _deck.shuffle(_rng);
+  }
+
+  final math.Random _rng;
+  final List<String> _deck;
+  var _index = 0;
+
+  VisionWordRound next() {
+    final shown = _deck[_index % _deck.length];
+    _index++;
+    final others = [for (final w in _deck) if (w != shown) w];
+    final foil = others[_rng.nextInt(others.length)];
+    final choices = [shown, foil]..shuffle(_rng);
+    return VisionWordRound(shown: shown, choices: choices);
+  }
+}
+
 /// 3.1 left this open ("likely a direct question, or a shrinking-font check").
 ///
 /// Self-report is the weak version -- people say yes to "can you read this?"
@@ -274,8 +341,13 @@ class VisionStep extends CalibrationStep {
     required super.total,
     required super.onNext,
     required super.onSkip,
+    super.onBack,
     super.textScale,
+    this.random,
   });
+
+  /// Goldens and tests inject a seed. Live calibration draws a fresh session RNG.
+  final math.Random? random;
 
   @override
   State<VisionStep> createState() => _VisionStepState();
@@ -283,9 +355,8 @@ class VisionStep extends CalibrationStep {
 
 class _VisionStepState extends State<VisionStep> {
   static const _rungs = <double>[44, 30, 20, 14];
-  static const _words = <String>['river', 'candle', 'window', 'pocket'];
 
-  final math.Random _rng = math.Random(3);
+  late final VisionWordDeck _deck;
 
   int _rung = 0;
   late String _shown;
@@ -296,14 +367,14 @@ class _VisionStepState extends State<VisionStep> {
   @override
   void initState() {
     super.initState();
+    _deck = VisionWordDeck(random: widget.random);
     _newRound();
   }
 
   void _newRound() {
-    _shown = _words[_rng.nextInt(_words.length)];
-    final other = _words.where((w) => w != _shown).toList()
-      ..shuffle(_rng);
-    _choices = [_shown, other.first]..shuffle(_rng);
+    final round = _deck.next();
+    _shown = round.shown;
+    _choices = round.choices;
   }
 
   void _answer(String choice) {
@@ -342,6 +413,8 @@ class _VisionStepState extends State<VisionStep> {
         index: widget.index,
         total: widget.total,
         textScale: widget.textScale,
+        minTargetSize: widget.draft.minTargetSize,
+        onBack: widget.onBack,
         onSkip: () => _commitField(VisualField.full),
         child: ListView(
           padding: const EdgeInsets.all(16),
@@ -364,13 +437,15 @@ class _VisionStepState extends State<VisionStep> {
     }
     return StepFrame(
       title: 'Vision',
-      instruction: 'Which word is shown above?',
+      instruction: 'Try to read the word above.',
       status: 'Text size ${_rungs[_rung].round()}. '
           'If you cannot tell, pick either -- a wrong answer just stops the '
           'test here, it is not a failure.',
       index: widget.index,
       total: widget.total,
       textScale: widget.textScale,
+      minTargetSize: widget.draft.minTargetSize,
+      onBack: widget.onBack,
       onSkip: () {
         widget.draft.skipped.add('vision');
         widget.draft.vision = VisionMode.large;
