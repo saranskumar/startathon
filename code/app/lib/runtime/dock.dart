@@ -139,6 +139,8 @@ class OptionList extends StatelessWidget {
                   Expanded(
                     child: Text(
                       options[i],
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
                       style: TextStyle(
                         fontSize: 18 * textScale,
                         fontWeight:

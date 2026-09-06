@@ -55,6 +55,31 @@ try {
   phone.ws.send(JSON.stringify({ type: 'focus', id: 'search' }));
   await page.waitForSelector('#kai-overlay .kai-focus', { timeout: 3000 });
   ok('focus highlight', true);
+  phone.ws.send(JSON.stringify({
+    type: 'focus',
+    id: 'class-SL',
+    phase: 'group',
+    groupIds: ['class-SL', 'class-3A', 'class-2A', 'class-CC'],
+  }));
+  await page.waitForFunction(() => {
+    const overlay = document.getElementById('kai-overlay');
+    return overlay?.classList.contains('kai-has-focus') &&
+      overlay.querySelectorAll('.kai-scan').length >= 1 &&
+      overlay.querySelectorAll('.kai-focus').length === 0;
+  }, null, { timeout: 3000 });
+  ok('group highlight without item', true);
+  phone.ws.send(JSON.stringify({
+    type: 'focus',
+    id: 'class-3A',
+    phase: 'item',
+    groupIds: ['class-SL', 'class-3A', 'class-2A', 'class-CC'],
+  }));
+  await page.waitForFunction(() => {
+    const overlay = document.getElementById('kai-overlay');
+    return overlay?.querySelectorAll('.kai-scan').length >= 1 &&
+      overlay.querySelectorAll('.kai-focus').length >= 1;
+  }, null, { timeout: 3000 });
+  ok('item highlight with group', true);
   phone.ws.send(JSON.stringify({ type: 'act', id: 'search' }));
   const acted = await phone.waitFor((m) => m.type === 'acted' && m.id === 'search');
   ok('search act', acted.ok === true);

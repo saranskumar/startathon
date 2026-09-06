@@ -82,11 +82,7 @@ class _PointingTaskViewState extends State<PointingTaskView> {
 
   // --- switch scanning -------------------------------------------------
 
-  Duration get _dwell => Duration(
-        milliseconds:
-            (850 + (1 - widget.profile.steadiness).clamp(0.0, 1.0) * 900)
-                .round(),
-      );
+  Duration get _dwell => widget.profile.scanDwell;
 
   void _startScan() {
     _scan?.cancel();

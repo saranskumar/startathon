@@ -17,7 +17,7 @@ Low-fi wireframe in text: every screen, what is essential vs supporting, and the
 |---|---|
 | **Person being measured** | Tap/hold to start, run (or skip) tests, use the resulting controllers on a short task chain |
 | **Optional helper** | Same phone; practice motions first, then pick which axes to measure |
-| **Judge / demo** | Skip live calibration via Profile A / B / Floor presets; same runtime object |
+| **Judge / demo** | Skip live calibration via Trackpad/switch / Profile A / B / Floor presets; same runtime object |
 
 **Done** means: a `CapabilityProfile` exists, then at least one consequential intent is confirmed and â€œsentâ€ (logged to the output strip â€” no real laptop wire in this build).
 
@@ -356,6 +356,7 @@ Fixed order. Every task screen shares:
 
 | Lever | What changes |
 |---|---|
+| **Trackpad / switch (no voice)** | Trackpad preferred (switch close behind), buttons/joystick unusable, no dictation, full field, limited reach like B |
 | **Profile A** | Precise touch, clear speech â†’ buttons-heavy, dictate, full field, many targets |
 | **Profile B** | Imprecise touch + partial speech â†’ often joystick fallback, vocab words, two targets |
 | **Floor** | Switch scan, sounds tier, tunnel field, one target |

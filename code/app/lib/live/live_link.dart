@@ -99,11 +99,18 @@ class LiveLink extends ChangeNotifier {
     ch.sink.add(jsonEncode(msg));
   }
 
-  void focus(String id, {int? group}) {
+  void focus(
+    String id, {
+    int? group,
+    String phase = 'item',
+    List<String> groupIds = const [],
+  }) {
     send({
       'type': 'focus',
       'id': id,
-      'group': ?group,
+      'phase': phase,
+      if (group != null) 'group': group,
+      if (groupIds.isNotEmpty) 'groupIds': groupIds,
     });
   }
 

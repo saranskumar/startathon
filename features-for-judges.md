@@ -31,7 +31,7 @@ These are the details a judge will otherwise treat as ordinary UI.
 | Floating joystick | **The stick floats at the measured home cell.** Everything else docks in the reachable span. A docked stick would sit where the layout wants it, not where the hand rests. |
 | Confirm / Send it | **The gate uses the user’s own method.** A tiny dialog OK would demand an ability they were never measured for. No consequential send without that confirm. Interrupt is a full-width bar; it resets **this step**, not the profile. |
 | Text task + hold to speak | **Touch selects, voice fills (Thesis B).** Partial speech always confirms. `sounds` is still a vocabulary (one pulse = yes, two = next) — not treated as no voice. Slow speech is not timed out. |
-| Profile A → B → Floor | **The same task, three assembled interfaces.** Presets skip measurement on purpose for the room; live calibration produces the same object. Floor is single-switch scan + sounds + tunnel — the person who scores low on every precise method still has an answer. |
+| Profile Trackpad/switch → A → B → Floor | **The same task, four assembled interfaces.** Presets skip measurement on purpose for the room; live calibration produces the same object. Trackpad/switch is first in the gear menu: no voice, limited reach, trackpad over switch when they are close. Floor is single-switch scan + sounds + tunnel — the person who scores low on every precise method still has an answer. |
 
 ---
 

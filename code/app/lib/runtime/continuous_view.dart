@@ -79,11 +79,7 @@ class _ContinuousTaskViewState extends State<ContinuousTaskView> {
 
   // --- switch ----------------------------------------------------------
 
-  Duration get _dwell => Duration(
-        milliseconds:
-            (900 + (1 - widget.profile.steadiness).clamp(0.0, 1.0) * 900)
-                .round(),
-      );
+  Duration get _dwell => widget.profile.scanDwell;
 
   void _startScan() {
     _scan?.cancel();

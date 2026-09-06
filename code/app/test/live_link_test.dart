@@ -31,4 +31,20 @@ void main() {
     expect(copy.clarity, original.clarity);
     expect(copy.minTargetSize, original.minTargetSize);
   });
+
+  test('trackpad/switch preset round-trips through JSON', () {
+    final original = ProfilePresets.profileTrackpadSwitch;
+    final copy = CapabilityProfile.fromJson(original.toJson());
+    expect(copy.label, original.label);
+    expect(copy.bestMethod, TouchMethod.trackpad);
+    expect(copy.clarity, SpeechClarity.none);
+    expect(copy.reachableCells, original.reachableCells);
+    expect(copy.minTargetSize, original.minTargetSize);
+    expect(copy.visualField, VisualField.full);
+    // LiveScreen always asks chooseMethod(..., discrete) for the handshake.
+    expect(
+      copy.bestMethod,
+      original.bestMethod,
+    );
+  });
 }

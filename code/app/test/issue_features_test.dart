@@ -257,7 +257,14 @@ void main() {
       await tester.tap(find.byIcon(Icons.settings));
       await tester.pumpAndSettle();
       expect(find.text('OR START FROM A SAVED PROFILE'), findsOneWidget);
+      expect(find.text('Trackpad / switch (no voice)'), findsOneWidget);
       expect(find.textContaining('Profile A'), findsOneWidget);
+      expect(
+        tester
+            .getTopLeft(find.text('Trackpad / switch (no voice)'))
+            .dy,
+        lessThan(tester.getTopLeft(find.textContaining('Calibrated')).dy),
+      );
       await teardownTree(tester);
     });
   });
@@ -479,6 +486,10 @@ void main() {
     test('presets carry tunnel / full as expected', () {
       expect(ProfilePresets.profileFloor.visualField, VisualField.tunnel);
       expect(ProfilePresets.profileA.visualField, VisualField.full);
+      expect(
+        ProfilePresets.profileTrackpadSwitch.visualField,
+        VisualField.full,
+      );
     });
 
     testWidgets('tunnel mask does not steal taps under the veil', (tester) async {

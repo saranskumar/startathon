@@ -53,6 +53,55 @@ void main() {
       expect(choice.isFallback, isTrue);
     });
 
+    test('trackpad/switch preset uses trackpad, never buttons or joystick', () {
+      final p = ProfilePresets.profileTrackpadSwitch;
+      expect(p.bestMethod, TouchMethod.trackpad);
+      expect(p.clarity, SpeechClarity.none);
+      expect(p.vision, VisionMode.screen);
+      expect(p.visualField, VisualField.full);
+      expect(p.reachableCells, ProfilePresets.profileB.reachableCells);
+      expect(p.minTargetSize, ProfilePresets.profileB.minTargetSize);
+      for (final shape in TaskShape.values) {
+        final choice = chooseMethod(p, shape);
+        expect(choice.method, TouchMethod.trackpad, reason: '$shape');
+        expect(
+          choice.method,
+          isNot(anyOf(TouchMethod.buttons, TouchMethod.joystick)),
+        );
+      }
+    });
+
+    test('trackpad/switch falls to switch when trackpad is untested', () {
+      final scores = Map<TouchMethod, MethodScore>.from(
+        ProfilePresets.profileTrackpadSwitch.methodScores,
+      );
+      scores[TouchMethod.trackpad] = const MethodScore.untested();
+      final p = ProfilePresets.profileTrackpadSwitch
+          .copyWith(methodScores: scores);
+      expect(p.bestMethod, TouchMethod.switchScan);
+      expect(
+        chooseMethod(p, TaskShape.discrete).method,
+        TouchMethod.switchScan,
+      );
+    });
+
+    test('gear menu lists trackpad/switch first', () {
+      expect(
+        ProfilePresets.all.first.label,
+        'Trackpad / switch (no voice)',
+      );
+      expect(
+        ProfilePresets.all.map((p) => p.label).toList(),
+        [
+          'Trackpad / switch (no voice)',
+          'Calibrated (default)',
+          'Profile A (precise touch, clear speech)',
+          'Profile B (imprecise touch, slurred speech)',
+          'Floor case (single-switch scanning)',
+        ],
+      );
+    });
+
     test('is relative, so a uniformly weak user still gets their best', () {
       final weak = CapabilityProfile.blank().copyWith(
         methodScores: const {
@@ -110,6 +159,30 @@ void main() {
       expect(
         ProfilePresets.profileFloor.maxControls,
         lessThan(ProfilePresets.profileA.maxControls),
+      );
+    });
+
+    test('visibleCountForHeight clamps by target size, not a hard-coded 6', () {
+      final a = ProfilePresets.profileA;
+      expect(a.visibleCountForHeight(400), a.visibleOptionCount);
+      expect(a.visibleCountForHeight(100), 1);
+      final floor = ProfilePresets.profileFloor;
+      expect(floor.visibleOptionCount, 1);
+      expect(floor.visibleCountForHeight(250), 1);
+      expect(
+        floor.copyWith(inputLevel: InputLevel.many).visibleCountForHeight(250),
+        1,
+      );
+    });
+
+    test('Floor switch dwell is about 2.5s (issue #20)', () {
+      expect(
+        ProfilePresets.profileFloor.scanDwell.inMilliseconds,
+        closeTo(2500, 50),
+      );
+      expect(
+        ProfilePresets.profileA.scanDwell.inMilliseconds,
+        lessThan(1500),
       );
     });
   });

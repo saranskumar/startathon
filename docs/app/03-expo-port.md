@@ -22,7 +22,7 @@ Port these as pure TypeScript first. They have almost no Flutter in them.
 | `runtime/hold_repeater.dart` | `src/inputs/holdRepeater.ts` |
 | `inputs/marker_grid.dart` (tree + controller) | `src/inputs/markerGrid.ts` |
 
-Keep the scoring formula, fallback margin `0.12`, vocal thresholds (120 / 280 / 400 / 800 ms), and dwell formula identical so presets A/B/Floor look the same.
+Keep the scoring formula, fallback margin `0.12`, vocal thresholds (120 / 280 / 400 / 800 ms), and dwell formula identical so presets Trackpad/switch / A / B / Floor look the same.
 
 ---
 
@@ -102,7 +102,7 @@ Behavioural, not pixel-perfect:
 - [ ] Interrupt resets current step only
 - [ ] Field veil does not eat pointers
 - [ ] High contrast peer theme
-- [ ] Presets A / B / Floor visibly reshape
+- [ ] Presets Trackpad/switch / A / B / Floor visibly reshape
 - [ ] `sounds` tier: 1 pulse = yes, 2 = next
 - [ ] Locale catalog `en` / `ml`
 - [ ] No agent wire required (strip is the sink)

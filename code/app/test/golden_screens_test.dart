@@ -171,6 +171,11 @@ void main() {
     await load(ProfilePresets.profileFloor);
     await shoot(tester, '15-runtime-floor-discrete-switch');
     await teardownTree(tester);
+
+    // Issue #19: trackpad/switch, no voice — discrete hover+release.
+    await load(ProfilePresets.profileTrackpadSwitch);
+    await shoot(tester, '15b-runtime-trackpad-switch-discrete');
+    await teardownTree(tester);
   });
 
   testWidgets('pointing fallback and voice fusion', (tester) async {

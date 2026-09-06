@@ -336,6 +336,31 @@ void main() {
       await tester.pump();
       expect(resolved, isNotNull);
     });
+
+    testWidgets('trackpad/switch preset picks phrases by touch, not dictation',
+        (tester) async {
+      usePhoneSurface(tester);
+      String? resolved;
+      await tester.pumpWidget(harness(
+        AppState(),
+        Scaffold(
+          body: TextTaskView(
+            profile: ProfilePresets.profileTrackpadSwitch,
+            method: TouchMethod.trackpad,
+            fieldLabel: 'Delivery note',
+            onRaw: (_) {},
+            onNote: (_) {},
+            onResolve: (t) => resolved = t,
+          ),
+        ),
+      ));
+
+      expect(find.byType(HoldToSpeak), findsNothing);
+      expect(find.byType(TrackpadSurface), findsOneWidget);
+      expect(find.text('Leave it at the front desk'), findsWidgets);
+      expect(resolved, isNull);
+      await teardownTree(tester);
+    });
   });
 
   group('calibration', () {

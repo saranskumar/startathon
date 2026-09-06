@@ -16,7 +16,7 @@ A person (or helper) is **measured**, not labeled. Measurement produces a `Capab
 - how large text is, and how much of the screen is visible
 - where output lives (the row the hand cannot reach)
 
-The demo then walks four task shapes so a judge can see the same “form” operated three different ways (presets A / B / Floor).
+The demo then walks four task shapes so a judge can see the same “form” operated several ways (presets Trackpad/switch / A / B / Floor).
 
 ---
 
@@ -65,7 +65,7 @@ Killing the app returns to the Start gate (in-session only; no persistence).
 | **Start gate** | `main.dart` `_StartGateScreen` | Full-bleed tap/hold, nothing else. Continues to Setup. |
 | **Setup** | `main.dart` `_HomeScreen` | Helper / contrast / locale up top. Welcome autoplays. Reach zone is only the tap/hold-to-start block. Settings circle top-right. |
 | **Continue** | `calibration_flow.dart` `_entry` | Slim “We'll measure what works.” + large Continue. No second welcome, no helper question. |
-| **Settings sheet** | `main.dart` `_DemoSettingsSheet` | High contrast, locale chip, presets A/B/Floor, Redo setup, helper path. Presets skip measurement and jump to Preview. |
+| **Settings sheet** | `main.dart` `_DemoSettingsSheet` | High contrast, locale chip, presets Trackpad/switch / A / B / Floor, Redo setup, helper path. Presets skip measurement and jump to Preview. |
 | **Caregiver training** | `training/caregiver_training.dart` | No scores. Three motions (tap, slide left, slide up). Prompt fading: together → start-together-finish-alone → from the words alone. Three independent hits graduate a drill. Skip this motion / skip all → axis picker. |
 | **Axis picker** | `calibration_flow.dart` `_axisPicker` | Motor / Speech / Vision default ON as large rows. Hold a row to skip it; tap an off row to turn it back on. Start always enabled. Last remaining axis cannot be skipped. Haiku theme reacts live. Helper provenance banner if assisted. |
 | **Calibration steps** | `touch_steps.dart`, `sense_steps.dart` | See §5. Shared `StepFrame`: instruction, `N of M`, always-present Skip (untested ≠ fail), Back from the second test (retake as untested). |
@@ -94,7 +94,7 @@ Visual field veil (`vision/field_shell.dart`) wraps **everything after** vision 
 | `outputRow` / `outputAtBottom` | Output strip on the least-reachable row, furthest from the hand centroid |
 | `joystickHomeCell` / `joystickAnchor` | Floating stick home |
 | `minTargetSize` | Button / skip / chrome height |
-| `steadiness` | Stretch switch-scan dwell; tremor tolerance |
+| `steadiness` | Stretch switch-scan dwell (`scanDwell`; Floor ~2.5s) |
 | `holdCapable` | Whether hold-to-repeat is offered |
 | `maxControls` | From best score: ≥0.75 → 6, ≥0.55 → 4, ≥0.35 → 3, else 2 |
 | `inputLevel` | `one` / `two` / `many` — caps visible options; user levels up from one |
@@ -222,7 +222,7 @@ Rule: use ideal **unless** another method scores ≥ **0.12** higher. Then use t
 | **Pointing** | quadrant narrowing | steer cursor + press | drag + release *(ideal)* | row scan, then column scan |
 | **Text** | Thesis B: touch selects field; voice fills/confirms | same fusion | same | same |
 
-Discrete options are **paged** by `visibleOptionCount`. Vocab (when `usesWordVocab`): small menus map words onto options; large menus map first three words to next / previous / select.
+Discrete options are **paged** by `visibleOptionCount`. Vocab (when `usesWordVocab`): small menus map words onto options; large menus map first three words to next / previous / select. Live RailLink lists (`DiscreteTaskView.livePaging`) also clamp by how many `minTargetSize` rows fit, auto-advance after a full scan/pass, and use `CapabilityProfile.scanDwell`. Offline demo tasks leave `livePaging` off.
 
 ### 7.3 Demo tasks
 
@@ -261,7 +261,7 @@ Confirmation gate uses the **user’s method**, never a tiny dialog button they 
 | High contrast | Peer theme, not a haiku variant. Also follows OS `MediaQuery.highContrast`. |
 | Recorded voice | Catalog `welcome` / `training` in `en` and `ml`. Timed transcript + screen-reader announcement until WAVs exist. |
 | Live draft | Partial profile applied mid-calibration. |
-| Presets | A (precise + full speech), B (imprecise + partial + vocab `water/tank/yellow`), Floor (switch + sounds + tunnel). |
+| Presets | Trackpad/switch (no voice, limited reach, first in the gear menu), A (precise + full speech), B (imprecise + partial + vocab `water/tank/yellow`), Floor (switch + sounds + tunnel). |
 
 ---
 

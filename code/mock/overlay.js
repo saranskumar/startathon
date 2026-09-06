@@ -24,6 +24,8 @@
     method: 'buttons',
     vocabulary: [],
     focusId: null,
+    focusPhase: 'item',
+    groupIds: null,
     scanGroup: null,
     lastSnap: null,
     lastScreen: null,
@@ -173,8 +175,12 @@
     }
     if (msg.type === 'focus') {
       state.focusId = msg.id || null;
+      state.focusPhase = msg.phase === 'group' ? 'group' : 'item';
+      state.groupIds = Array.isArray(msg.groupIds) ? msg.groupIds : null;
       if (msg.group != null) state.scanGroup = msg.group;
-      else state.scanGroup = groupOf(state.focusId);
+      else if (!state.groupIds) state.scanGroup = groupOf(state.focusId);
+      reveal(state.focusId);
+      state.lastSnap = snapshot();
       draw();
       return;
     }
@@ -192,6 +198,13 @@
       if (msg.group != null) state.scanGroup = msg.group;
       if (arityChanged) pushState();
       else draw();
+    }
+  }
+
+  function reveal(id) {
+    const el = findEl(findInteraction(id));
+    if (el && typeof el.scrollIntoView === 'function') {
+      el.scrollIntoView({ block: 'nearest', inline: 'nearest' });
     }
   }
 
@@ -296,7 +309,9 @@
     if (!snap) { root.innerHTML = ''; return; }
     const parts = [];
     const flashing = state.flashUntil > Date.now() ? state.flashId : null;
-    const showScan = state.method === 'switchScan' || state.method === 'voice';
+    const groupIds = currentGroupIds(snap);
+    const hasLive = !!(state.focusId || (groupIds && groupIds.length) || flashing);
+    root.classList.toggle('kai-has-focus', hasLive);
 
     for (const region of snap.regions || []) {
       if (!region.box) continue;
@@ -308,26 +323,28 @@
       );
     }
 
-    if (showScan && state.scanGroup != null) {
-      const group = (snap.scanGroups || []).find((g) => g.group === state.scanGroup);
-      if (group) {
-        const boxes = (group.ids || []).map((id) => {
-          const it = snap.interactions.find((x) => x.id === id);
-          return it && it.box;
-        });
-        const box = unionBox(boxes);
-        if (box) {
-          parts.push(
-            '<div class="kai-scan" style="' + boxStyle(box) + '">' +
-              '<span class="kai-scan-caption">' + escapeHtml(group.caption || '') + '</span></div>'
-          );
-        }
+    if (groupIds && groupIds.length) {
+      const boxes = groupIds.map((id) => {
+        const it = snap.interactions.find((x) => x.id === id);
+        return it && it.box;
+      });
+      const box = unionBox(boxes);
+      if (box) {
+        const caption = groupCaption(snap, groupIds);
+        parts.push(
+          '<div class="kai-scan" style="' + boxStyle(box) + '">' +
+            (caption
+              ? '<span class="kai-scan-caption">' + escapeHtml(caption) + '</span>'
+              : '') +
+            '</div>'
+        );
       }
     }
 
     for (const it of snap.interactions || []) {
       if (!it.box) continue;
-      const focused = it.id === state.focusId;
+      const focused =
+        state.focusPhase !== 'group' && it.id === state.focusId;
       const hit = it.id === flashing;
       if (!focused && !hit) continue;
       parts.push(
@@ -338,6 +355,27 @@
 
     root.innerHTML = parts.join('');
     paintHud();
+  }
+
+  function currentGroupIds(snap) {
+    if (state.groupIds && state.groupIds.length) return state.groupIds;
+    if (state.scanGroup == null) return null;
+    const group = (snap.scanGroups || []).find((g) => g.group === state.scanGroup);
+    return group && group.ids ? group.ids : null;
+  }
+
+  function groupCaption(snap, ids) {
+    const fromMap = (snap.scanGroups || []).find((g) =>
+      g.ids && ids.length && g.ids.length === ids.length && g.ids[0] === ids[0]
+    );
+    if (fromMap && fromMap.caption) return fromMap.caption;
+    const labels = ids.slice(0, 2).map((id) => {
+      const it = snap.interactions.find((x) => x.id === id);
+      return it && it.label;
+    }).filter(Boolean);
+    const rest = ids.length - labels.length;
+    if (!labels.length) return '';
+    return rest > 0 ? labels.join(', ') + ', and ' + rest + ' more' : labels.join(', ');
   }
 
   function watchScreen() {
@@ -363,6 +401,12 @@
       #kai-overlay .kai-region {
         position: fixed; border: 2px dashed rgba(14, 116, 144, 0.7);
         border-radius: 10px; box-sizing: border-box;
+      }
+      #kai-overlay.kai-has-focus .kai-region {
+        opacity: 0.18;
+      }
+      #kai-overlay.kai-has-focus .kai-region-label {
+        display: none;
       }
       #kai-overlay .kai-region-label {
         position: absolute; left: 8px; top: -11px;

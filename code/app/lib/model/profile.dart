@@ -282,6 +282,23 @@ class CapabilityProfile {
     return cap.clamp(1, maxControls);
   }
 
+  /// How many option rows of [minTargetSize] actually fit in [contentHeight].
+  /// Live paging uses this so a Floor-sized target never clips a label.
+  int visibleCountForHeight(double contentHeight, {double gap = 8}) {
+    final cap = visibleOptionCount.clamp(1, 99);
+    if (!contentHeight.isFinite || contentHeight <= 0) return cap;
+    final row = minTargetSize + gap;
+    if (row <= 0) return cap;
+    return math.min(cap, math.max(1, (contentHeight / row).floor()));
+  }
+
+  /// Switch-scan step length. Steadiness buys speed: Floor (~0.2) lands
+  /// near 2.5s so a late press is less likely to skip the target (issue #20).
+  Duration get scanDwell {
+    final s = steadiness.clamp(0.0, 1.0);
+    return Duration(milliseconds: (1100 + (1 - s) * 1750).round());
+  }
+
   double scoreOf(TouchMethod m) => methodScores[m]?.score ?? 0;
 
   /// A holdable button contributes both a tap-input and a hold-input, so

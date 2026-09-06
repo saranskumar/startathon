@@ -173,9 +173,41 @@ class TrialCollector {
   }
 }
 
-/// The two demo profiles from docs/idea/06-user-model.md, used by the profile
-/// switch so the interface can be reshaped live without re-running calibration.
+/// Judge/demo profiles used by the gear-menu switch so the interface can be
+/// reshaped live without re-running calibration. Issue #19's trackpad/switch
+/// preset is first so the room can jump to a no-voice, limited-reach user.
 class ProfilePresets {
+  /// Trackpad or switch-scanning, no voice, full vision, limited reach.
+  /// Issue #19: one preset (not two), trackpad preferred when the two motor
+  /// scores are close, buttons/joystick unusable.
+  static CapabilityProfile get profileTrackpadSwitch => CapabilityProfile(
+        label: 'Trackpad / switch (no voice)',
+        methodScores: const {
+          TouchMethod.buttons: MethodScore(
+              successRate: 0.18, timeNormalized: 0.92, errorNormalized: 0.88,
+              attempts: 6),
+          TouchMethod.joystick: MethodScore(
+              successRate: 0.22, timeNormalized: 0.9, errorNormalized: 0.85,
+              attempts: 4),
+          TouchMethod.trackpad: MethodScore(
+              successRate: 0.92, timeNormalized: 0.3, errorNormalized: 0.18,
+              attempts: 4),
+          TouchMethod.switchScan: MethodScore(
+              successRate: 0.88, timeNormalized: 0.45, errorNormalized: 0.22,
+              attempts: 4),
+        },
+        // Same limited lower-left zone as Profile B, not A's full grid.
+        reachableCells: {6, 7, 9, 10},
+        lockedCells: {6, 9},
+        minTargetSize: 120,
+        steadiness: 0.7,
+        holdCapable: false,
+        clarity: SpeechClarity.none,
+        vision: VisionMode.screen,
+        visualField: VisualField.full,
+        inputLevel: InputLevel.two,
+      );
+
   /// Committed default from a pre-demo calibration run. A fresh browser or
   /// redeploy still comes up with this — local storage is only an override.
   static CapabilityProfile get calibrated => CapabilityProfile(
@@ -291,7 +323,7 @@ class ProfilePresets {
       );
 
   static List<CapabilityProfile> get all =>
-      [calibrated, profileA, profileB, profileFloor];
+      [profileTrackpadSwitch, calibrated, profileA, profileB, profileFloor];
 }
 
 /// Small helpers shared by the input surfaces.

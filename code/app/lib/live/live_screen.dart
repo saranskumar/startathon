@@ -112,6 +112,19 @@ class _LiveScreenState extends State<LiveScreen> {
     await _link.connect(host: _host.text, room: _room.text);
   }
 
+  void _focusItems(List<Map<String, dynamic>> items, OptionHighlight h) {
+    if (h.index < 0 || h.index >= items.length) return;
+    final id = items[h.index]['id']?.toString();
+    if (id == null || id.isEmpty) return;
+    final groupIds = <String>[];
+    for (final i in h.groupIndexes) {
+      if (i < 0 || i >= items.length) continue;
+      final gid = items[i]['id']?.toString();
+      if (gid != null && gid.isNotEmpty) groupIds.add(gid);
+    }
+    _link.focus(id, phase: h.phase, groupIds: groupIds);
+  }
+
   void _pick(Map<String, dynamic> it) {
     _selected = {...it, '_screen': _link.pageState?['screen']};
     AppScope.of(context).emit(InputEvent(
@@ -122,6 +135,7 @@ class _LiveScreenState extends State<LiveScreen> {
     final shape = it['shape'] as String? ?? 'discrete';
     final options = (it['options'] as List?)?.map((e) => e.toString()).toList();
     if (it['consequential'] == true) {
+      _link.focus(it['id'] as String);
       setState(() {
         _phase = _Phase.confirm;
         _epoch++;
@@ -132,6 +146,7 @@ class _LiveScreenState extends State<LiveScreen> {
         (shape == 'text' ||
             shape == 'continuous' ||
             (options != null && options.isNotEmpty))) {
+      _link.focus(it['id'] as String);
       setState(() {
         _phase = _Phase.fill;
         _epoch++;
@@ -285,11 +300,16 @@ class _LiveScreenState extends State<LiveScreen> {
     void raw(String s) => state.emitRaw(s, method: choice.method);
 
     if (_phase == _Phase.confirm && _selected != null) {
+      final confirmId = _selected!['id']?.toString();
       return DiscreteTaskView(
         profile: p,
         method: choice.method,
         options: const ['Send it', 'Go back'],
         onRaw: raw,
+        livePaging: true,
+        onHighlight: (_) {
+          if (confirmId != null) _link.focus(confirmId);
+        },
         onResolve: (i, _) => _confirmPay(i == 0),
       );
     }
@@ -365,6 +385,8 @@ class _LiveScreenState extends State<LiveScreen> {
         method: choice.method,
         options: options,
         onRaw: raw,
+        livePaging: true,
+        onHighlight: (_) => _link.focus(it['id'] as String),
         onResolve: (i, value) {
           _link.act(it['id'] as String, value: value);
           state.emit(InputEvent(
@@ -399,10 +421,8 @@ class _LiveScreenState extends State<LiveScreen> {
         for (final it in items) it['label']?.toString() ?? it['id'].toString()
       ],
       onRaw: raw,
-      onHighlight: (i, _) {
-        if (i < 0 || i >= items.length) return;
-        _link.focus(items[i]['id'] as String);
-      },
+      livePaging: true,
+      onHighlight: (h) => _focusItems(items, h),
       onResolve: (i, _) => _pick(items[i]),
     );
   }
