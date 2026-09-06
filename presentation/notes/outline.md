@@ -82,7 +82,7 @@ Do not say: TAM, competitor tables, architecture diagrams, library lists, open-s
 |---|---|
 | Proven | We can measure a profile and reshape the same task to match it. We can rank a real page without an AI agent. The assumption that AI would solve his problem did not hold. |
 | Uncertain | Whether he can complete more tasks independently than with WhatsApp, Assistant, and a caregiver. Whether real speech recognition works for him. |
-| Next week | Wire the phone to the desktop. Put the built input layer in front of him. Decide whether to add a real speech package. |
+| Next week | Wire the phone to the desktop. Put the built input layer in front of him. If we add real speech, it is a hosted recognizer, not a trained model. |
 | To be useful | He must reach apps he currently abandons or hands off, without confirmation becoming constant interruption, on ordinary websites—not only our mocks. |
 
 **Say:** We proved the input layer and the ranking. We have not yet proved it with him on a live site. That is the next test.

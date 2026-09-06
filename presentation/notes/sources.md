@@ -23,6 +23,7 @@ Traceability map. Every fact in `outline.md` / `demo-clips.md` / `slides.html` i
 | Desktop: Playwright + heuristic ranking + act; no LLM; phone unwired | [code/desktop/README.md](../../code/desktop/README.md); [docs/tech/README.md](../../docs/tech/README.md) | slide 4 |
 | Browser tree only; mocks (Aperture Daily) | [docs/tech/README.md](../../docs/tech/README.md); [code/mock](../../code/mock/) | slide 4 |
 | STT/TTS need a package; not decided | [docs/tech/README.md](../../docs/tech/README.md); [22 methods](../../docs/idea/22-input-methods-scope.md) | slides 4–5 |
+| If speech is added: hosted general ASR, not a fine-tuned dysarthric model, during event-scale build | [docs/tech/research/11-voice-accessibility-viability.md](../../docs/tech/research/11-voice-accessibility-viability.md) §9, §13 | slide 5 |
 | Success = same system, two profiles / more independent function | [04](../../docs/idea/04-goals.md) §4.4; [16](../../docs/idea/16-canvas-submission.md) support/weaken | slide 5 |
 | Confirmation must not become constant interruption | [11](../../docs/idea/11-risks.md) | slide 5 |
 
