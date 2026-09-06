@@ -422,3 +422,104 @@ form.widget label.summary-row select {
 
 .back-link { background: none; border: none; color: var(--muted); cursor: pointer; padding: 0; margin-bottom: 16px; font-size: 0.9rem; }
 .back-link:hover { color: var(--text); }
+
+/* ---------- Aperture Daily hub ---------- */
+body.hub {
+  overflow: auto;
+}
+body.hub main {
+  align-items: stretch;
+  justify-content: flex-start;
+  text-align: left;
+  max-width: 920px;
+  margin: 0 auto;
+  width: 100%;
+  padding: 32px 24px 64px;
+}
+.hub-hero {
+  margin-bottom: 28px;
+}
+.hub-hero h1 {
+  font-size: clamp(1.8rem, 4vw, 2.4rem);
+  letter-spacing: -0.03em;
+  margin: 0 0 10px;
+  line-height: 1.15;
+}
+.hub-hero p {
+  margin: 0;
+  color: var(--muted);
+  max-width: 52ch;
+  font-size: 1.05rem;
+  line-height: 1.5;
+}
+.hub-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 14px;
+}
+@media (max-width: 720px) {
+  .hub-grid { grid-template-columns: 1fr; }
+  .menu-grid { grid-template-columns: 1fr; }
+}
+.world-card {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  text-decoration: none;
+  color: inherit;
+  border-radius: 12px;
+  border: 1px solid transparent;
+  background: var(--surface-shine);
+  padding: 20px 18px 18px;
+  min-height: 176px;
+  transition: transform 160ms ease-out, background 160ms ease-out;
+}
+.world-card:hover { background: var(--surface-2); }
+.world-card:active { transform: scale(0.985); }
+.world-card .kicker {
+  color: var(--muted);
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  font-weight: 700;
+}
+.world-card h2 {
+  margin: 0;
+  font-size: 1.2rem;
+  letter-spacing: -0.02em;
+}
+.world-card .blurb {
+  margin: 0;
+  color: var(--text);
+  font-size: 0.95rem;
+  line-height: 1.4;
+  flex: 1;
+}
+.world-card .why {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.82rem;
+  line-height: 1.35;
+}
+.pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.pill {
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 12%, var(--surface));
+  border-radius: 999px;
+  padding: 3px 8px;
+}
+.hub-note {
+  margin-top: 28px;
+  color: var(--muted);
+  font-size: 0.85rem;
+  max-width: 62ch;
+  line-height: 1.45;
+}

@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 
+import '../inputs/haptics.dart';
 import '../inputs/surfaces.dart';
 import '../model/profile.dart';
 import 'dock.dart';
@@ -72,6 +73,7 @@ class _PointingTaskViewState extends State<PointingTaskView> {
   }
 
   void _resolve(Offset point) {
+    Haptics.confirm();
     _scan?.cancel();
     _joyTicker?.cancel();
     final err = (point - widget.goal).distance;
@@ -90,6 +92,7 @@ class _PointingTaskViewState extends State<PointingTaskView> {
     _scan?.cancel();
     _scan = Timer.periodic(_dwell, (_) {
       if (!mounted) return;
+      Haptics.navigate();
       setState(() {
         if (_phase == 0) {
           _row = (_row + 1) % _gridN;

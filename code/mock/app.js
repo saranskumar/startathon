@@ -1,10 +1,9 @@
-// Mock UI — Interaction Pattern Demo.
-// Deliberately NOT dressed up as a real app: the home menu honestly
-// offers two demo modes rather than pretending to be a product.
+// Pattern lab — isolated interaction patterns + a tiny generic app.
+// Daily-use mock worlds live on index.html (Aperture Daily).
+// This file stays the original two-mode demo:
 //  - "simple": one isolated UI pattern per step (Back/Next).
 //  - "complex": a small, generic multi-screen app (persistent nav,
-//    list -> detail -> edit, settings tabs) to show a more realistic,
-//    interconnected flow than the isolated patterns allow.
+//    list -> detail -> edit, settings tabs).
 
 const state = {
   mode: 'menu', // 'menu' | 'simple' | 'complex'
@@ -42,6 +41,7 @@ const STEPS = [
 
 function renderMenu() {
   return `
+    <p class="pattern-hint" style="margin-bottom:20px">Isolated patterns for scoring. Daily-use sites are on the <a href="index.html">Aperture Daily</a> hub.</p>
     <div class="menu-grid">
       <button type="button" class="menu-card" onclick="enterMode('simple')">
         <div class="kicker">Option A</div>

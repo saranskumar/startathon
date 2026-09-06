@@ -45,12 +45,14 @@ class _CalibrationFlowState extends State<CalibrationFlow> {
 
   final CalibrationDraft _draft = CalibrationDraft();
 
-  /// -1 = intro, 0.._stepCount-1 = tests, _stepCount = results. Populated once
-  /// the intro's Start is pressed, from whichever axes are still on.
+  /// -2 = universal entry (anyone, any input, no choice required yet),
+  /// -1 = axis picker, 0.._stepCount-1 = tests, _stepCount = results.
+  /// Populated once the axis picker's Start is pressed, from whichever axes
+  /// are still on.
   List<_StepKind> _steps = const [];
   int get _stepCount => _steps.length;
 
-  int _step = -1;
+  int _step = -2;
   int _consecutiveIdleSkips = 0;
   Timer? _idle;
   String? _toast;
@@ -169,7 +171,8 @@ class _CalibrationFlowState extends State<CalibrationFlow> {
   }
 
   Widget _body() {
-    if (_step < 0) return _intro();
+    if (_step == -2) return _entry();
+    if (_step == -1) return _axisPicker();
     if (_step >= _stepCount) {
       return CalibrationResults(
         draft: _draft,
@@ -253,10 +256,90 @@ class _CalibrationFlowState extends State<CalibrationFlow> {
   bool get _atLeastOneAxis =>
       _draft.measureMotor || _draft.measureSpeech || _draft.measureVision;
 
-  /// "What should we measure?" -- who is answering that, and for which
-  /// environments. Never "which disability do you have": the wording and the
-  /// large-target-only controls both hold that line deliberately.
-  Widget _intro() {
+  /// The actual entry point, and the only screen that has to work for
+  /// *anyone*: no button to find, no question to parse first, no choice
+  /// required. The whole screen is one tap target -- the same standard
+  /// [ReachStep] itself uses ("tap the highlighted square, or wait, it moves
+  /// on"), except here there isn't even a target to find. A caregiver gets a
+  /// second, clearly separate way in that skips straight past the question
+  /// this screen doesn't ask (docs: issue #1 -- the entry point must never be
+  /// harder to operate than anything calibration itself measures).
+  Widget _entry() {
+    final scheme = Theme.of(context).colorScheme;
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTap: () => setState(() {
+        _draft.helperChoseAxes = false;
+        _step = -1;
+      }),
+      child: Container(
+        padding: const EdgeInsets.fromLTRB(28, 28, 28, 24),
+        alignment: Alignment.center,
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.tune, size: 64, color: scheme.primary),
+            const SizedBox(height: 20),
+            const Text(
+              'Set up how you control things',
+              textAlign: TextAlign.center,
+              style: TextStyle(fontSize: 28, fontWeight: FontWeight.w700),
+            ),
+            const SizedBox(height: 14),
+            Text(
+              'There is no pass or fail. Each test measures what works for '
+              'you, and anything you cannot do is skipped automatically.',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontSize: 17,
+                height: 1.45,
+                color: scheme.onSurfaceVariant,
+              ),
+            ),
+            const SizedBox(height: 36),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 20),
+              decoration: BoxDecoration(
+                color: scheme.primary,
+                borderRadius: BorderRadius.circular(18),
+              ),
+              child: Text(
+                'Tap anywhere to start',
+                style: TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.w700,
+                  color: scheme.onPrimary,
+                ),
+              ),
+            ),
+            const SizedBox(height: 40),
+            // Deliberately separate from the giant tap target above, not a
+            // second question layered on top of it -- a helper identifies
+            // themselves by which control they press, not by answering
+            // anything.
+            SizedBox(
+              height: 56,
+              child: OutlinedButton(
+                onPressed: () => setState(() {
+                  _draft.helperChoseAxes = true;
+                  _step = -1;
+                }),
+                child: const Text(
+                  'Someone is helping set this up',
+                  style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  /// "What should we measure?" -- for which environments. Reached only after
+  /// [_entry] already let the person in, so large-but-multiple targets here
+  /// are fine; they are a refinement step, not the gate.
+  Widget _axisPicker() {
     final scheme = Theme.of(context).colorScheme;
     return SingleChildScrollView(
       padding: const EdgeInsets.fromLTRB(24, 28, 24, 24),
@@ -281,30 +364,27 @@ class _CalibrationFlowState extends State<CalibrationFlow> {
               color: scheme.onSurfaceVariant,
             ),
           ),
-          const SizedBox(height: 28),
-          _sectionLabel(scheme, 'WHO IS CHOOSING THE AXES'),
-          const SizedBox(height: 10),
-          Row(
-            children: [
-              Expanded(
-                child: _bigToggle(
-                  scheme,
-                  label: 'I am doing this',
-                  selected: !_draft.helperChoseAxes,
-                  onTap: () => setState(() => _draft.helperChoseAxes = false),
-                ),
+          if (_draft.helperChoseAxes) ...[
+            const SizedBox(height: 14),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+              decoration: BoxDecoration(
+                color: scheme.tertiaryContainer,
+                borderRadius: BorderRadius.circular(12),
               ),
-              const SizedBox(width: 10),
-              Expanded(
-                child: _bigToggle(
-                  scheme,
-                  label: 'Someone is\nhelping me choose',
-                  selected: _draft.helperChoseAxes,
-                  onTap: () => setState(() => _draft.helperChoseAxes = true),
-                ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(Icons.info_outline, size: 16, color: scheme.onTertiaryContainer),
+                  const SizedBox(width: 8),
+                  Text(
+                    'Setting this up for someone else',
+                    style: TextStyle(fontSize: 13, color: scheme.onTertiaryContainer),
+                  ),
+                ],
               ),
-            ],
-          ),
+            ),
+          ],
           const SizedBox(height: 26),
           _sectionLabel(scheme, 'WHICH ENVIRONMENTS'),
           const SizedBox(height: 10),
@@ -359,39 +439,6 @@ class _CalibrationFlowState extends State<CalibrationFlow> {
           letterSpacing: 1.3,
           fontWeight: FontWeight.w800,
           color: scheme.primary,
-        ),
-      );
-
-  Widget _bigToggle(
-    ColorScheme scheme, {
-    required String label,
-    required bool selected,
-    required VoidCallback onTap,
-  }) =>
-      InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(16),
-        child: Container(
-          height: 84,
-          alignment: Alignment.center,
-          padding: const EdgeInsets.symmetric(horizontal: 10),
-          decoration: BoxDecoration(
-            color: selected ? scheme.primary : scheme.surfaceContainerHighest,
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(
-              color: selected ? scheme.primary : scheme.outlineVariant,
-              width: selected ? 3 : 1,
-            ),
-          ),
-          child: Text(
-            label,
-            textAlign: TextAlign.center,
-            style: TextStyle(
-              fontSize: 15,
-              fontWeight: FontWeight.w700,
-              color: selected ? scheme.onPrimary : scheme.onSurface,
-            ),
-          ),
         ),
       );
 

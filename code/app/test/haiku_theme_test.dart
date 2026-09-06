@@ -53,6 +53,12 @@ void main() {
         Scaffold(body: CalibrationFlow(onComplete: (_) {})),
       ));
 
+      // The universal entry screen: any tap gets past it, straight to the
+      // axis picker (docs: issue #1 -- entry must not gate on anything
+      // harder than a single tap anywhere).
+      await tester.tap(find.text('Tap anywhere to start'));
+      await tester.pump();
+
       // Turn Motor and Vision off, leaving only Speech.
       await tester.tap(find.text('Motor'));
       await tester.pump();

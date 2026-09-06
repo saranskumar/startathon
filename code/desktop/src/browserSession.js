@@ -11,6 +11,7 @@
 import { chromium } from 'playwright';
 import { buildAuxiliaryTree } from './domTreeEngine.js';
 import { loadUsageCounts, recordSelection } from './usageStore.js';
+import { loadRankingModel, recordRankingExample } from './rankingModel.js';
 import { attachPageWatcher } from './pageWatcher.js';
 
 const DEFAULT_VIEWPORT = { width: 1280, height: 720 };
@@ -101,8 +102,14 @@ export class BrowserSession {
     const startedAt = Date.now();
     const raw = await this.page.ariaSnapshotJSON({ mode: 'ai', boxes: true });
     const usageCounts = loadUsageCounts();
+    // Retrained offline (see rankingModel.js's trainAndSaveRankingModel) --
+    // loaded fresh each scan so a newly-trained model takes effect on the
+    // next page read without restarting the session. Null until something
+    // has actually been trained; buildAuxiliaryTree treats that as a no-op.
+    const rankingModel = loadRankingModel();
     const aux = buildAuxiliaryTree(raw, {
       usageCounts,
+      rankingModel,
       limit: this.limit,
       viewport: this.viewport,
     });
@@ -165,6 +172,13 @@ export class BrowserSession {
     if (feature.signature) {
       const count = recordSelection(feature.signature);
       this.emit({ type: 'selection', signature: feature.signature, count });
+      // The picked feature is a positive example; every other candidate
+      // shown in the same scan (same bucket) is a negative -- a full
+      // training batch out of one real selection, no extra instrumentation.
+      const candidates = bucket ? (this.state?.[bucket] ?? []) : [
+        ...(this.state?.navigation ?? []), ...(this.state?.information ?? []),
+      ];
+      if (candidates.length > 1) recordRankingExample(feature, candidates);
     }
 
     if (verb === 'view') {

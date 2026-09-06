@@ -2,6 +2,8 @@ import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 
+import 'haptics.dart';
+
 /// Raw input surfaces. These know nothing about tasks -- they only turn finger
 /// movement into normalised numbers. Every task-specific behaviour (cycling a
 /// list, scrolling, placing a cursor) is built on top of these in tasks.dart,
@@ -352,7 +354,10 @@ class CalibratedButton extends StatelessWidget {
       child: Builder(
         builder: (context) => GestureDetector(
           behavior: HitTestBehavior.opaque,
-          onTap: onPressed,
+          onTap: () {
+            Haptics.confirm();
+            onPressed();
+          },
           child: AnimatedContainer(
             duration: const Duration(milliseconds: 120),
             constraints: BoxConstraints(minHeight: minSize, minWidth: minSize),

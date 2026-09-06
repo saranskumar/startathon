@@ -16,6 +16,8 @@
 // can show *why* something ranked where it did rather than asking anyone to
 // trust an opaque total.
 
+import { extractFeatureVector } from './rankingModel.js';
+
 const LANDMARK_ROLES = new Set([
   'banner', 'navigation', 'main', 'search', 'form', 'complementary', 'contentinfo', 'region',
 ]);
@@ -91,6 +93,9 @@ const DEFAULT_WEIGHTS = {
   landmarkProximity: 0.5,
   ambiguousInteractive: 0.75,
   usage: 1.5,
+  // Weight for the optional trained ranking model's contribution (see
+  // rankingModel.js) -- centered so a neutral 0.5 prediction adds nothing.
+  learned: 1.5,
 };
 
 const DEFAULT_VIEWPORT = { width: 1280, height: 720 };
@@ -416,6 +421,24 @@ function dropControlLabels(features) {
 }
 
 /**
+ * Optional, additive, and fully backward-compatible: with no model passed in
+ * (the default everywhere today), this is a no-op and every existing score
+ * is untouched. When a model is trained (rankingModel.js, from real
+ * selection history), its prediction becomes one more labelled `parts` entry
+ * — still fully explainable, never an opaque override of the heuristic score.
+ */
+function applyRankingModel(features, model, learnedWeight) {
+  if (!model) return;
+  for (const f of features) {
+    const p = model.predict(extractFeatureVector(f));
+    const boost = round(learnedWeight * (2 * p - 1));
+    if (!boost) continue;
+    f.score = round(f.score + boost);
+    f.parts = [...f.parts, { label: 'learned from usage (p=' + p.toFixed(2) + ')', value: boost }];
+  }
+}
+
+/**
  * The pruned hierarchy behind the two buckets — same nodes, kept as a tree so
  * the inspector can show structure, not just two flat lists. A dropped node
  * that still has kept descendants stays as a passthrough wrapper.
@@ -438,6 +461,9 @@ function pruneTree(node, byPath) {
  * @param options.limit - max features per bucket (default 12).
  * @param options.viewport - { width, height }, for the outside-viewport penalty.
  * @param options.weights - per-term overrides of DEFAULT_WEIGHTS, for live tuning.
+ * @param options.rankingModel - an optional trained LogisticRanker (rankingModel.js).
+ *   Still no LLM: one small trained-from-real-usage linear model, applied as
+ *   one more explainable, additive score term.
  */
 export function buildAuxiliaryTree(rawTree, options = {}) {
   const {
@@ -446,6 +472,7 @@ export function buildAuxiliaryTree(rawTree, options = {}) {
     limit = 12,
     viewport = DEFAULT_VIEWPORT,
     weights: weightOverrides = {},
+    rankingModel = null,
   } = options;
 
   const weights = { ...DEFAULT_WEIGHTS, ...weightOverrides, usage: usageWeight };
@@ -463,6 +490,7 @@ export function buildAuxiliaryTree(rawTree, options = {}) {
   for (const root of roots) walk(root, baseCtx, features);
 
   dropControlLabels(features);
+  applyRankingModel(features, rankingModel, weights.learned);
 
   const kept = features.filter(f => f.kept);
   const byPath = new Map(features.map(f => [f.path, f]));

@@ -8,6 +8,7 @@
     "ui": "node src/server.js",
     "aux": "node src/auxCli.js",
     "snapshot": "node src/snapshot.js",
+    "train": "node src/trainRanking.js",
     "test": "node --test test/*.test.js"
   },
   "dependencies": {
