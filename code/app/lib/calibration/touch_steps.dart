@@ -107,15 +107,22 @@ class _ReachStepState extends State<ReachStep> {
     _resetIdleTimer();
   }
 
+  /// Any tap -- even one that never gets confirmed -- is proof the user
+  /// reached that cell, so it is banked whether the step ends by timing out
+  /// or by an explicit Skip (see the class doc comment).
+  void _commit() {
+    for (var cell = 0; cell < _stage.length; cell++) {
+      if (_stage[cell] >= 1) widget.draft.reachableCells.add(cell);
+      if (_stage[cell] >= 2) widget.draft.lockedCells.add(cell);
+    }
+  }
+
   void _finish() {
     if (_finished || !mounted) return;
     _finished = true;
     _idleTimer?.cancel();
     _overallCue.cancel();
-    for (var cell = 0; cell < _stage.length; cell++) {
-      if (_stage[cell] >= 1) widget.draft.reachableCells.add(cell);
-      if (_stage[cell] >= 2) widget.draft.lockedCells.add(cell);
-    }
+    _commit();
     widget.onNext();
   }
 
@@ -150,6 +157,7 @@ class _ReachStepState extends State<ReachStep> {
       onSkip: () {
         _idleTimer?.cancel();
         _overallCue.cancel();
+        _commit();
         widget.onSkip();
       },
       elapsedFraction: _overallCue.elapsed,

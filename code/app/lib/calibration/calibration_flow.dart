@@ -174,9 +174,11 @@ class _CalibrationFlowState extends State<CalibrationFlow> {
     switch (kind) {
       case _StepKind.reach:
         _draft.reachableCells.clear();
+        _draft.lockedCells.clear();
       case _StepKind.buttons:
         _draft.scores[TouchMethod.buttons] = const MethodScore.untested();
         _draft.minTargetSize = 96;
+        _draft.tappableButtons.clear();
         _draft.skipped.remove('buttons');
       case _StepKind.joystick:
         _draft.scores[TouchMethod.joystick] = const MethodScore.untested();
@@ -190,6 +192,14 @@ class _CalibrationFlowState extends State<CalibrationFlow> {
       case _StepKind.hold:
         _draft.holdCapable = false;
         _draft.steadiness = 0.5;
+        // Buttons isn't necessarily being retaken too (Hold's *own* previous
+        // step is Buttons, but a Back landing here retakes Hold alone if
+        // Hold is the destination) -- reset each target's result rather than
+        // dropping the list, so a fresh Hold run doesn't inherit stale
+        // holdable flags from the attempt being discarded.
+        for (final t in _draft.tappableButtons) {
+          t.holdable = null;
+        }
         _draft.skipped.remove('hold');
       case _StepKind.voice:
         _draft.clarity = SpeechClarity.none;
