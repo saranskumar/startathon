@@ -1,5 +1,7 @@
 # Phone app UI/UX wireframe spec
 
+**Also see** [idea/30 — Meeting Notes: Onboarding & Calibration Walkthrough](../idea/30-meeting-notes-onboarding-calibration-walkthrough.md) for the decisions that drove Start gate, Hold reorder, and axis hold-to-skip.
+
 Low-fi wireframe in text: every screen, what is essential vs supporting, and the only legal order. Documents what is already built in `code/app` plus the intended flow. Not a pixel mock. Not a visual redesign.
 
 **Code:** `code/app/lib/main.dart` (screens), `calibration/`, `runtime/`, `training/`, `vision/`.  
@@ -17,7 +19,7 @@ Low-fi wireframe in text: every screen, what is essential vs supporting, and the
 | **Optional helper** | Same phone; practice motions first, then pick which axes to measure |
 | **Judge / demo** | Skip live calibration via Profile A / B / Floor presets; same runtime object |
 
-**Done** means: a `CapabilityProfile` exists, then at least one consequential intent is confirmed and “sent” (logged to the output strip — no real laptop wire in this build).
+**Done** means: a `CapabilityProfile` exists, then at least one consequential intent is confirmed and â€œsentâ€ (logged to the output strip â€” no real laptop wire in this build).
 
 ---
 
@@ -30,17 +32,17 @@ These apply once measurement has started (live draft) and after a confirmed prof
 | **Output strip** | Laptop preview: last intent + live raw signal. Sits on the row the user cannot reach (`outputAtBottom`). Tap opens the event log. |
 | **Visual field shell** | Tunnel or peripheral veil; mask uses `IgnorePointer`. Stays **full** until vision commits; then applies including on the results report. |
 | **Theme** | Haiku after axes/profile; **high contrast** is a peer palette (WCAG 4.5:1 text / 3:1 chrome), not a haiku variant. |
-| **Scale / targets** | Text scale from vision; min target size from buttons — applied to Skip and later chrome **as soon as measured**. |
+| **Scale / targets** | Text scale from vision; min target size from buttons â€” applied to Skip and later chrome **as soon as measured**. |
 | **Input dock** | Joystick floats at stick home / reach anchor; everything else docks inside the reachable zone. |
 | **Live draft** | After each test, `draft.build()` is pushed into `AppState` so the next step is already shaped. |
-| **Recalibrate / Redo** | Settings, results, or preview tune → **Setup** (clears confirmation). Never back to a blended demo home. |
+| **Recalibrate / Redo** | Settings, results, or preview tune â†’ **Setup** (clears confirmation). Never back to a blended demo home. |
 
 **Calibration step chrome** (shared `StepFrame`):
 
 - One short instruction line, always in the same place.
 - Progress `N of M`.
 - **Skip this test** always present; height follows measured `minTargetSize`.
-- **Back** from the second test on, same size, opposite Skip (left). Retakes the previous test as untested. Hidden on the first test — does not return to the axis picker.
+- **Back** from the second test on, same size, opposite Skip (left). Retakes the previous test as untested. Hidden on the first test â€” does not return to the axis picker.
 - Skip = **untested**, never failed.
 
 ---
@@ -96,54 +98,54 @@ flowchart TD
 
 ### Flow notes
 
-- **Start gate is first** — full-bleed tap/hold, nothing else. Then Setup.
-- **Setup** — helper / contrast / locale sit up top, out of the thumb zone. The reachable lower region is only the tap/hold-to-start block. Welcome clip autoplays. Demo presets live behind the **settings circle** (top-right).
+- **Start gate is first** â€” full-bleed tap/hold, nothing else. Then Setup.
+- **Setup** â€” helper / contrast / locale sit up top, out of the thumb zone. The reachable lower region is only the tap/hold-to-start block. Welcome clip autoplays. Demo presets live behind the **settings circle** (top-right).
 - **Continue** (after Setup tap) is a slim reach-zone screen. It does not replay welcome or re-ask the helper question.
 - **Presets skip measurement on purpose** (judge demo, scope item 3). Live calibration and a preset both produce the same `CapabilityProfile`.
-- **Assisted:** training → axes (not training → entry). Helper button stays on Setup at the same time as the start block.
+- **Assisted:** training â†’ axes (not training â†’ entry). Helper button stays on Setup at the same time as the start block.
 - **After each motor/voice/vision step**, the partial profile is live-applied before the next step.
 - **Back** during tests returns one step and starts that test over as untested. Hidden on the first test; it does not return to the axis picker.
-- **Results already use** measured size, scale, and field. “Use this setup” confirms for the session; it does not start applying the profile.
+- **Results already use** measured size, scale, and field. â€œUse this setupâ€ confirms for the session; it does not start applying the profile.
 - In-session only: killing the app returns to the Start gate / Setup path.
 
 ---
 
 ## 4. Screen inventory
 
-Each screen: ASCII wireframe → essential → supporting → functions.
+Each screen: ASCII wireframe â†’ essential â†’ supporting â†’ functions.
 
 ### 4.0a Start gate
 
 First screen. One job: a tap or hold continues to Setup. No header, no audio, no toggles.
 
 ```
-┌─────────────────────────────────────┐
-│                                     │
-│            (touch icon)             │  ← full-bleed tap/hold
-│                                     │
-└─────────────────────────────────────┘
+â”Œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”
+â”‚                                     â”‚
+â”‚            (touch icon)             â”‚  â† full-bleed tap/hold
+â”‚                                     â”‚
+â””â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”˜
 ```
 
 | Essential | Supporting |
 |---|---|
-| Full-bleed tap/hold → Setup | |
+| Full-bleed tap/hold â†’ Setup | |
 
 ### 4.1 Setup
 
 ```
-┌─────────────────────────────────────┐
-│ [helping] [contrast] [locale] (gear)│  ← upper, out of thumb zone
-│ Set up how you control things       │
-│ Recorded welcome (autoplay)         │
-├─────────────────────────────────────┤
-│ ┌ TAP / HOLD TO START ┐             │  ← only thing in reach zone
-└─────────────────────────────────────┘
+â”Œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”
+â”‚ [helping] [contrast] [locale] (gear)â”‚  â† upper, out of thumb zone
+â”‚ Set up how you control things       â”‚
+â”‚ Recorded welcome (autoplay)         â”‚
+â”œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”¤
+â”‚ â”Œ TAP / HOLD TO START â”             â”‚  â† only thing in reach zone
+â””â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”˜
 ```
 
 | Essential | Supporting |
 |---|---|
-| Lower block tap/hold → Continue | Recorded welcome, autoplay, Play recording to replay |
-| Helper / contrast / locale in the upper region | Settings circle → demo sheet |
+| Lower block tap/hold â†’ Continue | Recorded welcome, autoplay, Play recording to replay |
+| Helper / contrast / locale in the upper region | Settings circle â†’ demo sheet |
 
 **Functions:** start solo measurement (via Continue); start assisted training; open settings for presets/contrast/locale.
 
@@ -163,66 +165,66 @@ Presets jump straight to preview. Redo clears confirmation and remounts Setup.
 Slim post-tap screen. Does not replay welcome or re-ask the helper question. Assisted sessions skip this and open training.
 
 ```
-┌─────────────────────────────────────┐
-│ We'll measure what works.           │  ← out of thumb zone
-├─────────────────────────────────────┤
-│ ┌ CONTINUE ┐                        │  ← reach zone, tap/hold
-└─────────────────────────────────────┘
+â”Œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”
+â”‚ We'll measure what works.           â”‚  â† out of thumb zone
+â”œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”¤
+â”‚ â”Œ CONTINUE â”                        â”‚  â† reach zone, tap/hold
+â””â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”˜
 ```
 
 | Essential | Supporting |
 |---|---|
-| Large Continue tap/hold → axis picker | Settings circle if shown |
+| Large Continue tap/hold â†’ axis picker | Settings circle if shown |
 
 ### 4.2 Caregiver training
 
-Reached only via “Someone is helping…”. No scores. Practice before measurement.
+Reached only via â€œSomeone is helpingâ€¦â€. No scores. Practice before measurement.
 
 ```
-┌─────────────────────────────────────┐
-│ Practice with a helper              │
-│ (no score copy)                     │
-│ ┌─ Recorded training clip ────────┐ │
-│ └─────────────────────────────────┘ │
-│ Motion 1 of 3 · Together            │
-│ Instruction: Tap the square.        │
-│ Helper: Hand under theirs…          │
-│ ┌─────────────────────────────────┐ │
-│ │           ARENA / TAP           │ │
-│ └─────────────────────────────────┘ │
-│ [ Try again ]                       │
-│ [ Skip this motion ]                │
-├─────────────────────────────────────┤
-│ [ Skip all practice, go to measure ]│  ← pinned footer
-└─────────────────────────────────────┘
+â”Œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”
+â”‚ Practice with a helper              â”‚
+â”‚ (no score copy)                     â”‚
+â”‚ â”Œâ”€ Recorded training clip â”€â”€â”€â”€â”€â”€â”€â”€â” â”‚
+â”‚ â””â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”˜ â”‚
+â”‚ Motion 1 of 3 Â· Together            â”‚
+â”‚ Instruction: Tap the square.        â”‚
+â”‚ Helper: Hand under theirsâ€¦          â”‚
+â”‚ â”Œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â” â”‚
+â”‚ â”‚           ARENA / TAP           â”‚ â”‚
+â”‚ â””â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”˜ â”‚
+â”‚ [ Try again ]                       â”‚
+â”‚ [ Skip this motion ]                â”‚
+â”œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”¤
+â”‚ [ Skip all practice, go to measure ]â”‚  â† pinned footer
+â””â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”˜
 ```
 
 | Essential | Supporting |
 |---|---|
-| One motion at a time: tap → slide left → slide up | Recorded training narration |
+| One motion at a time: tap â†’ slide left â†’ slide up | Recorded training narration |
 | Phase label: together / start-together-finish-alone / from the words alone | Independent hit counter when in independent phase |
 | Helper copy: hand-under-hand default | |
 | Arena (only practice target) | |
 | Try again, skip this motion | |
-| **Skip all practice, go to measurement** — pinned, always visible | |
+| **Skip all practice, go to measurement** â€” pinned, always visible | |
 
-**Functions:** fade prompt full → partial → independent (3 independent successes graduate a drill); skip motion; skip all → axis picker (`helperChoseAxes = true`).
+**Functions:** fade prompt full â†’ partial â†’ independent (3 independent successes graduate a drill); skip motion; skip all â†’ axis picker (`helperChoseAxes = true`).
 
 ---
 
-### 4.3 Axis picker — “What should we measure?”
+### 4.3 Axis picker â€” â€œWhat should we measure?â€
 
 ```
-┌─────────────────────────────────────┐
-│ What should we measure?             │
-│ (optional) Setting this up for…     │  ← only if helperChoseAxes
-│ All three start ON. Hold a row to skip. │
-│ WHICH ENVIRONMENTS                  │
-│ ┌ Motor ………………… ☑ hold-to-skip ┐     │
-│ ┌ Speech …………… ☑ hold-to-skip ┐     │
-│ ┌ Vision …………… ☑ hold-to-skip ┐     │
-│ [ Start ]                           │  ← always enabled
-└─────────────────────────────────────┘
+â”Œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”
+â”‚ What should we measure?             â”‚
+â”‚ (optional) Setting this up forâ€¦     â”‚  â† only if helperChoseAxes
+â”‚ All three start ON. Hold a row to skip. â”‚
+â”‚ WHICH ENVIRONMENTS                  â”‚
+â”‚ â”Œ Motor â€¦â€¦â€¦â€¦â€¦â€¦â€¦ â˜‘ hold-to-skip â”     â”‚
+â”‚ â”Œ Speech â€¦â€¦â€¦â€¦â€¦ â˜‘ hold-to-skip â”     â”‚
+â”‚ â”Œ Vision â€¦â€¦â€¦â€¦â€¦ â˜‘ hold-to-skip â”     â”‚
+â”‚ [ Start ]                           â”‚  â† always enabled
+â””â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”˜
 ```
 
 | Essential | Supporting |
@@ -237,39 +239,39 @@ Reached only via “Someone is helping…”. No scores. Practice before measure
 
 ### 4.5 Measurement steps
 
-Only steps for axes left on. Order when all on: reach → buttons → joystick → trackpad → hold → voice → vision.
+Only steps for axes left on. Order when all on: reach â†’ buttons â†’ joystick â†’ trackpad â†’ hold â†’ voice â†’ vision.
 
 | Step | Person does | Essential UI |
 |---|---|---|
-| **Reach** | Tap cells that work | 3×4 grid, skip |
+| **Reach** | Tap cells that work | 3Ã—4 grid, skip |
 | **Buttons** | Hit large targets | Targets at measured size, skip |
 | **Joystick** | Swing per reachable cell | Stick + home-cell result, skip |
 | **Trackpad** | Drag; axis lock if needed | Pad, skip |
 | **Hold** | Press and hold | Hold target, skip |
-| **Voice** | Say 8 sentences | Current sentence, word kept, “That word was clear” / “Not this one”, hold-to-speak, next sentence |
-| **Vision** | Read shrinking word, then field | Acuity choice → full / tunnel / peripheral |
+| **Voice** | Say 8 sentences | Current sentence, word kept, â€œThat word was clearâ€ / â€œNot this oneâ€, hold-to-speak, next sentence |
+| **Vision** | Read shrinking word, then field | Acuity choice â†’ full / tunnel / peripheral |
 
 | Essential on every step | Supporting |
 |---|---|
 | Instruction + progress + Skip + Back (from step 2) | Idle timeout may skip a stuck step; toast explains |
 | Skip / Back = untested | Simulated speech clarity chips on Voice |
 
-**Voice buckets** after sentences: ≥6 words landed → `full`; some → `partial` + vocabulary; sounds heard → `sounds`; else `none`.
+**Voice buckets** after sentences: â‰¥6 words landed â†’ `full`; some â†’ `partial` + vocabulary; sounds heard â†’ `sounds`; else `none`.
 
 ---
 
-### 4.6 Results — “Your setup”
+### 4.6 Results â€” â€œYour setupâ€
 
 Four sections (tabs / section nav), not one endless scroll.
 
 ```
-┌─────────────────────────────────────┐
-│ Your setup                          │
-│ [Overview][Methods][Voice][Tasks]   │
-│ …section body…                      │
-├─────────────────────────────────────┤
-│ [ Redo ]           [ Use this setup ]│
-└─────────────────────────────────────┘
+â”Œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”
+â”‚ Your setup                          â”‚
+â”‚ [Overview][Methods][Voice][Tasks]   â”‚
+â”‚ â€¦section bodyâ€¦                      â”‚
+â”œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”¤
+â”‚ [ Redo ]           [ Use this setup ]â”‚
+â””â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”˜
 ```
 
 | Section | Essential content |
@@ -281,34 +283,34 @@ Four sections (tabs / section nav), not one endless scroll.
 
 | Footer essential | Supporting |
 |---|---|
-| **Redo** → axis picker | Haiku motif (identity, not a control) |
-| **Use this setup** → preview | |
+| **Redo** â†’ axis picker | Haiku motif (identity, not a control) |
+| **Use this setup** â†’ preview | |
 
 ---
 
-### 4.7 Preview — “Your controllers”
+### 4.7 Preview â€” â€œYour controllersâ€
 
 ```
-┌─────────────────────────────────────┐
-│ ▓▓▓ OUTPUT STRIP (laptop preview) ▓▓▓│
-│ Your controllers          [tune]    │
-│ [Buttons][Joystick·yours][…][Voice] │
-│ Hint for current surface            │
-│ ┌──── try pad / dock ─────────────┐ │
-│ └─────────────────────────────────┘ │
-│ [Simpler] Level: … [Level up]       │
-│ [ Start tasks ]                     │
-└─────────────────────────────────────┘
+â”Œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”
+â”‚ â–“â–“â–“ OUTPUT STRIP (laptop preview) â–“â–“â–“â”‚
+â”‚ Your controllers          [tune]    â”‚
+â”‚ [Buttons][JoystickÂ·yours][â€¦][Voice] â”‚
+â”‚ Hint for current surface            â”‚
+â”‚ â”Œâ”€â”€â”€â”€ try pad / dock â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â” â”‚
+â”‚ â””â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”˜ â”‚
+â”‚ [Simpler] Level: â€¦ [Level up]       â”‚
+â”‚ [ Start tasks ]                     â”‚
+â””â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”˜
 ```
 
 | Essential | Supporting |
 |---|---|
 | Output strip pinned | Level label copy |
-| Surface chips: Buttons, Joystick, Trackpad, Switch, Voice (strongest marked “yours”) | |
-| Try pad using this profile’s size / reach / voice mode | |
-| **Simpler / Level up** (one → two → many targets) | |
+| Surface chips: Buttons, Joystick, Trackpad, Switch, Voice (strongest marked â€œyoursâ€) | |
+| Try pad using this profileâ€™s size / reach / voice mode | |
+| **Simpler / Level up** (one â†’ two â†’ many targets) | |
 | **Start tasks** | |
-| Recalibrate (tune) → home | |
+| Recalibrate (tune) â†’ home | |
 
 ---
 
@@ -317,14 +319,14 @@ Four sections (tabs / section nav), not one endless scroll.
 Fixed order. Every task screen shares:
 
 ```
-┌─────────────────────────────────────┐
-│ ▓▓▓ OUTPUT STRIP ▓▓▓                │  (top or bottom by reach)
-│ Ribbon: prompt + why this method    │
-│ [recalibrate] [controllers]         │
-│ ┌──── task body / dock ───────────┐ │
-│ └─────────────────────────────────┘ │
-│ [ Stop / start this step over ]     │
-└─────────────────────────────────────┘
+â”Œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”
+â”‚ â–“â–“â–“ OUTPUT STRIP â–“â–“â–“                â”‚  (top or bottom by reach)
+â”‚ Ribbon: prompt + why this method    â”‚
+â”‚ [recalibrate] [controllers]         â”‚
+â”‚ â”Œâ”€â”€â”€â”€ task body / dock â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â” â”‚
+â”‚ â””â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”˜ â”‚
+â”‚ [ Stop / start this step over ]     â”‚
+â””â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”˜
 ```
 
 | # | Task | Shape | Essential behavior |
@@ -333,16 +335,16 @@ Fixed order. Every task screen shares:
 | 2 | Set seat count | Continuous | Adjust + confirm with chosen method |
 | 3 | Mark a spot | Pointing | Place marker; agent-assist only when not trackpad |
 | 4 | Add a note | Text (fusion) | See Thesis B below |
-| 5 | Review | Discrete | “About to send…” + **Send it** / **Go back** via **same** method |
+| 5 | Review | Discrete | â€œAbout to sendâ€¦â€ + **Send it** / **Go back** via **same** method |
 | 6 | Sent | Done | Run it again / Recalibrate |
 
 **Interrupt:** resets **current step** state only (not the whole profile / collected answers).
 
-#### Text task — Thesis B (essential)
+#### Text task â€” Thesis B (essential)
 
 | Clarity | How content is filled |
 |---|---|
-| `full` / `partial` | Hold to speak → transcript → confirm (partial always confirms) |
+| `full` / `partial` | Hold to speak â†’ transcript â†’ confirm (partial always confirms) |
 | `sounds` | One sound / nod / hum = yes; two sounds = next phrase |
 | `none` | Pick a suggested phrase by touch method |
 
@@ -354,14 +356,14 @@ Fixed order. Every task screen shares:
 
 | Lever | What changes |
 |---|---|
-| **Profile A** | Precise touch, clear speech → buttons-heavy, dictate, full field, many targets |
-| **Profile B** | Imprecise touch + partial speech → often joystick fallback, vocab words, two targets |
+| **Profile A** | Precise touch, clear speech â†’ buttons-heavy, dictate, full field, many targets |
+| **Profile B** | Imprecise touch + partial speech â†’ often joystick fallback, vocab words, two targets |
 | **Floor** | Switch scan, sounds tier, tunnel field, one target |
 | **Input level** | How many discrete options visible at once (one / two / many capped by `maxControls`) |
 | **Visual field** | Tunnel: condensed output window; peripheral: center veiled; both leave hits through |
 | **High contrast** | Black / white / yellow peer theme |
 | **Locale** | Recorded onboarding catalog `en` / `ml` |
-| **Fallback rule** | Ideal method for the task shape unless another scores ≥ margin higher |
+| **Fallback rule** | Ideal method for the task shape unless another scores â‰¥ margin higher |
 
 ---
 
@@ -381,10 +383,10 @@ Fixed order. Every task screen shares:
 |---|---|
 | First action never harder than a single tap/hold anywhere | Issue #1; entry must not gate on precision |
 | Helper path visible at the same time, not a second screen to discover | Research 11 |
-| Every calibration step skippable | FR13–15 honesty; untested ≠ fail |
+| Every calibration step skippable | FR13â€“15 honesty; untested â‰  fail |
 | No consequential send without explicit confirm | FR7 |
 | Interrupt resets current step, not whole profile | FR8 |
-| Skip / untested ≠ fail | Results / scoring honesty |
+| Skip / untested â‰  fail | Results / scoring honesty |
 | Field mask never steals hits | Issue #4 |
 | High contrast peer to haiku (4.5:1 / 3:1) | Research 11 |
 | Profile switch visibly reshapes the interface | Scope item 3; FR11 |
