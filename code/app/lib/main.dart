@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 
 import 'calibration/calibration_flow.dart';
+import 'live/live_screen.dart';
+import 'live/live_store.dart';
 import 'model/profile.dart';
 import 'model/session.dart';
 import 'onboarding/recorded_voice.dart';
@@ -24,7 +26,7 @@ class AccessLayerApp extends StatefulWidget {
   State<AccessLayerApp> createState() => _AccessLayerAppState();
 }
 
-enum _Screen { start, home, calibrate, preview, demo }
+enum _Screen { start, home, calibrate, preview, demo, live }
 
 class _AccessLayerAppState extends State<AccessLayerApp> {
   final AppState _state = AppState();
@@ -57,6 +59,7 @@ class _AccessLayerAppState extends State<AccessLayerApp> {
 
   void _use(CapabilityProfile p) {
     _state.setProfile(p, confirm: true);
+    LiveStore.saveProfile(p);
     setState(() {
       _liveTheme = p.haikuTheme;
       _screen = _Screen.preview;
@@ -171,6 +174,8 @@ class _AccessLayerAppState extends State<AccessLayerApp> {
                         InputPreviewScreen(
                           onContinue: () =>
                               setState(() => _screen = _Screen.demo),
+                          onConnect: () =>
+                              setState(() => _screen = _Screen.live),
                           onRecalibrate: _redoSetup,
                         ),
                         Positioned(
@@ -185,6 +190,22 @@ class _AccessLayerAppState extends State<AccessLayerApp> {
                   _Screen.demo => Stack(
                       children: [
                         DemoScreen(
+                          onRecalibrate: _redoSetup,
+                          onOpenPreview: () =>
+                              setState(() => _screen = _Screen.preview),
+                        ),
+                        Positioned(
+                          top: MediaQuery.paddingOf(context).top + 8,
+                          right: 8,
+                          child: _SettingsCircle(
+                            onPressed: () => _openSettings(context),
+                          ),
+                        ),
+                      ],
+                    ),
+                  _Screen.live => Stack(
+                      children: [
+                        LiveScreen(
                           onRecalibrate: _redoSetup,
                           onOpenPreview: () =>
                               setState(() => _screen = _Screen.preview),
@@ -303,7 +324,7 @@ class _HomeScreen extends StatelessWidget {
                             ),
                             FilterChip(
                               label: Text(
-                                state.locale == 'ml' ? 'മലയാളം' : 'English',
+                                state.locale == 'ml' ? '??????' : 'English',
                               ),
                               selected: true,
                               onSelected: (_) => state.setLocale(
@@ -478,7 +499,7 @@ class _DemoSettingsSheet extends StatelessWidget {
               ),
               const SizedBox(width: 8),
               FilterChip(
-                label: Text(state.locale == 'ml' ? 'മലയാളം' : 'English'),
+                label: Text(state.locale == 'ml' ? '??????' : 'English'),
                 selected: true,
                 onSelected: (_) => state.setLocale(
                   state.locale == 'en' ? 'ml' : 'en',
@@ -497,6 +518,20 @@ class _DemoSettingsSheet extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 12),
+          FutureBuilder<CapabilityProfile?>(
+            future: LiveStore.loadProfile(),
+            builder: (context, snap) {
+              final saved = snap.data;
+              if (saved == null) return const SizedBox.shrink();
+              return Padding(
+                padding: const EdgeInsets.only(bottom: 10),
+                child: _PresetCard(
+                  profile: saved,
+                  onTap: () => onPreset(saved),
+                ),
+              );
+            },
+          ),
           for (final p in ProfilePresets.all)
             Padding(
               padding: const EdgeInsets.only(bottom: 10),

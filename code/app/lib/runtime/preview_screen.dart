@@ -20,10 +20,14 @@ class InputPreviewScreen extends StatefulWidget {
     super.key,
     required this.onContinue,
     required this.onRecalibrate,
+    this.onConnect,
   });
 
   final VoidCallback onContinue;
   final VoidCallback onRecalibrate;
+
+  /// Opens the laptop Live screen. Null in goldens so the shot stays unchanged.
+  final VoidCallback? onConnect;
 
   @override
   State<InputPreviewScreen> createState() => _InputPreviewScreenState();
@@ -176,15 +180,34 @@ class _InputPreviewScreenState extends State<InputPreviewScreen> {
                   ),
                   Padding(
                     padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
-                    child: SizedBox(
-                      height: 64,
-                      child: FilledButton(
-                        onPressed: widget.onContinue,
-                        child: Text(
-                          'Start tasks',
-                          style: TextStyle(fontSize: 18 * scale),
+                    child: Column(
+                      children: [
+                        SizedBox(
+                          height: 64,
+                          width: double.infinity,
+                          child: FilledButton(
+                            onPressed: widget.onContinue,
+                            child: Text(
+                              'Start tasks',
+                              style: TextStyle(fontSize: 18 * scale),
+                            ),
+                          ),
                         ),
-                      ),
+                        if (widget.onConnect != null) ...[
+                          const SizedBox(height: 10),
+                          SizedBox(
+                            height: 56,
+                            width: double.infinity,
+                            child: OutlinedButton(
+                              onPressed: widget.onConnect,
+                              child: Text(
+                                'Connect to laptop',
+                                style: TextStyle(fontSize: 16 * scale),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ],
                     ),
                   ),
                 ],

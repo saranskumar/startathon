@@ -1,0 +1,10 @@
+{
+  "$schema": "https://unpkg.com/wrangler@latest/config-schema.json",
+  "name": "kai-relay",
+  "main": "src/index.js",
+  "compatibility_date": "2026-04-07",
+  "durable_objects": {
+    "bindings": [{ "name": "RELAY_ROOM", "class_name": "RelayRoom" }]
+  },
+  "migrations": [{ "tag": "v1", "new_sqlite_classes": ["RelayRoom"] }]
+}

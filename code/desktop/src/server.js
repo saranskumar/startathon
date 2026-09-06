@@ -18,6 +18,9 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { BrowserSession } from './browserSession.js';
+import { attachPhoneTransport } from './phoneTransport.js';
+import { extractRegions } from './regions.js';
+import { buildScanTree, pathsOf, describe } from './scanTree.js';
 
 const args = process.argv.slice(2);
 const flag = (name, fallback) => {
@@ -86,6 +89,27 @@ const server = http.createServer(async (req, res) => {
       return send(res, 200, result);
     }
 
+    // The three-panel view (docs/idea/29-phone-desktop-integration.md §1):
+    // top-level landmarks with their ranked features grouped underneath.
+    if (route === '/api/regions' && req.method === 'GET') {
+      if (!session.state) return send(res, 200, { regions: [] });
+      return send(res, 200, { regions: extractRegions(session.state.tree) });
+    }
+
+    // The N-ary switch/voice-grid partition over one bucket, per scanTree.js.
+    // ?arity=2 (default) for two-button/two-switch scanning, higher for more
+    // swipe directions or a numbered voice grid; ?bucket=information for the
+    // read-content tree instead of the default navigation/interactive one.
+    if (route === '/api/scan-tree' && req.method === 'GET') {
+      if (!session.state) return send(res, 200, { root: null, paths: [], narration: '' });
+      const arity = Number(url.searchParams.get('arity') ?? 2);
+      const bucket = url.searchParams.get('bucket') === 'information' ? 'information' : 'navigation';
+      const features = session.state[bucket];
+      const root = buildScanTree(features, { arity });
+      const paths = root ? [...pathsOf(root).entries()].map(([feature, path]) => ({ feature, path })) : [];
+      return send(res, 200, { arity, bucket, root, paths, narration: root ? describe(root) : '' });
+    }
+
     if (route === '/api/screenshot.png' && req.method === 'GET') {
       const png = await session.run(() => session.screenshot());
       res.writeHead(200, { 'content-type': 'image/png', 'cache-control': 'no-store' });
@@ -136,13 +160,16 @@ function normalizeTarget(input) {
   return 'https://' + value;
 }
 
+const phoneTransport = attachPhoneTransport(server, session);
+
 server.listen(port, () => {
   console.log('DOM tree inspector: http://localhost:' + port);
+  console.log('Phone transport (WebSocket): ws://localhost:' + port + '/phone');
   console.log('Inspecting: ' + startUrl);
   console.log('The controlled Chromium window is separate — drive it there, or from the inspector.');
 });
 
-const shutdown = async () => { await session.close(); process.exit(0); };
+const shutdown = async () => { phoneTransport.close(); await session.close(); process.exit(0); };
 process.on('SIGINT', shutdown);
 process.on('SIGTERM', shutdown);
 session.onEvent(event => { if (event.type === 'closed') process.exit(0); });

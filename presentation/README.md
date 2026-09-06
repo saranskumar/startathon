@@ -1,6 +1,6 @@
 # Presentation
 
-**KAI — Capability Awareness Interface.** Event template: **5 minutes · 5 slides**, then **5 minutes demo**, then **5 minutes Q&A**. Talk + demo hard-stop at 10:00. Refer to the person as **the user**.
+Event template: **5 minutes · 5 slides**, then **5 minutes demo**, then **5 minutes Q&A**. Talk + demo hard-stop at 10:00.
 
 Journey the slides follow: Problem → Evidence → Learning → Solution → What we built → What next.
 

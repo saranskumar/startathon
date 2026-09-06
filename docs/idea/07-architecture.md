@@ -36,21 +36,23 @@
                         │ fused user intent
                         ▼
         ┌───────────────────────────────┐
-        │          AI AGENT              │
-        │   (e.g. OpenClaw-based)        │
-        │  • interprets fused intent      │
-        │  • fills inference gap when     │
-        │    input precision is low, or   │
-        │    fallback interaction is      │
-        │    indirect (e.g. zone-         │
-        │    narrowing)                   │
+        │  DESKTOP DISPATCH (no AI)       │
+        │  (code/desktop, Playwright)     │
+        │  • ranks the page deterministic-│
+        │    ally (domTreeEngine.js's     │
+        │    heuristic scorer, no LLM —   │
+        │    idea/28)                     │
+        │  • matches fused intent to a    │
+        │    tree node by nearest/highest-│
+        │    ranked candidate, incl. the  │
+        │    zone-narrowing fallback      │
         │  • confirms consequential acts  │
         │  • executes on the computer     │
         │    (fills + submits the real    │
         │    Google Form built for this   │
         │    demo)                        │
         │  • prepares output per profile  │
-        └───────────────┬───────────────┘
+        └───────────────┬─────────────────┘
                         │ result
                         ▼
         ┌───────────────────────────────┐
@@ -62,7 +64,7 @@
         └─────────────────────────────────┘
 ```
 
-**Why the phone is a remote, not a native app:** building a full on-device accessible shell can't be validated in 30 hours. The phone as a pure I/O remote, backed by an existing agent doing the computer control, lets the team test the real hypothesis — does profile-driven composition improve independent task completion — without first building a platform.
+**Why the phone is a remote, not a native app:** building a full on-device accessible shell can't be validated in 30 hours. The phone as a pure I/O remote, backed by the deterministic desktop dispatcher doing the computer control, lets the team test the real hypothesis — does profile-driven composition improve independent task completion — without first building a platform.
 
 **Why the profile is the top-level object:** every adaptive behavior (input method choice, input resolution, modality fusion, output mode, inference ratio) is a pure function of the profile. This is what makes "the same system reshapes for a different user" both true and demoable.
 
