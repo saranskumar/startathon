@@ -24,6 +24,12 @@ export class BrowserSession {
     this.browser = null;
     this.page = null;
     this.state = null;
+    // Root scan buckets before any group drill-in. Focus stack holds opened
+    // groups so act({ action: 'open' }) / back can change the visible list
+    // without touching the page.
+    this.rootNavigation = null;
+    this.rootInformation = null;
+    this.focusStack = [];
     this.listeners = new Set();
     this.log = [];
     // Serializes everything that touches the page. Without it a scan triggered
@@ -114,6 +120,10 @@ export class BrowserSession {
       viewport: this.viewport,
     });
 
+    this.rootNavigation = aux.navigation;
+    this.rootInformation = aux.information;
+    this.focusStack = [];
+
     this.state = {
       id: ++this.scanCounter,
       reason,
@@ -124,29 +134,96 @@ export class BrowserSession {
       usageCounts,
       scanMs: Date.now() - startedAt,
       at: Date.now(),
+      focus: [],
       ...aux,
     };
     this.emit({ type: 'scan', reason, id: this.state.id, ms: this.state.scanMs, stats: aux.stats });
     return this.state;
   }
 
+  /** Visible breadcrumb of opened groups (labels only). */
+  focusPath() {
+    return this.focusStack.map(g => g.label ?? g.name ?? 'group');
+  }
+
+  /**
+   * Re-expose a group's members as the current Navigation (or Information)
+   * list. No Playwright call — only the choice set changes.
+   */
+  openGroup(feature, bucket = 'navigation') {
+    if (!feature?.isGroup) throw new Error('not a group');
+    const members = (feature.members ?? []).map((f, i) => ({ ...f, rank: i + 1 }));
+    this.focusStack.push({ ...feature, bucket });
+    if (bucket === 'information') this.state.information = members;
+    else this.state.navigation = members;
+    this.state.focus = this.focusPath();
+    this.emit({
+      type: 'focus',
+      action: 'open',
+      label: feature.label,
+      depth: this.focusStack.length,
+      focus: this.state.focus,
+    });
+    return this.state;
+  }
+
+  /** Pop one group focus level, or return to the root buckets. */
+  backFocus() {
+    if (!this.state) throw new Error('no scan yet');
+    if (this.focusStack.length === 0) return this.state;
+
+    this.focusStack.pop();
+    if (this.focusStack.length === 0) {
+      this.state.navigation = this.rootNavigation;
+      this.state.information = this.rootInformation;
+    } else {
+      const top = this.focusStack[this.focusStack.length - 1];
+      const members = (top.members ?? []).map((f, i) => ({ ...f, rank: i + 1 }));
+      if (top.bucket === 'information') this.state.information = members;
+      else this.state.navigation = members;
+    }
+    this.state.focus = this.focusPath();
+    this.emit({
+      type: 'focus',
+      action: 'back',
+      depth: this.focusStack.length,
+      focus: this.state.focus,
+    });
+    return this.state;
+  }
+
   /**
    * Locate a feature from the last scan. `aria-ref` is exact (it addresses the
    * very node the snapshot described) but only valid until the next snapshot;
-   * role+name is stable across snapshots but ambiguous when a page repeats a
-   * label. Try the precise one, fall back to the stable one.
+   * identity then signature are stable across snapshots. Try the precise one
+   * first, fall back to the stable ones.
    */
   locate(feature) {
     if (feature.ref) return this.page.locator('aria-ref=' + feature.ref);
-    if (feature.name) return this.page.getByRole(feature.role, { name: feature.name, exact: true }).first();
+    if (feature.name) {
+      // Prefer an exact role+name match; when the page repeats a label the
+      // first match may be wrong — identity is carried for callers that need
+      // disambiguation, but Playwright has no identity selector, so name is
+      // still the fallback.
+      return this.page.getByRole(feature.role, { name: feature.name, exact: true }).first();
+    }
     throw new Error('feature has neither a ref nor a name to locate it by');
   }
 
-  findFeature({ ref, signature, bucket, rank }) {
+  findFeature({ ref, signature, identity, bucket, rank }) {
     if (!this.state) throw new Error('no scan yet');
-    const all = [...this.state.navigation, ...this.state.information];
+    const all = [
+      ...this.state.navigation,
+      ...this.state.information,
+      ...flattenGroups(this.rootNavigation ?? []),
+      ...flattenGroups(this.rootInformation ?? []),
+    ];
     if (ref) {
       const found = all.find(f => f.ref === ref) ?? findInTree(this.state.tree, f => f.ref === ref);
+      if (found) return found;
+    }
+    if (identity) {
+      const found = all.find(f => f.identity === identity);
       if (found) return found;
     }
     if (signature) {
@@ -157,17 +234,27 @@ export class BrowserSession {
       const found = (this.state[bucket] ?? []).find(f => f.rank === Number(rank));
       if (found) return found;
     }
-    throw new Error('no feature matched ' + JSON.stringify({ ref, signature, bucket, rank }));
+    throw new Error('no feature matched ' + JSON.stringify({ ref, signature, identity, bucket, rank }));
   }
 
   /**
-   * Dispatch a real interaction. The auxiliary tree is NOT regenerated here:
-   * that is pageWatcher's job, and only if something page-shaped actually
-   * happened (docs/tech/research/08 §4 — watch the effect, not the element).
+   * Dispatch a real interaction — or open/back a group without touching the
+   * page. The auxiliary tree is NOT regenerated on page acts: that is
+   * pageWatcher's job (docs/tech/research/08 §4).
    */
-  async act({ ref, signature, bucket, rank, action, value }) {
-    const feature = this.findFeature({ ref, signature, bucket, rank });
+  async act({ ref, signature, identity, bucket, rank, action, value }) {
+    if (action === 'back') {
+      this.backFocus();
+      return { feature: null, verb: 'back', ok: true };
+    }
+
+    const feature = this.findFeature({ ref, signature, identity, bucket, rank });
     const verb = action ?? feature.action ?? 'click';
+
+    if (verb === 'open' || feature.isGroup) {
+      this.openGroup(feature, bucket ?? 'navigation');
+      return { feature, verb: 'open', ok: true };
+    }
 
     if (feature.signature) {
       const count = recordSelection(feature.signature);
@@ -178,7 +265,9 @@ export class BrowserSession {
       const candidates = bucket ? (this.state?.[bucket] ?? []) : [
         ...(this.state?.navigation ?? []), ...(this.state?.information ?? []),
       ];
-      if (candidates.length > 1) recordRankingExample(feature, candidates);
+      if (candidates.length > 1) {
+        recordRankingExample(feature, candidates.filter(c => !c.isGroup));
+      }
     }
 
     if (verb === 'view') {
@@ -225,4 +314,13 @@ function findInTree(nodes, predicate) {
     if (found) return found;
   }
   return null;
+}
+
+function flattenGroups(items) {
+  const out = [];
+  for (const item of items ?? []) {
+    out.push(item);
+    if (item.isGroup) out.push(...flattenGroups(item.members));
+  }
+  return out;
 }

@@ -8,7 +8,7 @@
 
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { buildAuxiliaryTree, featureSignature } from '../src/domTreeEngine.js';
+import { buildAuxiliaryTree, featureSignature, featureIdentity } from '../src/domTreeEngine.js';
 
 const box = (x, y, width, height) => ({ x, y, width, height });
 
@@ -106,8 +106,18 @@ test('link density demotes links in a nav blob, not links in prose', () => {
     role: 'generic', ref: 'root', box: box(0, 0, 920, 400), children: [linkFarm, prose],
   }]);
 
-  const proseLink = navigation.find(f => f.ref === 'p2');
-  const farmLink = navigation.find(f => f.ref === 'f1');
+  // Flatten groups — chrome bundling may wrap the nav-blob links.
+  const flat = [];
+  const walk = (items) => {
+    for (const f of items) {
+      if (f.isGroup) walk(f.members);
+      else flat.push(f);
+    }
+  };
+  walk(navigation);
+
+  const proseLink = flat.find(f => f.ref === 'p2');
+  const farmLink = flat.find(f => f.ref === 'f1');
   assert.ok(proseLink && farmLink);
   assert.ok(proseLink.score > farmLink.score,
     'the in-prose link should outrank an identical link in a link farm');
@@ -267,4 +277,100 @@ test('a filled text field carries its content as the feature value', () => {
   assert.equal(byName.Message.value, 'hello there');
   assert.equal(byName.Message.name, 'Message', 'the label is still the name');
   assert.equal(byName.Empty.value, null);
+});
+
+test('offscreen controls are excluded from buckets but stay in the tree', () => {
+  const { navigation, tree } = buildAuxiliaryTree([{
+    role: 'main',
+    ref: 'e1',
+    box: box(0, 0, 800, 600),
+    children: [
+      { role: 'button', name: 'Visible', ref: 'e2', box: box(0, 0, 100, 30) },
+      { role: 'button', name: 'Off screen', ref: 'e3', box: box(0, 9000, 100, 30) },
+    ],
+  }]);
+
+  assert.deepEqual(navigation.map(f => f.name), ['Visible']);
+  const off = tree[0].children.find(c => c.ref === 'e3');
+  assert.ok(off);
+  assert.equal(off.offscreen, true);
+  assert.equal(off.prunedBecause, 'outside viewport');
+});
+
+test('page chrome ranks below an in-main control', () => {
+  const { navigation } = buildAuxiliaryTree([{
+    role: 'generic',
+    ref: 'root',
+    box: box(0, 0, 800, 600),
+    children: [
+      {
+        role: 'banner',
+        name: 'Site',
+        ref: 'b',
+        box: box(0, 0, 800, 40),
+        children: [
+          { role: 'link', name: 'Home', ref: 'b1', box: box(0, 0, 60, 30) },
+          { role: 'link', name: 'Help', ref: 'b2', box: box(70, 0, 60, 30) },
+          { role: 'link', name: 'About', ref: 'b3', box: box(140, 0, 60, 30) },
+        ],
+      },
+      {
+        role: 'main',
+        ref: 'm',
+        box: box(0, 50, 800, 500),
+        children: [
+          { role: 'button', name: 'Book ticket', ref: 'm1', box: box(0, 50, 120, 40) },
+        ],
+      },
+    ],
+  }]);
+
+  assert.equal(navigation[0].name, 'Book ticket');
+  const chrome = navigation.find(f => f.isGroup && /chrome/i.test(f.label));
+  assert.ok(chrome, 'several chrome links collapse into one Site chrome group');
+  assert.ok(chrome.memberCount >= 3);
+});
+
+test('two identical labels under different headings keep distinct identities', () => {
+  const { navigation } = buildAuxiliaryTree([{
+    role: 'main',
+    ref: 'e1',
+    box: box(0, 0, 800, 600),
+    children: [
+      { role: 'heading', name: 'Dialog', level: 2, ref: 'h1', box: box(0, 0, 200, 30) },
+      { role: 'button', name: 'Cancel', ref: 'c1', box: box(0, 40, 80, 30) },
+      { role: 'heading', name: 'Page chrome', level: 2, ref: 'h2', box: box(0, 100, 200, 30) },
+      { role: 'button', name: 'Cancel', ref: 'c2', box: box(0, 140, 80, 30) },
+    ],
+  }]);
+
+  assert.equal(navigation.length, 2, 'both Cancel buttons survive dedupe');
+  const ids = navigation.map(f => f.identity).sort();
+  assert.notEqual(ids[0], ids[1]);
+  assert.equal(featureSignature({ role: 'button', name: 'Cancel' }), 'button::cancel');
+  assert.ok(ids.every(id => id.startsWith('button::cancel::')));
+});
+
+test('a small page stays a flat ranked list with no groups', () => {
+  const { navigation } = buildAuxiliaryTree([{
+    role: 'main',
+    ref: 'e1',
+    box: box(0, 0, 800, 600),
+    children: [
+      { role: 'button', name: 'One', ref: 'e2', box: box(0, 0, 80, 30) },
+      { role: 'button', name: 'Two', ref: 'e3', box: box(0, 40, 80, 30) },
+      { role: 'button', name: 'Three', ref: 'e4', box: box(0, 80, 80, 30) },
+    ],
+  }]);
+
+  assert.equal(navigation.length, 3);
+  assert.ok(navigation.every(f => !f.isGroup));
+});
+
+test('featureIdentity includes the nearest named ancestor', () => {
+  assert.equal(
+    featureIdentity({ role: 'button', name: 'Cancel' }, 'Dialog'),
+    'button::cancel::dialog');
+  assert.equal(featureIdentity({ role: 'button', name: 'Cancel' }), 'button::cancel');
+  assert.equal(featureIdentity({ role: 'button' }), null);
 });

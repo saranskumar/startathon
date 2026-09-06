@@ -223,6 +223,23 @@ export function buildNavigationTree(aux, handlers = {}, options = {}) {
   };
 
   const featureChildren = (feature) => {
+    // Groups expand to their members — zooming into "Seat map" is the
+    // hierarchical split, not a page click.
+    if (feature.isGroup || feature.action === 'open') {
+      const members = feature.members ?? [];
+      const weights = softmax(members.map(m => m.score), temperature);
+      return () => [
+        ...members.map((member, i) => node({
+          kind: 'feature',
+          bucket: 'navigation',
+          label: member.label ?? member.name ?? member.role,
+          feature: member,
+          weight: weights[i] ?? 0.1,
+          children: featureChildren(member),
+        })),
+        back(),
+      ];
+    }
     if (feature.action === 'fill' || feature.action === 'set') return textBranch(feature);
     if (feature.action === 'check') {
       return () => [
@@ -259,22 +276,53 @@ export function buildNavigationTree(aux, handlers = {}, options = {}) {
     // and information is a branch you deliberately steer into.
     weight: 0.22,
     children: () => [
-      ...information.map(feature => node({
-        kind: 'feature',
-        bucket: 'information',
-        label: feature.label ?? feature.name ?? feature.role,
-        feature,
-        weight: Math.max(feature.score, 0.1),
-        children: () => [
-          node({
-            kind: 'commit',
-            label: '✓ mark seen',
-            weight: 4,
-            onCommit: () => onAct({ feature, action: 'view' }),
-          }),
-          back(),
-        ],
-      })),
+      ...information.map(feature => {
+        if (feature.isGroup || feature.action === 'open') {
+          const members = feature.members ?? [];
+          return node({
+            kind: 'feature',
+            bucket: 'information',
+            label: feature.label ?? feature.name ?? feature.role,
+            feature,
+            weight: Math.max(feature.score, 0.1),
+            children: () => [
+              ...members.map(member => node({
+                kind: 'feature',
+                bucket: 'information',
+                label: member.label ?? member.name ?? member.role,
+                feature: member,
+                weight: Math.max(member.score, 0.1),
+                children: () => [
+                  node({
+                    kind: 'commit',
+                    label: '✓ mark seen',
+                    weight: 4,
+                    onCommit: () => onAct({ feature: member, action: 'view' }),
+                  }),
+                  back(),
+                ],
+              })),
+              back(),
+            ],
+          });
+        }
+        return node({
+          kind: 'feature',
+          bucket: 'information',
+          label: feature.label ?? feature.name ?? feature.role,
+          feature,
+          weight: Math.max(feature.score, 0.1),
+          children: () => [
+            node({
+              kind: 'commit',
+              label: '✓ mark seen',
+              weight: 4,
+              onCommit: () => onAct({ feature, action: 'view' }),
+            }),
+            back(),
+          ],
+        });
+      }),
       back(),
     ],
   });

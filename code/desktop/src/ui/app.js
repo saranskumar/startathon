@@ -100,14 +100,50 @@ function renderAmbiguity() {
 }
 
 function keyOf(feature) {
-  return feature.ref ?? feature.path;
+  return feature.ref ?? feature.identity ?? feature.path ?? feature.label;
 }
 
 function renderBuckets() {
   els.navCount.textContent = state.navigation.length + ' of ' + state.stats.interactive;
   els.infoCount.textContent = state.information.length + ' shown';
+  paintFocus();
   paintBucket(els.navigation, state.navigation, 'navigation');
   paintBucket(els.information, state.information, 'information');
+}
+
+function paintFocus() {
+  let bar = $('focus-bar');
+  if (!bar) {
+    bar = document.createElement('div');
+    bar.id = 'focus-bar';
+    bar.className = 'focus-bar';
+    const aux = els.navigation.parentElement;
+    aux.insertBefore(bar, aux.querySelector('.bucket-head'));
+  }
+  const focus = state.focus ?? [];
+  if (focus.length === 0) {
+    bar.hidden = true;
+    bar.replaceChildren();
+    return;
+  }
+  bar.hidden = false;
+  bar.replaceChildren();
+  const crumb = document.createElement('span');
+  crumb.className = 'focus-crumb';
+  crumb.textContent = focus.join(' › ');
+  const back = document.createElement('button');
+  back.type = 'button';
+  back.className = 'act';
+  back.textContent = '← back';
+  back.onclick = async () => {
+    try {
+      await api('/api/act', { action: 'back' });
+      await refresh();
+    } catch (err) {
+      appendLog({ type: 'error', message: err.message, at: Date.now() });
+    }
+  };
+  bar.append(crumb, back);
 }
 
 function paintBucket(container, features, bucket) {
@@ -124,7 +160,7 @@ function paintBucket(container, features, bucket) {
 
 function featureCard(feature, bucket) {
   const li = document.createElement('li');
-  li.className = 'feature' + (bucket === 'information' ? ' is-info' : '');
+  li.className = 'feature' + (bucket === 'information' ? ' is-info' : '') + (feature.isGroup ? ' is-group' : '');
   li.dataset.key = keyOf(feature);
 
   const top = document.createElement('div');
@@ -148,26 +184,32 @@ function featureCard(feature, bucket) {
   if (feature.name && feature.label !== feature.name) title.title = feature.name;
   const sub = document.createElement('span');
   sub.className = 's';
-  sub.textContent = feature.role + (feature.level ? ' h' + feature.level : '') +
-    (feature.taskShape ? ' · ' + feature.taskShape : '') +
-    (feature.ref ? ' · ' + feature.ref : '');
+  if (feature.isGroup) {
+    sub.textContent = 'group · ' + (feature.memberCount ?? feature.members?.length ?? '?') + ' items';
+  } else {
+    sub.textContent = feature.role + (feature.level ? ' h' + feature.level : '') +
+      (feature.taskShape ? ' · ' + feature.taskShape : '') +
+      (feature.ref ? ' · ' + feature.ref : '');
+  }
   label.append(title, sub);
   if (feature.isAmbiguous) label.append(tag('no role'));
   if (feature.offscreen) label.append(tag('offscreen'));
+  if (feature.isGroup) label.append(tag('group'));
 
   top.append(rank, score, label);
 
   const act = document.createElement('button');
   act.className = 'act';
   act.type = 'button';
-  act.textContent = bucket === 'navigation' ? (feature.action ?? 'click') : 'mark seen';
+  if (feature.isGroup) act.textContent = 'open';
+  else act.textContent = bucket === 'navigation' ? (feature.action ?? 'click') : 'mark seen';
   act.onclick = () => dispatch(feature, bucket);
   top.append(act);
 
   const parts = document.createElement('div');
   parts.className = 'parts';
   parts.hidden = true;
-  for (const part of feature.parts) {
+  for (const part of feature.parts ?? []) {
     const row = document.createElement('div');
     const name = document.createElement('span');
     name.textContent = part.label;
@@ -199,14 +241,24 @@ function tag(text) {
 }
 
 async function dispatch(feature, bucket) {
-  const verb = bucket === 'navigation' ? (feature.action ?? 'click') : 'view';
+  const verb = feature.isGroup ? 'open'
+    : bucket === 'navigation' ? (feature.action ?? 'click') : 'view';
   let value;
   if (verb === 'fill' || verb === 'set' || verb === 'select') {
     value = prompt('Value for ' + (feature.name ?? feature.role) + ':', feature.value ?? '');
     if (value === null) return;
   }
   try {
-    await api('/api/act', { ref: feature.ref, signature: feature.signature, action: verb, value });
+    await api('/api/act', {
+      ref: feature.ref,
+      signature: feature.signature,
+      identity: feature.identity,
+      bucket,
+      rank: feature.rank,
+      action: verb,
+      value,
+    });
+    if (verb === 'open' || verb === 'back') await refresh();
   } catch (err) {
     appendLog({ type: 'error', message: err.message, at: Date.now() });
   }
@@ -367,6 +419,8 @@ function describe(event) {
     case 'watcher': return event.detail;
     case 'act': return (event.ok ? '' : 'FAILED ') + event.verb + ' ' + event.role + ' "' + (event.name ?? '') + '"' + (event.message ? ' — ' + event.message : '');
     case 'selection': return event.signature + ' → ' + event.count + 'x';
+    case 'focus': return (event.action === 'back' ? 'back' : 'open ' + (event.label ?? '')) +
+      (event.focus?.length ? ' · ' + event.focus.join(' › ') : ' · root');
     case 'goto': case 'navigated': return event.url;
     case 'error': return event.message;
     default: return JSON.stringify(event);
@@ -406,6 +460,7 @@ function connect() {
     // A scan is the only event that changes what is on screen; everything else
     // is just a line in the log.
     if (event.type === 'scan') refresh();
+    if (event.type === 'focus') refresh();
     if (event.type === 'act' || event.type === 'navigated') setTimeout(reloadScreenshot, 300);
   };
 }

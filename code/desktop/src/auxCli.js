@@ -35,14 +35,20 @@ const url = target ?? pathToFileURL(defaultMockPath).href;
 function formatFeature(f) {
   const label = f.label ? '"' + f.label + '"' : '(unnamed)';
   const level = f.level ? ' [h' + f.level + ']' : '';
-  const flags = [f.isAmbiguous ? 'no-role' : null, f.offscreen ? 'offscreen' : null]
-    .filter(Boolean).join(',');
+  const flags = [
+    f.isGroup ? 'group · ' + (f.memberCount ?? f.members?.length ?? '?') : null,
+    f.isAmbiguous ? 'no-role' : null,
+    f.offscreen ? 'offscreen' : null,
+  ].filter(Boolean).join(',');
   return '  ' + String(f.rank).padStart(2) + '. [' + f.score.toFixed(2) + '] ' +
     f.role + level + ' ' + label + (flags ? ' (' + flags + ')' : '');
 }
 
 function print(state) {
   console.log('\n=== auxiliary tree === ' + state.url);
+  if (state.focus?.length) {
+    console.log('-- focus: ' + state.focus.join(' › ') + ' (type "b" to go back) --');
+  }
   console.log('-- Navigation --');
   if (state.navigation.length === 0) console.log('  (none)');
   state.navigation.forEach(f => console.log(formatFeature(f)));
@@ -84,9 +90,10 @@ if (once) {
 }
 
 console.log('Watching ' + url);
-console.log('Commands: "n<rank>" acts on a Navigation item, "i<rank>" marks an Information item as viewed,');
-console.log('Enter to force a re-scan, "q" to quit.');
+console.log('Commands: "n<rank>" acts on / opens a Navigation item, "i<rank>" marks Information as viewed,');
+console.log('"b" goes back out of a group, Enter to force a re-scan, "q" to quit.');
 console.log('An action only re-prints the tree once pageWatcher detects a real navigation/state change.');
+console.log('Opening a group re-prints immediately (no page change).');
 
 const rl = readline.createInterface({ input: process.stdin, output: process.stdout });
 rl.on('line', (raw) => {
@@ -100,13 +107,28 @@ rl.on('line', (raw) => {
       await session.close();
       process.exit(0);
     }
+    if (line === 'b') {
+      print(session.backFocus());
+      return;
+    }
     const match = /^([ni])(\d+)$/.exec(line);
     if (match) {
       const bucket = match[1] === 'n' ? 'navigation' : 'information';
       const rank = Number(match[2]);
       const feature = (session.state[bucket] ?? []).find(f => f.rank === rank);
       if (!feature) return console.log('No ' + bucket + ' item ranked ' + rank + '.');
-      return session.act({ ref: feature.ref, signature: feature.signature, action: bucket === 'information' ? 'view' : undefined });
+      if (feature.isGroup) {
+        print(session.openGroup(feature, bucket));
+        return;
+      }
+      return session.act({
+        ref: feature.ref,
+        signature: feature.signature,
+        identity: feature.identity,
+        bucket,
+        rank,
+        action: bucket === 'information' ? 'view' : undefined,
+      });
     }
     print(await session.scan('manual'));
   }).catch(err => console.log('(failed: ' + err.message + ')'));

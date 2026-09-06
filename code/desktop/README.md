@@ -11,6 +11,7 @@ Three pieces, one shared session:
 | File | What it is |
 |---|---|
 | `src/domTreeEngine.js` | The ranking engine. Pure, synchronous, no Playwright/network/LLM. |
+| `src/groupFeatures.js` | Hierarchical packing when a bucket overflows `limit` (structural then spatial groups). |
 | `src/browserSession.js` | One Playwright browser wrapped as `goto` / `scan` / `act` / `screenshot` / events. |
 | `src/dasherModel.js` | The zooming navigator: probability-sized nested regions steered by one slider. |
 | `src/server.js` + `src/ui/` | The desktop inspector: a local HTTP+SSE server and the page that shows everything. |
@@ -115,6 +116,20 @@ weights need ("starting points, not validated constants"):
   signature at all rather than sharing one usage counter with every other unnamed node of its role.
 - **A `<div onclick>` with no ARIA role** (doc 18's "unknown element") is scored below a real control,
   kept in Navigation because it is genuinely actionable, and flagged `isAmbiguous`.
+- **Page chrome vs main content.** Controls inside `banner` / `navigation` / `complementary` /
+  `contentinfo` / `search` get a **page chrome** penalty; controls inside `main` / `form` get an
+  **in main content** boost. When several chrome interactives sit alongside real task controls, the
+  chrome is collapsed into one synthetic **Site chrome · N** group so banner links cannot fill the
+  visible slots.
+- **Offscreen nodes are hard-excluded from both buckets** (same as zero-size / hidden). They remain
+  in the inspector tree with `prunedBecause: 'outside viewport'`.
+- **Overflow packs into hierarchical groups** instead of a silent `slice(0, 12)`. When a bucket has
+  more candidates than `limit`, [`groupFeatures.js`](src/groupFeatures.js) clusters by nearest
+  heading / `role=group` / landmark, then falls back to a 2×2 spatial split, and recurses until each
+  visible level fits. Opening a group (`action: 'open'`) only changes the choice set — no Playwright
+  call. A page with ≤12 controls stays a flat list.
+- **`identity` (`role::name::nearestNamedAncestor`)** disambiguates repeated labels for dedupe /
+  locate. `signature` (`role::name`) is unchanged and still keys the usage-frequency boost.
 
 Tunable knobs: `DEFAULT_WEIGHTS` in `domTreeEngine.js`, and `usageWeight` / `limit` / `weights` in
 `buildAuxiliaryTree`.

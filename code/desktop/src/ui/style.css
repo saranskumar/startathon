@@ -307,6 +307,26 @@ input.filter { margin-bottom: 8px; flex: none; }
 
 .pane-aux { overflow-y: auto; }
 
+.focus-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin: 4px 0 8px;
+  padding: 6px 8px;
+  background: color-mix(in srgb, var(--accent) 12%, var(--panel));
+  border: 1px solid color-mix(in srgb, var(--accent) 35%, var(--line));
+  border-radius: 7px;
+  font-size: 12px;
+}
+
+.focus-crumb {
+  color: var(--ink);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .bucket-head {
   display: flex;
   justify-content: space-between;
@@ -330,6 +350,11 @@ input.filter { margin-bottom: 8px; flex: none; }
   background: var(--panel);
   border: 1px solid var(--line);
   border-radius: 7px;
+}
+
+.feature.is-group {
+  border-style: dashed;
+  border-color: color-mix(in srgb, var(--accent) 40%, var(--line));
 }
 
 .feature:hover { border-color: color-mix(in srgb, var(--accent) 45%, var(--line)); }

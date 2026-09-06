@@ -168,7 +168,13 @@ export class DasherView {
   async dispatch({ feature, action, value }) {
     this.onLog({ type: 'dasher', message: action + ' ' + (feature.label ?? feature.role), at: Date.now() });
     try {
-      await this.act({ ref: feature.ref, signature: feature.signature, action, value });
+      await this.act({
+        ref: feature.ref,
+        signature: feature.signature,
+        identity: feature.identity,
+        action,
+        value,
+      });
     } catch (err) {
       this.onLog({ type: 'error', message: err.message, at: Date.now() });
     }

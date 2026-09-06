@@ -17,10 +17,20 @@
 // trust an opaque total.
 
 import { extractFeatureVector } from './rankingModel.js';
+import { rankBucket } from './groupFeatures.js';
 
 const LANDMARK_ROLES = new Set([
   'banner', 'navigation', 'main', 'search', 'form', 'complementary', 'contentinfo', 'region',
 ]);
+
+// Page chrome landmarks — demoted so banner/nav links do not crowd out the
+// real task inside main/form. search sits with chrome (site search), form
+// and main are task containers.
+const CHROME_LANDMARK_ROLES = new Set([
+  'banner', 'navigation', 'complementary', 'contentinfo', 'search',
+]);
+
+const TASK_LANDMARK_ROLES = new Set(['main', 'form']);
 
 // Roles a user can actually act on, split by the task shape the phone app
 // renders for them (code/app/lib/runtime/task_spec.dart's TaskShape), so a
@@ -93,6 +103,9 @@ const DEFAULT_WEIGHTS = {
   landmarkProximity: 0.5,
   ambiguousInteractive: 0.75,
   usage: 1.5,
+  // Prefer controls inside main/form over banner/nav chrome.
+  pageChrome: 1.0,
+  inMain: 0.75,
   // Weight for the optional trained ranking model's contribution (see
   // rankingModel.js) -- centered so a neutral 0.5 prediction adds nothing.
   learned: 1.5,
@@ -217,10 +230,10 @@ function findDescendant(node, predicate) {
 }
 
 /**
- * Stable identity for a feature across snapshots — refs are regenerated on
- * every snapshot, role+name is not. Null for unnamed nodes: without a name
- * every `button::` would share one usage counter, so they get no usage boost
- * at all rather than a wrong one.
+ * Stable usage key across snapshots — refs are regenerated on every snapshot,
+ * role+name is not. Null for unnamed nodes: without a name every `button::`
+ * would share one usage counter, so they get no usage boost at all rather
+ * than a wrong one.
  */
 export function featureSignature(node) {
   const name = normalizeText(ownText(node));
@@ -228,11 +241,32 @@ export function featureSignature(node) {
 }
 
 /**
+ * Disambiguated identity for dedupe / locate fallback. Two "Cancel" buttons
+ * under different section headings keep distinct identities while still
+ * sharing one usage signature (`button::cancel`). The disambiguator is
+ * normally the nearest section label / named group / named ancestor.
+ *
+ * @param node - normalized node (role + name/text).
+ * @param nearestNamedAncestor - already-normalized section or ancestor label, or null.
+ */
+export function featureIdentity(node, nearestNamedAncestor = null) {
+  const name = normalizeText(ownText(node));
+  if (!name) return null;
+  const ancestor = nearestNamedAncestor ? normalizeText(nearestNamedAncestor) : '';
+  return ancestor
+    ? node.role + '::' + name + '::' + ancestor
+    : node.role + '::' + name;
+}
+
+/**
  * The tier-1 formula from docs/tech/research/08 §5, with each term kept as a
  * labelled part so the total is always traceable back to its reasons.
  */
 function scoreNode(node, ctx) {
-  const { ancestorNames, depthFromLandmark, usageCounts, weights, viewport } = ctx;
+  const {
+    ancestorNames, depthFromLandmark, usageCounts, weights, viewport,
+    inChrome, inMain, sectionLabel, groupLabel,
+  } = ctx;
   const parts = [];
   const add = (label, value) => { if (value) parts.push({ label, value: round(value) }); };
 
@@ -283,13 +317,26 @@ function scoreNode(node, ctx) {
 
   add('near a landmark', weights.landmarkProximity * clamp(3 - depthFromLandmark, 0, 3));
 
+  // Prefer the page's real task over site chrome. A control inside main/form
+  // gets a boost; one sitting only in banner/nav/complementary is demoted.
+  if (inMain) add('in main content', weights.inMain);
+  else if (inChrome) add('page chrome', -weights.pageChrome);
+
   const signature = featureSignature(node);
   const count = signature ? (usageCounts[signature] ?? 0) : 0;
   if (count) add('picked ' + count + 'x before', weights.usage * Math.log2(1 + count));
 
+  // Prefer the section/group that structurally owns this control (a preceding
+  // heading or named role=group) so two "Cancel" buttons under different
+  // headings keep distinct identities. Fall back to the nearest named
+  // ancestor when there is no section context.
+  const disambiguator = sectionLabel || groupLabel ||
+    (ancestorNames.length ? ancestorNames[ancestorNames.length - 1] : null);
+  const identity = featureIdentity(node, disambiguator);
+
   const total = parts.reduce((sum, p) => sum + p.value, 0);
   return {
-    total: round(total), parts, name, signature,
+    total: round(total), parts, name, signature, identity,
     isLandmark, isHeading, isInteractive, isAmbiguous,
     hidden, offscreen, linkDensity: round(linkDensity), ownDensity, isContainer,
     duplicatesAncestor,
@@ -301,8 +348,9 @@ function scoreNode(node, ctx) {
  * "drop StaticText that duplicates the parent's name" rule doc 08 §2 records
  * as standard agent-tooling practice, kept as a reason string so the inspector
  * can show what the engine threw away and why. Interactive, landmark and
- * heading nodes are never dropped: they are actionable or structural
- * regardless of what wraps them.
+ * heading nodes are never dropped for text reasons: they are actionable or
+ * structural regardless of what wraps them. Offscreen/hidden interactive
+ * nodes stay in the tree but are filtered from buckets later.
  */
 function pruneReason(scored) {
   if (scored.isInteractive || scored.isHeading || scored.isLandmark || scored.isAmbiguous) return null;
@@ -313,9 +361,46 @@ function pruneReason(scored) {
 
 function walk(node, ctx, out) {
   const depthFromLandmark = LANDMARK_ROLES.has(node.role) ? 0 : ctx.depthFromLandmark + 1;
-  // A node's own landmark proximity is its own depth — scoring it with the
-  // parent's meant a landmark never got credit for being one.
-  const scored = scoreNode(node, { ...ctx, depthFromLandmark });
+
+  let inChrome = ctx.inChrome;
+  let inMain = ctx.inMain;
+  let landmarkLabel = ctx.landmarkLabel;
+  let sectionLabel = ctx.sectionLabel;
+  let groupLabel = ctx.groupLabel;
+
+  if (CHROME_LANDMARK_ROLES.has(node.role)) {
+    inChrome = true;
+    landmarkLabel = ownText(node) || node.role;
+  }
+  if (TASK_LANDMARK_ROLES.has(node.role)) {
+    inMain = true;
+    // Entering main/form leaves chrome for scoring purposes even if nested
+    // oddly; the task container wins.
+    inChrome = false;
+    landmarkLabel = ownText(node) || node.role;
+  }
+  if (node.role === 'heading' && ownText(node)) {
+    sectionLabel = ownText(node);
+  }
+  if (node.role === 'group' && ownText(node)) {
+    groupLabel = ownText(node);
+  }
+
+  const scored = scoreNode(node, {
+    ...ctx,
+    depthFromLandmark,
+    inChrome,
+    inMain,
+  });
+
+  const reason = pruneReason(scored);
+  // Offscreen nodes stay visible in the inspector tree with a reason, but
+  // are hard-excluded from both buckets (same as zero-size / hidden).
+  let prunedBecause = reason;
+  let kept = reason === null;
+  if (scored.offscreen && kept) {
+    prunedBecause = 'outside viewport';
+  }
 
   out.push({
     role: node.role,
@@ -339,20 +424,31 @@ function walk(node, ctx, out) {
     isAmbiguous: scored.isAmbiguous,
     hidden: scored.hidden,
     offscreen: scored.offscreen,
+    inChrome,
+    inMain,
+    sectionLabel,
+    groupLabel,
+    landmarkLabel,
     linkDensity: scored.linkDensity,
     // A named leaf is this snapshot format's StaticText: most real page copy
     // arrives as a text-bearing <div>, i.e. role "generic" with no children.
     isLeafText: node.children.length === 0 && Boolean(scored.name),
     signature: scored.signature,
-    prunedBecause: pruneReason(scored),
+    identity: scored.identity,
+    prunedBecause,
     taskShape: ROLE_TASK_SHAPE[node.role] ?? (scored.isAmbiguous ? 'discrete' : null),
     action: scored.isInteractive || scored.isAmbiguous ? (ROLE_ACTION[node.role] ?? 'click') : null,
-    kept: pruneReason(scored) === null,
+    kept,
   });
 
   const childCtx = {
     ...ctx,
     depthFromLandmark,
+    inChrome,
+    inMain,
+    landmarkLabel,
+    sectionLabel,
+    groupLabel,
     // Only containers with real text set the density their descendants
     // inherit; a two-word wrapper's ratio is noise, not a signal.
     containerLinkDensity: scored.isContainer && node.textLength >= LINK_DENSITY_MIN_TEXT
@@ -362,14 +458,23 @@ function walk(node, ctx, out) {
       ? [...ctx.ancestorNames, normalizeText(scored.name)]
       : ctx.ancestorNames,
   };
-  for (const child of node.children) walk(child, childCtx, out);
+
+  // Headings and named groups label subsequent *siblings*, not only their
+  // own descendants — a form's "Applicant" h2 then six fields as siblings.
+  let siblingSection = sectionLabel;
+  let siblingGroup = groupLabel;
+  for (const child of node.children) {
+    walk(child, { ...childCtx, sectionLabel: siblingSection, groupLabel: siblingGroup }, out);
+    if (child.role === 'heading' && ownText(child)) siblingSection = ownText(child);
+    if (child.role === 'group' && ownText(child)) siblingGroup = ownText(child);
+  }
 }
 
 /** Highest-scoring entry wins when the same feature appears more than once. */
 function dedupe(features) {
   const bestByKey = new Map();
   for (const f of features) {
-    const key = f.signature ?? (f.role + '@' + f.path);
+    const key = f.identity ?? f.signature ?? (f.role + '@' + f.path);
     const prev = bestByKey.get(key);
     if (!prev || f.score > prev.score) bestByKey.set(key, f);
   }
@@ -485,6 +590,11 @@ export function buildAuxiliaryTree(rawTree, options = {}) {
     // clamp fall to zero until a landmark is actually entered.
     depthFromLandmark: 99,
     containerLinkDensity: 0,
+    inChrome: false,
+    inMain: false,
+    landmarkLabel: null,
+    sectionLabel: null,
+    groupLabel: null,
     usageCounts, weights, viewport,
   };
   for (const root of roots) walk(root, baseCtx, features);
@@ -495,10 +605,10 @@ export function buildAuxiliaryTree(rawTree, options = {}) {
   const kept = features.filter(f => f.kept);
   const byPath = new Map(features.map(f => [f.path, f]));
 
-  const rank = (list) => dedupe(list).slice(0, limit).map((f, i) => ({ rank: i + 1, ...f }));
-
-  const navigation = rank(kept.filter(f =>
-    (f.isInteractive || f.isAmbiguous) && !f.disabled && !f.hidden));
+  // Offscreen and hidden never enter buckets — you cannot act on or read what
+  // is not on screen. They remain in `tree` with prunedBecause set.
+  const navigationCandidates = dedupe(kept.filter(f =>
+    (f.isInteractive || f.isAmbiguous) && !f.disabled && !f.hidden && !f.offscreen));
 
   // Landmarks are excluded from Information on purpose. A landmark's own name
   // ("Page tools", "Personal tools") is structure, not something to read to
@@ -506,9 +616,13 @@ export function buildAuxiliaryTree(rawTree, options = {}) {
   // proximity. Leaving them in put six navigation labels above the page's h1
   // on a real article, which is exactly backwards from the WebAIM finding
   // (doc 08 §1) that headings, not landmarks, are how people navigate.
-  const information = rank(kept.filter(f =>
-    !f.isInteractive && !f.isAmbiguous && !f.isLandmark && !f.hidden && Boolean(f.name) &&
+  const informationCandidates = dedupe(kept.filter(f =>
+    !f.isInteractive && !f.isAmbiguous && !f.isLandmark && !f.hidden && !f.offscreen &&
+    Boolean(f.name) &&
     (f.isHeading || INFORMATIVE_ROLES.has(f.role) || f.isLeafText)));
+
+  const navigation = rankBucket(navigationCandidates, limit);
+  const information = rankBucket(informationCandidates, limit);
 
   const rankedAll = [...navigation, ...information].sort((a, b) => b.score - a.score);
 
@@ -530,4 +644,4 @@ export function buildAuxiliaryTree(rawTree, options = {}) {
   };
 }
 
-export { DEFAULT_WEIGHTS, LANDMARK_ROLES, INTERACTIVE_ROLES, ROLE_TASK_SHAPE };
+export { DEFAULT_WEIGHTS, LANDMARK_ROLES, INTERACTIVE_ROLES, ROLE_TASK_SHAPE, CHROME_LANDMARK_ROLES };
