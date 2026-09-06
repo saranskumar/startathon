@@ -1,5 +1,5 @@
-Deployment trigger by saranskumar at 2026-09-06 06:05 UTC
+Deployment trigger by saranskumar at 2026-09-06 07:03 UTC
 
 | Date (UTC) | Owner | Change |
 |---|---|---|
-| 2026-09-06 06:05 UTC | saranskumar (repo owner) | Push by @trimpta on branch `demo/mock-phone-link` (`3e9c37a`) — `Add preprogrammed demo link: interaction map + phone/mock WS relay.` → preview deploy. Run: https://github.com/saranskumar/startathon/actions/runs/34015611167 |
+| 2026-09-06 07:03 UTC | saranskumar (repo owner) | Push by @trimpta on branch `integrate/all` (`15d778f`) — `Align presentation notes with KAI naming and user-first copy.` → preview deploy. Run: https://github.com/saranskumar/startathon/actions/runs/34018119791 |
