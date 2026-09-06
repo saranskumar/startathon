@@ -3,7 +3,9 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 
 import '../model/profile.dart';
+import '../onboarding/recorded_voice.dart';
 import '../theme/haiku_theme.dart';
+import '../training/caregiver_training.dart';
 import 'results.dart';
 import 'sense_steps.dart';
 import 'step_frame.dart';
@@ -26,9 +28,17 @@ enum _StepKind { reach, buttons, joystick, trackpad, hold, voice, vision }
 ///     place the button test, so precision is not scored down by a target the
 ///     user simply could not get to.
 class CalibrationFlow extends StatefulWidget {
-  const CalibrationFlow({super.key, required this.onComplete, this.onAxesChanged});
+  const CalibrationFlow({
+    super.key,
+    required this.onComplete,
+    this.onAxesChanged,
+    this.startAssisted = false,
+    this.locale = 'en',
+  });
 
   final void Function(CapabilityProfile profile) onComplete;
+  final bool startAssisted;
+  final String locale;
 
   /// Fired the instant the intro's Motor / Speech / Vision toggles change, so
   /// the app-wide theme can react before any test has produced a score.
@@ -45,7 +55,7 @@ class _CalibrationFlowState extends State<CalibrationFlow> {
 
   final CalibrationDraft _draft = CalibrationDraft();
 
-  /// -2 = universal entry (anyone, any input, no choice required yet),
+  /// -3 = caregiver training, -2 = universal entry,
   /// -1 = axis picker, 0.._stepCount-1 = tests, _stepCount = results.
   /// Populated once the axis picker's Start is pressed, from whichever axes
   /// are still on.
@@ -60,6 +70,11 @@ class _CalibrationFlowState extends State<CalibrationFlow> {
   @override
   void initState() {
     super.initState();
+    _draft.locale = widget.locale;
+    if (widget.startAssisted) {
+      _draft.helperChoseAxes = true;
+      _step = -3;
+    }
     widget.onAxesChanged?.call(
       _draft.measureMotor,
       _draft.measureSpeech,
@@ -171,6 +186,13 @@ class _CalibrationFlowState extends State<CalibrationFlow> {
   }
 
   Widget _body() {
+    if (_step == -3) {
+      return CaregiverTraining(
+        locale: widget.locale,
+        onDone: () => setState(() => _step = -1),
+        onSkipAll: () => setState(() => _step = -1),
+      );
+    }
     if (_step == -2) return _entry();
     if (_step == -1) return _axisPicker();
     if (_step >= _stepCount) {
@@ -266,73 +288,84 @@ class _CalibrationFlowState extends State<CalibrationFlow> {
   /// harder to operate than anything calibration itself measures).
   Widget _entry() {
     final scheme = Theme.of(context).colorScheme;
-    return GestureDetector(
-      behavior: HitTestBehavior.opaque,
-      onTap: () => setState(() {
-        _draft.helperChoseAxes = false;
-        _step = -1;
-      }),
-      child: Container(
-        padding: const EdgeInsets.fromLTRB(28, 28, 28, 24),
-        alignment: Alignment.center,
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(Icons.tune, size: 64, color: scheme.primary),
-            const SizedBox(height: 20),
-            const Text(
-              'Set up how you control things',
-              textAlign: TextAlign.center,
-              style: TextStyle(fontSize: 28, fontWeight: FontWeight.w700),
-            ),
-            const SizedBox(height: 14),
-            Text(
-              'There is no pass or fail. Each test measures what works for '
-              'you, and anything you cannot do is skipped automatically.',
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                fontSize: 17,
-                height: 1.45,
-                color: scheme.onSurfaceVariant,
-              ),
-            ),
-            const SizedBox(height: 36),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 20),
-              decoration: BoxDecoration(
-                color: scheme.primary,
-                borderRadius: BorderRadius.circular(18),
-              ),
-              child: Text(
-                'Tap anywhere to start',
-                style: TextStyle(
-                  fontSize: 20,
-                  fontWeight: FontWeight.w700,
-                  color: scheme.onPrimary,
+    void solo() => setState(() {
+          _draft.helperChoseAxes = false;
+          _step = -1;
+        });
+    return Column(
+      children: [
+        Expanded(
+          child: GestureDetector(
+            behavior: HitTestBehavior.opaque,
+            onTap: solo,
+            onLongPress: solo,
+            child: ListView(
+              padding: const EdgeInsets.fromLTRB(28, 28, 28, 16),
+              children: [
+                Icon(Icons.tune, size: 64, color: scheme.primary),
+                const SizedBox(height: 20),
+                const Text(
+                  'Set up how you control things',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(fontSize: 28, fontWeight: FontWeight.w700),
                 ),
-              ),
-            ),
-            const SizedBox(height: 40),
-            // Deliberately separate from the giant tap target above, not a
-            // second question layered on top of it -- a helper identifies
-            // themselves by which control they press, not by answering
-            // anything.
-            SizedBox(
-              height: 56,
-              child: OutlinedButton(
-                onPressed: () => setState(() {
-                  _draft.helperChoseAxes = true;
-                  _step = -1;
-                }),
-                child: const Text(
-                  'Someone is helping set this up',
-                  style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
+                const SizedBox(height: 14),
+                Text(
+                  'There is no pass or fail. Each test measures what works for '
+                  'you, and anything you cannot do is skipped automatically.',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    fontSize: 17,
+                    height: 1.45,
+                    color: scheme.onSurfaceVariant,
+                  ),
                 ),
-              ),
+                const SizedBox(height: 20),
+                Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 32, vertical: 20),
+                  decoration: BoxDecoration(
+                    color: scheme.primary,
+                    borderRadius: BorderRadius.circular(18),
+                  ),
+                  alignment: Alignment.center,
+                  child: Text(
+                    'Tap anywhere to start',
+                    style: TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.w700,
+                      color: scheme.onPrimary,
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 20),
+                RecordedNarration(clipId: 'welcome', locale: widget.locale),
+              ],
             ),
-          ],
+          ),
         ),
-      ),
+        // Outside the full-screen gesture — research 11: caregiver path is a
+        // normal control, shown at the same time, not gated behind the tap.
+        Padding(
+          padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
+          child: SizedBox(
+            height: 56,
+            width: double.infinity,
+            child: OutlinedButton(
+              onPressed: () => setState(() {
+                _draft.helperChoseAxes = true;
+                _step = -3;
+              }),
+              child: const Text(
+                'Someone is helping set this up',
+                textAlign: TextAlign.center,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
+              ),
+            ),
+          ),
+        ),
+      ],
     );
   }
 
@@ -373,13 +406,18 @@ class _CalibrationFlowState extends State<CalibrationFlow> {
                 borderRadius: BorderRadius.circular(12),
               ),
               child: Row(
-                mainAxisSize: MainAxisSize.min,
                 children: [
                   Icon(Icons.info_outline, size: 16, color: scheme.onTertiaryContainer),
                   const SizedBox(width: 8),
-                  Text(
-                    'Setting this up for someone else',
-                    style: TextStyle(fontSize: 13, color: scheme.onTertiaryContainer),
+                  Expanded(
+                    child: Text(
+                      'Setting this up for someone else',
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        fontSize: 13,
+                        color: scheme.onTertiaryContainer,
+                      ),
+                    ),
                   ),
                 ],
               ),
@@ -423,6 +461,7 @@ class _CalibrationFlowState extends State<CalibrationFlow> {
                 _atLeastOneAxis
                     ? 'Start'
                     : 'Choose at least one environment',
+                overflow: TextOverflow.ellipsis,
                 style: const TextStyle(fontSize: 19, fontWeight: FontWeight.w700),
               ),
             ),

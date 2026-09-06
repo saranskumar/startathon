@@ -2,6 +2,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:startathon/inputs/marker_grid.dart';
 
 void main() {
+  TestWidgetsFlutterBinding.ensureInitialized();
   group('buildMarkerLevel', () {
     test('5 or fewer options are all leaves at the top level', () {
       final level = buildMarkerLevel(['a', 'b', 'c']);
@@ -65,7 +66,7 @@ void main() {
       final options = List.generate(8, (i) => 'opt$i'); // > 5, so it groups
       final controller = MarkerGridController(
         options,
-        onResolve: (_, __) => resolved = true,
+        onResolve: (_, _) => resolved = true,
       );
 
       expect(controller.level.length, lessThanOrEqualTo(kMaxMarkersPerLevel));
@@ -89,7 +90,7 @@ void main() {
       var raw = '';
       final controller = MarkerGridController(
         ['a', 'b'],
-        onResolve: (_, __) {},
+        onResolve: (_, _) {},
         onRaw: (m) => raw = m,
       );
       controller.onUtterance(5, 300); // only 2 markers exist

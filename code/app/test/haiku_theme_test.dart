@@ -56,6 +56,8 @@ void main() {
       // The universal entry screen: any tap gets past it, straight to the
       // axis picker (docs: issue #1 -- entry must not gate on anything
       // harder than a single tap anywhere).
+      await tester.ensureVisible(find.text('Tap anywhere to start'));
+      await tester.pump();
       await tester.tap(find.text('Tap anywhere to start'));
       await tester.pump();
 

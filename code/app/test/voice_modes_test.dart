@@ -26,6 +26,25 @@ void main() {
       );
     });
 
+    test('sounds: instant taps still count (heldMs can be ~0)', () {
+      expect(
+        VocalClassifier.classify(
+          soundCount: 1,
+          heldMs: 0,
+          clarity: SpeechClarity.sounds,
+        ),
+        VocalKind.nod,
+      );
+      expect(
+        VocalClassifier.classify(
+          soundCount: 2,
+          heldMs: 0,
+          clarity: SpeechClarity.sounds,
+        ),
+        VocalKind.burst,
+      );
+    });
+
     test('sounds: two bursts skip', () {
       final kind = VocalClassifier.classify(
         soundCount: 2,

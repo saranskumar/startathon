@@ -68,6 +68,58 @@ extension VisionModeLabel on VisionMode {
       };
 }
 
+/// Visual *field* shape — independent of acuity ([VisionMode]).
+/// Issue #4 / research 09 covers size; this covers how much of the screen
+/// is visible at once, and where.
+enum VisualField { full, tunnel, peripheral }
+
+extension VisualFieldLabel on VisualField {
+  String get label => switch (this) {
+        VisualField.full => 'full field',
+        VisualField.tunnel => 'tunnel',
+        VisualField.peripheral => 'peripheral only',
+      };
+
+  String get detail => switch (this) {
+        VisualField.full => 'the whole screen is in play',
+        VisualField.tunnel =>
+          'output sits in one window; input still works anywhere',
+        VisualField.peripheral =>
+          'center is unused; information lives on the edges',
+      };
+}
+
+/// Progressive input complexity (issue #1 item 5). Everyone starts at
+/// [one]; they opt into more choices. The capability profile still picks
+/// *which* method — this only caps how many targets that method shows.
+enum InputLevel { one, two, many }
+
+extension InputLevelLabel on InputLevel {
+  String get label => switch (this) {
+        InputLevel.one => 'one target',
+        InputLevel.two => 'two targets',
+        InputLevel.many => 'full set',
+      };
+
+  int get optionCap => switch (this) {
+        InputLevel.one => 1,
+        InputLevel.two => 2,
+        InputLevel.many => 99,
+      };
+
+  InputLevel get next => switch (this) {
+        InputLevel.one => InputLevel.two,
+        InputLevel.two => InputLevel.many,
+        InputLevel.many => InputLevel.many,
+      };
+
+  InputLevel get previous => switch (this) {
+        InputLevel.one => InputLevel.one,
+        InputLevel.two => InputLevel.one,
+        InputLevel.many => InputLevel.two,
+      };
+}
+
 /// One method's calibration result. Kept as its three components rather than a
 /// bare number so the results screen can show *why* a method scored what it did.
 class MethodScore {
@@ -113,6 +165,10 @@ class CapabilityProfile {
     this.measureSpeech = true,
     this.measureVision = true,
     this.joystickHomeCell,
+    this.visualField = VisualField.full,
+    this.inputLevel = InputLevel.one,
+    this.vocabulary = const [],
+    this.locale = 'en',
     this.label = 'Calibrated',
   });
 
@@ -127,6 +183,10 @@ class CapabilityProfile {
         holdCapable: false,
         clarity: SpeechClarity.none,
         vision: VisionMode.screen,
+        visualField: VisualField.full,
+        inputLevel: InputLevel.one,
+        vocabulary: const [],
+        locale: 'en',
         label: 'Uncalibrated',
       );
 
@@ -142,6 +202,19 @@ class CapabilityProfile {
   final bool holdCapable;
   final SpeechClarity clarity;
   final VisionMode vision;
+  final VisualField visualField;
+
+  /// How many discrete targets to show at once. Starts at [InputLevel.one]
+  /// after calibration; the user levels up (issue #1).
+  final InputLevel inputLevel;
+
+  /// Words this person can say and have recognized (issue #3). Empty when
+  /// unused. Size can be 2 or 160 — mapping switches on option count.
+  final List<String> vocabulary;
+
+  /// Onboarding-audio / script locale (`en`, `ml`). Recorded clips do not
+  /// localize for free; this is the key they are looked up under.
+  final String locale;
 
   /// Which environments this session measured -- chosen on the calibration
   /// intro, at least one always true. An axis left off stays untested, the
@@ -161,6 +234,20 @@ class CapabilityProfile {
   static const int reachCellCount = reachGridCols * reachGridRows;
 
   bool get speechAvailable => clarity != SpeechClarity.none;
+
+  /// Middle voice tier: some words, not free dictation. Issue #3.
+  bool get usesWordVocab =>
+      vocabulary.isNotEmpty &&
+      clarity != SpeechClarity.full &&
+      clarity != SpeechClarity.none;
+
+  /// Discrete lists show this many options, capped by both the level-up
+  /// path and the measured [maxControls].
+  int get visibleOptionCount {
+    final cap = inputLevel.optionCap;
+    if (inputLevel == InputLevel.many) return maxControls;
+    return cap.clamp(1, maxControls);
+  }
 
   double scoreOf(TouchMethod m) => methodScores[m]?.score ?? 0;
 
@@ -304,6 +391,10 @@ class CapabilityProfile {
     bool? measureSpeech,
     bool? measureVision,
     int? joystickHomeCell,
+    VisualField? visualField,
+    InputLevel? inputLevel,
+    List<String>? vocabulary,
+    String? locale,
     String? label,
   }) =>
       CapabilityProfile(
@@ -318,6 +409,10 @@ class CapabilityProfile {
         measureSpeech: measureSpeech ?? this.measureSpeech,
         measureVision: measureVision ?? this.measureVision,
         joystickHomeCell: joystickHomeCell ?? this.joystickHomeCell,
+        visualField: visualField ?? this.visualField,
+        inputLevel: inputLevel ?? this.inputLevel,
+        vocabulary: vocabulary ?? this.vocabulary,
+        locale: locale ?? this.locale,
         label: label ?? this.label,
       );
 
@@ -329,6 +424,8 @@ class CapabilityProfile {
         .join('  ');
     return '$scores | reach ${reachableCells.length}/$reachCellCount '
         '| target ${minTargetSize.round()}dp | voice ${clarity.label} '
-        '| vision ${vision.label}';
+        '| vision ${vision.label} ${visualField.label} '
+        '| level ${inputLevel.label}'
+        '${vocabulary.isEmpty ? '' : ' | vocab ${vocabulary.length}'}';
   }
 }

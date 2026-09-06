@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 
-import '../inputs/marker_grid.dart';
 import '../inputs/voice.dart';
 import '../inputs/voice_modes.dart';
 import '../model/profile.dart';
@@ -66,21 +65,24 @@ class _TextTaskViewState extends State<TextTaskView> {
   bool get _soundsOnly =>
       textComposeModeFor(widget.profile.clarity) == TextComposeMode.vocalConfirm;
 
-  MarkerGridController? _markerController;
-
-  MarkerGridController get _markerCtrl => _markerController ??= MarkerGridController(
-        _suggestions,
-        onResolve: (i, value) {
-          widget.onNote('marker grid picked "$value"');
-          setState(() => _proposal = value);
-        },
-        onRaw: widget.onRaw,
-      );
-
-  @override
-  void dispose() {
-    _markerController?.dispose();
-    super.dispose();
+  void _onSoundGesture(int sounds, int heldMs) {
+    final kind = VocalClassifier.classify(
+      soundCount: sounds,
+      heldMs: heldMs,
+      clarity: widget.profile.clarity,
+    );
+    widget.onRaw('${kind.label}: $sounds burst(s), ${heldMs}ms');
+    if (kind.acceptsSuggestion) {
+      setState(() {
+        _proposal = _suggestions[_suggestion];
+        _confidence = 0;
+      });
+    } else if (kind.skipsSuggestion) {
+      setState(() {
+        _suggestion = (_suggestion + 1) % _suggestions.length;
+      });
+      widget.onNote('next suggestion: ${_suggestions[_suggestion]}');
+    }
   }
 
   Future<void> _onUtterance(int sounds, int heldMs) async {
@@ -196,16 +198,11 @@ class _TextTaskViewState extends State<TextTaskView> {
                   )),
               const SizedBox(height: 6),
               Text(
-                // Marker-grid mode shows every suggestion at once below (no
-                // single "current" one to preview here); touch-pick mode has
-                // no cycling either, so this stays a static first-option peek.
-                !_canDictate && !_soundsOnly ? _suggestions[_suggestion] : 'empty',
+                _canDictate ? 'empty' : _suggestions[_suggestion],
                 style: TextStyle(
                   fontSize: 20 * _scale,
                   fontWeight: FontWeight.w600,
-                  color: !_canDictate && !_soundsOnly
-                      ? scheme.onSurface
-                      : scheme.outline,
+                  color: _canDictate ? scheme.outline : scheme.onSurface,
                 ),
               ),
             ],
@@ -251,23 +248,26 @@ class _TextTaskViewState extends State<TextTaskView> {
     }
 
     if (_soundsOnly) {
-      // Each phrase is its own lettered marker -- one burst count jumps
-      // straight to a phrase instead of cycling through them one at a time
-      // (docs/idea/22's "personalized tone" grid, reusing the same
-      // burst-count signal HoldToSpeak already measures for real).
+      // SpeechClarity.sounds: one sound / nod / hum accepts, two sounds
+      // advance. Marker-grid burst-picking stays available as its own
+      // surface; the floor case is this two-way vocabulary (docs/idea/20).
       return InputOverlay(
         profile: widget.profile,
         content: Padding(
           padding: const EdgeInsets.all(16),
-          child: MarkerGrid(controller: _markerCtrl, textScale: _scale),
-        ),
-        dock: ListenableBuilder(
-          listenable: _markerCtrl,
-          builder: (context, _) => HoldToSpeak(
-            height: 130,
-            label: _markerCtrl.instructionLabel,
-            onUtterance: _markerCtrl.onUtterance,
+          child: Text(
+            'A short sound means yes. Two sounds means the next phrase.',
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              fontSize: 13 * _scale,
+              color: scheme.onSurfaceVariant,
+            ),
           ),
+        ),
+        dock: HoldToSpeak(
+          height: 150,
+          label: 'Sound once to accept, twice for next',
+          onUtterance: _onSoundGesture,
         ),
       );
     }

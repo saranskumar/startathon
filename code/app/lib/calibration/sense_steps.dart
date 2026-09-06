@@ -3,6 +3,7 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 
 import '../inputs/voice.dart';
+import '../inputs/voice_vocab.dart';
 import '../model/profile.dart';
 import '../runtime/dock.dart';
 import 'step_frame.dart';
@@ -12,14 +13,12 @@ import 'touch_steps.dart' show CalibrationStep;
 // 6. Voice
 // ---------------------------------------------------------------------------
 
-/// 3.1 -- "ask the user to say one short fixed phrase", bucketed into
-/// full / partial / sounds / none.
+/// Issue #3 — walk natural sentences, keep the words that land, bucket the
+/// rest into full / partial+vocab / sounds / none.
 ///
 /// The press-and-hold timing and the sound count are measured for real. The
-/// recogniser is not: there is no microphone plugin in this build, so the
-/// quality of recognition is chosen explicitly and labelled SIMULATED on
-/// screen. That keeps the demo honest and, usefully, lets any tier be demoed on
-/// demand instead of hoping the room's acoustics cooperate.
+/// recogniser is not: there is no microphone plugin in this build, so whether
+/// the target word "landed" is chosen explicitly and labelled SIMULATED.
 class VoiceStep extends CalibrationStep {
   const VoiceStep({
     super.key,
@@ -36,23 +35,29 @@ class VoiceStep extends CalibrationStep {
 }
 
 class _VoiceStepState extends State<VoiceStep> {
-  static const _phrase = 'the quick brown fox';
+  final SpeechSource _source = SimulatedSpeechSource(
+    phrases: [for (final p in kVoiceProbes) p.sentence],
+  );
 
-  final SpeechSource _source = SimulatedSpeechSource(phrases: [_phrase]);
-
-  /// What the stub recogniser should pretend to hear.
+  /// What the stub recogniser should pretend to hear for this sentence.
   SpeechClarity _simulated = SpeechClarity.full;
 
+  int _probe = 0;
+  final Set<String> _landed = <String>{};
   bool _busy = false;
   SpeechResult? _result;
   int _lastSounds = 0;
   int _lastHeldMs = 0;
+  bool _heardAnySound = false;
+
+  VoiceProbe get _current => kVoiceProbes[_probe];
 
   Future<void> _onUtterance(int sounds, int heldMs) async {
     setState(() {
       _busy = true;
       _lastSounds = sounds;
       _lastHeldMs = heldMs;
+      if (sounds > 0 || heldMs > 120) _heardAnySound = true;
     });
     final r = await _source.capture(
       heldMs: heldMs,
@@ -63,19 +68,43 @@ class _VoiceStepState extends State<VoiceStep> {
     setState(() {
       _busy = false;
       _result = r;
+      if (_simulated == SpeechClarity.full ||
+          _simulated == SpeechClarity.partial) {
+        _landed.add(_current.target);
+      }
     });
   }
 
-  /// Measured signal first, simulated recognition second: no vocalisation at
-  /// all means `none` regardless of what the stub would have returned.
-  SpeechClarity get _derived {
-    if (_lastHeldMs < 120 && _lastSounds == 0) return SpeechClarity.none;
-    final r = _result;
-    if (r == null || !r.ok) {
-      return _lastSounds > 0 ? SpeechClarity.sounds : SpeechClarity.none;
+  void _markLanded(bool yes) {
+    setState(() {
+      if (yes) {
+        _landed.add(_current.target);
+      } else {
+        _landed.remove(_current.target);
+      }
+    });
+  }
+
+  void _advance() {
+    if (_probe < kVoiceProbes.length - 1) {
+      setState(() {
+        _probe++;
+        _result = null;
+      });
+      return;
     }
-    if (r.transcript.isEmpty) return SpeechClarity.sounds;
-    return r.confidence >= 0.75 ? SpeechClarity.full : SpeechClarity.partial;
+    widget.draft.vocabulary = _landed.toList();
+    widget.draft.clarity = _derived;
+    widget.onNext();
+  }
+
+  /// Words first, then sounds, then none. A large personal list still
+  /// stays `partial` so runtime uses vocab mapping instead of free dictation.
+  SpeechClarity get _derived {
+    if (_landed.length >= 6) return SpeechClarity.full;
+    if (_landed.isNotEmpty) return SpeechClarity.partial;
+    if (_heardAnySound || _lastSounds > 0) return SpeechClarity.sounds;
+    return SpeechClarity.none;
   }
 
   @override
@@ -84,27 +113,27 @@ class _VoiceStepState extends State<VoiceStep> {
     final r = _result;
     return StepFrame(
       title: 'Voice',
-      instruction: 'Hold the button and say: "$_phrase"',
-      status: 'Any sound counts. If words are hard, just make a sound -- that '
-          'still becomes a usable yes/no signal.',
+      instruction: 'Say: "${_current.sentence}"',
+      status: 'Sentence ${_probe + 1} of ${kVoiceProbes.length}. '
+          'The word we keep is "${_current.target}". '
+          'Any sound still becomes a yes/no signal.',
       index: widget.index,
       total: widget.total,
       textScale: widget.textScale,
       onSkip: () {
         widget.draft.skipped.add('voice');
         widget.draft.clarity = SpeechClarity.none;
+        widget.draft.vocabulary = const [];
         widget.onSkip();
       },
-      footer: r == null
-          ? null
-          : SizedBox(
+      footer: SizedBox(
               height: 64,
               child: FilledButton(
-                onPressed: () {
-                  widget.draft.clarity = _derived;
-                  widget.onNext();
-                },
-                child: Text('Use "${_derived.label}" and continue'),
+                onPressed: _advance,
+                child: Text(_probe < kVoiceProbes.length - 1
+                    ? 'Next sentence'
+                    : 'Use "${_derived.label}"'
+                        '${_landed.isEmpty ? '' : ' · ${_landed.length} words'}'),
               ),
             ),
       // Prompts and readouts scroll; the microphone itself docks in the
@@ -123,7 +152,28 @@ class _VoiceStepState extends State<VoiceStep> {
                   padding: EdgeInsets.symmetric(vertical: 12),
                   child: LinearProgressIndicator(),
                 ),
-              if (r != null) _resultCard(scheme, r),
+              Text(
+                'Your words so far: ${_landed.isEmpty ? 'none yet' : _landed.join(', ')}',
+                style: TextStyle(color: scheme.primary, fontWeight: FontWeight.w700),
+              ),
+              const SizedBox(height: 10),
+              Wrap(
+                spacing: 8,
+                children: [
+                  ActionChip(
+                    label: const Text('That word was clear'),
+                    onPressed: () => _markLanded(true),
+                  ),
+                  ActionChip(
+                    label: const Text('Not this one'),
+                    onPressed: () => _markLanded(false),
+                  ),
+                ],
+              ),
+              if (r != null) ...[
+                const SizedBox(height: 12),
+                _resultCard(scheme, r),
+              ],
               const SizedBox(height: 18),
               _simulationControls(scheme),
             ],
@@ -241,6 +291,7 @@ class _VisionStepState extends State<VisionStep> {
   late String _shown;
   late List<String> _choices;
   double? _smallestRead;
+  bool _pickingField = false;
 
   @override
   void initState() {
@@ -259,7 +310,7 @@ class _VisionStepState extends State<VisionStep> {
     final correct = choice == _shown;
     if (correct) _smallestRead = _rungs[_rung];
     if (!correct || _rung >= _rungs.length - 1) {
-      _commit();
+      _commitAcuity();
       return;
     }
     setState(() {
@@ -268,16 +319,49 @@ class _VisionStepState extends State<VisionStep> {
     });
   }
 
-  void _commit() {
+  void _commitAcuity() {
     final s = _smallestRead;
     widget.draft.vision = s == null
         ? VisionMode.none
         : (s <= 20 ? VisionMode.screen : VisionMode.large);
+    setState(() => _pickingField = true);
+  }
+
+  void _commitField(VisualField field) {
+    widget.draft.visualField = field;
     widget.onNext();
   }
 
   @override
   Widget build(BuildContext context) {
+    if (_pickingField) {
+      return StepFrame(
+        title: 'Vision',
+        instruction: 'How much of the screen can you see at once?',
+        status: 'Acuity is already measured. This is field shape — a different axis.',
+        index: widget.index,
+        total: widget.total,
+        textScale: widget.textScale,
+        onSkip: () => _commitField(VisualField.full),
+        child: ListView(
+          padding: const EdgeInsets.all(16),
+          children: [
+            for (final f in VisualField.values)
+              Padding(
+                padding: const EdgeInsets.only(bottom: 10),
+                child: SizedBox(
+                  height: 76,
+                  child: FilledButton.tonal(
+                    onPressed: () => _commitField(f),
+                    child: Text('${f.label} — ${f.detail}',
+                        maxLines: 2, overflow: TextOverflow.ellipsis),
+                  ),
+                ),
+              ),
+          ],
+        ),
+      );
+    }
     return StepFrame(
       title: 'Vision',
       instruction: 'Which word is shown above?',

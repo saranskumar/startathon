@@ -20,6 +20,10 @@ class CalibrationDraft {
 
   SpeechClarity clarity = SpeechClarity.none;
   VisionMode vision = VisionMode.screen;
+  VisualField visualField = VisualField.full;
+  InputLevel inputLevel = InputLevel.one;
+  List<String> vocabulary = <String>[];
+  String locale = 'en';
 
   /// Which environments this session measures, chosen on the intro screen.
   /// An axis left off is untested, same status as a skipped step -- never a
@@ -58,6 +62,10 @@ class CalibrationDraft {
         measureSpeech: measureSpeech,
         measureVision: measureVision,
         joystickHomeCell: joystickHomeCell,
+        visualField: visualField,
+        inputLevel: inputLevel,
+        vocabulary: List.of(vocabulary),
+        locale: locale,
         label: 'Calibrated',
       );
 }

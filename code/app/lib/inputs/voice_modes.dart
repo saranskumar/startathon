@@ -98,8 +98,11 @@ class VocalClassifier {
 
     if (clarity == SpeechClarity.none) return VocalKind.silence;
 
-    if (soundCount <= 0 || heldMs < silenceMaxMs) return VocalKind.silence;
+    if (soundCount <= 0) return VocalKind.silence;
+    // Burst count wins over hold duration: two taps are "next" even when
+    // each press is shorter than [silenceMaxMs] (widget tests and fast nods).
     if (soundCount >= 2) return VocalKind.burst;
+    if (heldMs < silenceMaxMs) return VocalKind.nod;
     if (heldMs >= humMinMs) return VocalKind.hum;
     if (heldMs < nodMaxMs) return VocalKind.nod;
     return VocalKind.sound;

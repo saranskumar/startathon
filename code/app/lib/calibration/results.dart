@@ -6,13 +6,35 @@ import '../runtime/task_spec.dart';
 import '../theme/haiku_theme.dart';
 import 'step_frame.dart';
 
+/// The four groups the results are split into, so the screen is a small
+/// set of focused sections you jump between, not one long scroll -- "Your
+/// setup" is a report to read through, and a report is easier to navigate in
+/// pages than in one continuous scroll.
+enum _Section { overview, methods, voice, tasks }
+
+extension on _Section {
+  String get label => switch (this) {
+        _Section.overview => 'Overview',
+        _Section.methods => 'Methods',
+        _Section.voice => 'Voice & text',
+        _Section.tasks => 'Tasks',
+      };
+
+  IconData get icon => switch (this) {
+        _Section.overview => Icons.dashboard_outlined,
+        _Section.methods => Icons.speed,
+        _Section.voice => Icons.record_voice_over_outlined,
+        _Section.tasks => Icons.checklist,
+      };
+}
+
 /// What calibration produced, in the user's terms and in the system's.
 ///
 /// The score table is shown rather than hidden because the whole claim of the
 /// project is that a person is a set of measurements, not a label -- and
 /// because a demo that shows the numbers can be argued with, which a demo that
 /// shows a verdict cannot.
-class CalibrationResults extends StatelessWidget {
+class CalibrationResults extends StatefulWidget {
   const CalibrationResults({
     super.key,
     required this.draft,
@@ -23,6 +45,15 @@ class CalibrationResults extends StatelessWidget {
   final CalibrationDraft draft;
   final VoidCallback onUse;
   final VoidCallback onRedo;
+
+  @override
+  State<CalibrationResults> createState() => _CalibrationResultsState();
+}
+
+class _CalibrationResultsState extends State<CalibrationResults> {
+  _Section _section = _Section.overview;
+
+  CalibrationDraft get draft => widget.draft;
 
   @override
   Widget build(BuildContext context) {
@@ -63,61 +94,75 @@ class CalibrationResults extends StatelessWidget {
               ),
             ],
           ),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 4, 16, 0),
+            child: _sectionNav(scheme, scale),
+          ),
           Expanded(
             child: ListView(
-              padding: const EdgeInsets.fromLTRB(20, 8, 20, 8),
-              children: [
-                _section(scheme, scale, 'Measured environments'),
-                _axesRow(scheme, scale, profile),
-                if (draft.helperChoseAxes)
-                  _fact(scheme, scale, 'Chosen by',
-                      'someone helping, not the person tested'),
-                const SizedBox(height: 18),
-                _section(scheme, scale, 'This mix'),
-                _haikuCard(scheme, scale, haiku),
-                const SizedBox(height: 18),
-                _section(scheme, scale, 'Touch methods'),
-                for (final m in TouchMethod.values)
-                  _scoreRow(scheme, scale, m, profile),
-                const SizedBox(height: 18),
-                _section(scheme, scale, 'Other axes'),
-                _fact(scheme, scale, 'Reachable area',
-                    '${profile.reachableCells.length} of '
-                    '${CapabilityProfile.reachCellCount} zones'),
-                _fact(scheme, scale, 'Joystick home',
-                    profile.joystickHomeCell == null
-                        ? 'not placed'
-                        : 'zone ${profile.joystickHomeCell} -- '
-                            '${draft.joystickOctants[profile.joystickHomeCell] ?? 0} of 8 directions'),
-                _fact(scheme, scale, 'Smallest reliable target',
-                    '${profile.minTargetSize.round()} dp'),
-                _fact(scheme, scale, 'Steadiness',
-                    profile.steadiness.toStringAsFixed(2)),
-                _fact(scheme, scale, 'Touch and hold',
-                    profile.holdCapable ? 'usable' : 'not usable'),
-                _fact(scheme, scale, 'Voice',
-                    '${profile.clarity.label} -- ${profile.clarity.grants}'),
-                _fact(scheme, scale, 'Vision', profile.vision.label),
-                const SizedBox(height: 18),
-                _section(scheme, scale, 'Voice and text plan'),
-                _voicePlan(scheme, scale, profile),
-                if (draft.axisLock != null)
-                  _fact(
-                    scheme,
-                    scale,
-                    'Swipe axis',
-                    draft.axisLock == Axis.horizontal
-                        ? 'left-right only'
-                        : 'up-down only',
-                  ),
-                if (draft.skipped.isNotEmpty)
-                  _fact(scheme, scale, 'Skipped',
-                      draft.skipped.join(', ')),
-                const SizedBox(height: 18),
-                _section(scheme, scale, 'What each task will use'),
-                for (final shape in TaskShape.values)
-                  _mappingRow(scheme, scale, shape, profile),
-              ],
+              key: ValueKey(_section),
+              padding: const EdgeInsets.fromLTRB(20, 12, 20, 8),
+              children: switch (_section) {
+                _Section.overview => [
+                    _section_(scheme, scale, 'Measured environments'),
+                    _axesRow(scheme, scale, profile),
+                    if (draft.helperChoseAxes)
+                      _fact(scheme, scale, 'Chosen by',
+                          'someone helping, not the person tested'),
+                    const SizedBox(height: 18),
+                    _section_(scheme, scale, 'This mix'),
+                    _haikuCard(scheme, scale, haiku),
+                  ],
+                _Section.methods => [
+                    _section_(scheme, scale, 'Touch methods'),
+                    for (final m in TouchMethod.values)
+                      _scoreRow(scheme, scale, m, profile),
+                    const SizedBox(height: 18),
+                    _section_(scheme, scale, 'Other axes'),
+                    _fact(scheme, scale, 'Reachable area',
+                        '${profile.reachableCells.length} of '
+                        '${CapabilityProfile.reachCellCount} zones'),
+                    _fact(scheme, scale, 'Joystick home',
+                        profile.joystickHomeCell == null
+                            ? 'not placed'
+                            : 'zone ${profile.joystickHomeCell} -- '
+                                '${draft.joystickOctants[profile.joystickHomeCell] ?? 0} of 8 directions'),
+                    _fact(scheme, scale, 'Smallest reliable target',
+                        '${profile.minTargetSize.round()} dp'),
+                    _fact(scheme, scale, 'Steadiness',
+                        profile.steadiness.toStringAsFixed(2)),
+                    _fact(scheme, scale, 'Touch and hold',
+                        profile.holdCapable ? 'usable' : 'not usable'),
+                    _fact(scheme, scale, 'Voice',
+                        '${profile.clarity.label} -- ${profile.clarity.grants}'),
+                    _fact(scheme, scale, 'Vision',
+                        '${profile.vision.label} · ${profile.visualField.label}'),
+                    _fact(scheme, scale, 'Input level', profile.inputLevel.label),
+                    if (profile.vocabulary.isNotEmpty)
+                      _fact(scheme, scale, 'Personal words',
+                          profile.vocabulary.join(', ')),
+                  ],
+                _Section.voice => [
+                    _section_(scheme, scale, 'Voice and text plan'),
+                    _voicePlan(scheme, scale, profile),
+                    if (draft.axisLock != null)
+                      _fact(
+                        scheme,
+                        scale,
+                        'Swipe axis',
+                        draft.axisLock == Axis.horizontal
+                            ? 'left-right only'
+                            : 'up-down only',
+                      ),
+                    if (draft.skipped.isNotEmpty)
+                      _fact(scheme, scale, 'Skipped', draft.skipped.join(', ')),
+                  ],
+                _Section.tasks => [
+                    _section_(scheme, scale, 'What each task will use'),
+                    for (final shape in TaskShape.values)
+                      _mappingRow(scheme, scale, shape, profile),
+                  ],
+              },
             ),
           ),
           Padding(
@@ -128,7 +173,7 @@ class CalibrationResults extends StatelessWidget {
                   child: SizedBox(
                     height: 64,
                     child: OutlinedButton(
-                      onPressed: onRedo,
+                      onPressed: widget.onRedo,
                       child: Text('Redo',
                           style: TextStyle(fontSize: 17 * scale)),
                     ),
@@ -140,7 +185,7 @@ class CalibrationResults extends StatelessWidget {
                   child: SizedBox(
                     height: 64,
                     child: FilledButton(
-                      onPressed: onUse,
+                      onPressed: widget.onUse,
                       child: Text('Use this setup',
                           style: TextStyle(fontSize: 17 * scale)),
                     ),
@@ -153,6 +198,52 @@ class CalibrationResults extends StatelessWidget {
       ),
     );
   }
+
+  /// Four large, always-visible buttons -- not a swipeable tab strip, so
+  /// jumping to a section is one direct tap, sized and reachable the same
+  /// way every other control in this app is.
+  Widget _sectionNav(ColorScheme scheme, double scale) => Wrap(
+        spacing: 8,
+        runSpacing: 8,
+        children: [
+          for (final s in _Section.values)
+            InkWell(
+              onTap: () => setState(() => _section = s),
+              borderRadius: BorderRadius.circular(14),
+              child: Container(
+                constraints: const BoxConstraints(minHeight: 44),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                decoration: BoxDecoration(
+                  color: s == _section
+                      ? scheme.primary
+                      : scheme.surfaceContainerHighest.withValues(alpha: 0.5),
+                  borderRadius: BorderRadius.circular(14),
+                  border: Border.all(
+                    color: s == _section ? scheme.primary : scheme.outlineVariant,
+                  ),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(s.icon,
+                        size: 18,
+                        color: s == _section ? scheme.onPrimary : scheme.onSurfaceVariant),
+                    const SizedBox(width: 6),
+                    Text(
+                      s.label,
+                      style: TextStyle(
+                        fontSize: 13 * scale,
+                        fontWeight: FontWeight.w700,
+                        color: s == _section ? scheme.onPrimary : scheme.onSurface,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+        ],
+      );
 
   Widget _axesRow(ColorScheme scheme, double scale, CapabilityProfile profile) {
     Widget chip(String label, Color color, bool on) => Container(
@@ -240,7 +331,7 @@ class CalibrationResults extends StatelessWidget {
         ),
       );
 
-  Widget _section(ColorScheme scheme, double scale, String title) => Padding(
+  Widget _section_(ColorScheme scheme, double scale, String title) => Padding(
         padding: const EdgeInsets.only(bottom: 8),
         child: Text(
           title.toUpperCase(),
@@ -286,6 +377,21 @@ class CalibrationResults extends StatelessWidget {
                 color: scheme.onSurfaceVariant,
               ),
             ),
+            if (profile.usesWordVocab) ...[
+              const SizedBox(height: 10),
+              Text(
+                profile.vocabulary.length <= 3
+                    ? 'Your words map onto the choices when the menu is small, '
+                        'or become next / previous / select when it is long.'
+                    : 'A menu no bigger than your word list uses those words '
+                        'as the choices. A longer menu uses the first three '
+                        'as next, previous, and select.',
+                style: TextStyle(
+                  fontSize: 12 * scale,
+                  color: scheme.primary,
+                ),
+              ),
+            ],
             if (mode == TextComposeMode.vocalConfirm) ...[
               const SizedBox(height: 10),
               Text(

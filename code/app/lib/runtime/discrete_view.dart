@@ -3,8 +3,12 @@ import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 
+import 'package:flutter/semantics.dart';
+
 import '../inputs/haptics.dart';
 import '../inputs/surfaces.dart';
+import '../inputs/voice.dart';
+import '../inputs/voice_vocab.dart';
 import '../model/profile.dart';
 import '../model/session.dart';
 import 'dock.dart';
@@ -92,7 +96,12 @@ class _DiscreteTaskViewState extends State<DiscreteTaskView> {
         _scanCol = (_scanCol + 1) % _scanCols;
       }
     });
-    widget.onRaw(_scanPhase == 0 ? 'scan row $_scanRow' : 'scan col $_scanCol');
+    final raw = _scanPhase == 0 ? 'scan row $_scanRow' : 'scan col $_scanCol';
+    widget.onRaw(raw);
+    final idx = _scanRow * _scanCols + _scanCol;
+    if (_scanPhase == 1 && idx < widget.options.length) {
+      _announce(widget.options[idx]);
+    }
   }
 
   void _startScan() {
@@ -123,6 +132,38 @@ class _DiscreteTaskViewState extends State<DiscreteTaskView> {
 
   // --- joystick --------------------------------------------------------
 
+  void _announce(String option) {
+    if (!mounted) return;
+    SemanticsService.sendAnnouncement(
+      View.of(context),
+      '$option, selected',
+      Directionality.maybeOf(context) ?? TextDirection.ltr,
+    );
+  }
+
+  Map<String, String> get _vocabMap => VocabMapping.mapWords(
+        vocabulary: widget.profile.vocabulary,
+        options: widget.options,
+      );
+
+  void _applyVocab(String action) {
+    if (action == VocabMapping.next) {
+      setState(() => _highlight = (_highlight + 1) % widget.options.length);
+      _announce(widget.options[_highlight]);
+      widget.onRaw('vocab next -> ${widget.options[_highlight]}');
+    } else if (action == VocabMapping.previous) {
+      setState(() => _highlight =
+          (_highlight - 1 + widget.options.length) % widget.options.length);
+      _announce(widget.options[_highlight]);
+      widget.onRaw('vocab previous -> ${widget.options[_highlight]}');
+    } else if (action == VocabMapping.select) {
+      _resolve(_highlight);
+    } else {
+      final i = widget.options.indexOf(action);
+      if (i >= 0) _resolve(i);
+    }
+  }
+
   void _stepFromDirection() {
     final dir = _lastDirection;
     if (dir == null) return;
@@ -132,6 +173,7 @@ class _DiscreteTaskViewState extends State<DiscreteTaskView> {
       _highlight =
           (_highlight + delta + widget.options.length) % widget.options.length;
     });
+    _announce(widget.options[_highlight]);
     widget.onRaw('$dir -> ${widget.options[_highlight]}');
   }
 
@@ -169,7 +211,7 @@ class _DiscreteTaskViewState extends State<DiscreteTaskView> {
   /// are on screen at once -- 2.4's rule that lower precision means lower
   /// interface resolution, not smaller buttons.
   Widget _buttons() {
-    final perPage = widget.profile.maxControls;
+    final perPage = widget.profile.visibleOptionCount;
     final pages = (widget.options.length / perPage).ceil();
     final start = _page * perPage;
     final slice = widget.options.skip(start).take(perPage).toList();
@@ -183,24 +225,56 @@ class _DiscreteTaskViewState extends State<DiscreteTaskView> {
         minTargetSize: widget.profile.minTargetSize,
         onTap: (i) => _resolve(start + i),
       ),
-      dock: pages <= 1
-          ? null
-          : Row(
-              children: [
-                Expanded(
-                  child: CalibratedButton(
-                    label: 'More options',
-                    subtitle: 'page ${_page + 1} of $pages',
-                    minSize: widget.profile.minTargetSize,
-                    textScale: _scale,
-                    onPressed: () {
-                      setState(() => _page = (_page + 1) % pages);
-                      widget.onRaw('page ${_page + 1}/$pages');
-                    },
+      dock: _vocabDock(
+        extra: pages <= 1
+            ? null
+            : Row(
+                children: [
+                  Expanded(
+                    child: CalibratedButton(
+                      label: 'More options',
+                      subtitle: 'page ${_page + 1} of $pages',
+                      minSize: widget.profile.minTargetSize,
+                      textScale: _scale,
+                      onPressed: () {
+                        setState(() => _page = (_page + 1) % pages);
+                        widget.onRaw('page ${_page + 1}/$pages');
+                      },
+                    ),
                   ),
-                ),
-              ],
-            ),
+                ],
+              ),
+      ),
+    );
+  }
+
+  Widget? _vocabDock({Widget? extra}) {
+    if (!widget.profile.usesWordVocab) return extra;
+    final map = _vocabMap;
+    final hint = map.entries.map((e) => '${e.key} → ${e.value}').join(' · ');
+    final mic = HoldToSpeak(
+      label: hint.isEmpty ? 'Hold to speak a word' : hint,
+      height: 88,
+      onUtterance: (sounds, heldMs) async {
+        final r = await SimulatedSpeechSource(
+          phrases: widget.profile.vocabulary,
+        ).capture(
+          heldMs: heldMs,
+          soundCount: sounds,
+          clarity: SpeechClarity.partial,
+        );
+        final action = VocabMapping.resolve(r.transcript, map);
+        if (action != null) {
+          _applyVocab(action);
+        } else {
+          widget.onRaw('vocab missed: ${r.transcript}');
+        }
+      },
+    );
+    if (extra == null) return mic;
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [mic, const SizedBox(height: 8), extra],
     );
   }
 
@@ -257,6 +331,7 @@ class _DiscreteTaskViewState extends State<DiscreteTaskView> {
         .clamp(0, widget.options.length - 1);
     if (i == _highlight) return;
     setState(() => _highlight = i);
+    _announce(widget.options[i]);
     widget.onRaw('hover -> ${widget.options[i]}');
   }
 
@@ -327,15 +402,20 @@ class _DiscreteTaskViewState extends State<DiscreteTaskView> {
         ),
         alignment: Alignment.center,
         child: has
-            ? Text(
-                widget.options[index],
-                textAlign: TextAlign.center,
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-                style: TextStyle(
-                  fontSize: 14 * _scale,
-                  fontWeight: cellActive ? FontWeight.w800 : FontWeight.w600,
-                  color: cellActive ? scheme.onPrimary : scheme.onSurface,
+            ? Semantics(
+                button: true,
+                selected: cellActive,
+                label: widget.options[index],
+                child: Text(
+                  widget.options[index],
+                  textAlign: TextAlign.center,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    fontSize: 14 * _scale,
+                    fontWeight: cellActive ? FontWeight.w800 : FontWeight.w600,
+                    color: cellActive ? scheme.onPrimary : scheme.onSurface,
+                  ),
                 ),
               )
             : null,

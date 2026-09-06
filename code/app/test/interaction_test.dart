@@ -411,6 +411,8 @@ void main() {
 
       await tester.tap(find.text('Buttons'));
       await tester.pump();
+      await tester.ensureVisible(find.text('Option A'));
+      await tester.pump();
       await tester.tap(find.text('Option A'));
       await tester.pump();
       expect(state.latest!.text, contains('preview tap = Option A'));
