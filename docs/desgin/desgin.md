@@ -1,5 +1,7 @@
 # Voice and text input modes
 
+Phone screens, essential chrome, and the locked user flow: [ui-ux-phone-flow.md](ui-ux-phone-flow.md).
+
 Plan for how the Flutter phone app classifies **voice** and **text**, including users who cannot produce words — only nods, sounds, and hums.
 
 This is a *classification inside the app*, not a new disability label. Calibration still buckets speech into `full / partial / sounds / none`. This doc says what each bucket is allowed to do, and how a single microphone capture is typed so the text task can act on it.
