@@ -1,0 +1,599 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>How this project evolved — docs history</title>
+  <style>
+    :root {
+      --paper: #f4f5ea;
+      --ink: #1d1f18;
+      --muted: #5c6154;
+      --olive: #e1e4c9;
+      --olive-dark: #8b9168;
+      --card: #fffef6;
+      --line: #c9cdb3;
+      --accent: #3d385e;
+      --accent-2: #2a5a4a;
+      --warn: #8a4b1f;
+    }
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      margin: 0;
+      font-family: "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, serif;
+      background: var(--paper);
+      color: var(--ink);
+      line-height: 1.55;
+    }
+    a { color: var(--accent); }
+    header.hero {
+      background: linear-gradient(160deg, #e1e4c9 0%, #f4f5ea 55%, #efe8d8 100%);
+      border-bottom: 1px solid var(--line);
+      padding: 2.5rem 1.25rem 2rem;
+    }
+    .wrap { max-width: 920px; margin: 0 auto; }
+    nav.toc {
+      position: sticky;
+      top: 0;
+      z-index: 5;
+      background: rgba(244, 245, 234, 0.94);
+      backdrop-filter: blur(8px);
+      border-bottom: 1px solid var(--line);
+    }
+    nav.toc .wrap {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.4rem 1rem;
+      padding: 0.65rem 1.25rem;
+      font-family: ui-sans-serif, system-ui, sans-serif;
+      font-size: 0.82rem;
+    }
+    nav.toc a { text-decoration: none; color: var(--muted); }
+    nav.toc a:hover { color: var(--ink); }
+    h1 { font-size: clamp(1.8rem, 4vw, 2.6rem); margin: 0 0 0.4rem; letter-spacing: -0.02em; }
+    .lede { font-size: 1.15rem; color: var(--muted); max-width: 46rem; }
+    .meta { font-family: ui-sans-serif, system-ui, sans-serif; font-size: 0.85rem; color: var(--muted); margin-top: 1rem; }
+    .stats {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+      gap: 0.75rem;
+      margin-top: 1.5rem;
+    }
+    .stat {
+      background: var(--card);
+      border: 1px solid var(--line);
+      padding: 0.85rem 0.9rem;
+    }
+    .stat b { display: block; font-size: 1.45rem; font-family: ui-sans-serif, system-ui, sans-serif; }
+    .stat span { font-size: 0.8rem; color: var(--muted); }
+    section { padding: 2.4rem 1.25rem; border-bottom: 1px solid var(--line); }
+    h2 { margin: 0 0 0.75rem; font-size: 1.55rem; }
+    h3 { margin: 1.4rem 0 0.45rem; font-size: 1.1rem; }
+    p { margin: 0.6rem 0; }
+    .note {
+      background: #fff7e8;
+      border-left: 4px solid var(--warn);
+      padding: 0.75rem 1rem;
+      font-size: 0.95rem;
+    }
+    .cards {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+      gap: 0.75rem;
+      margin-top: 1rem;
+    }
+    .card {
+      background: var(--card);
+      border: 1px solid var(--line);
+      padding: 0.9rem 1rem;
+    }
+    .card .tag {
+      font-family: ui-sans-serif, system-ui, sans-serif;
+      font-size: 0.72rem;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      color: var(--olive-dark);
+    }
+    .timeline { list-style: none; margin: 1rem 0 0; padding: 0; }
+    .timeline li {
+      position: relative;
+      padding: 0 0 1.25rem 1.35rem;
+      border-left: 2px solid var(--olive-dark);
+    }
+    .timeline li:last-child { border-left-color: transparent; padding-bottom: 0; }
+    .timeline li::before {
+      content: "";
+      position: absolute;
+      left: -6px;
+      top: 0.35rem;
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: var(--accent);
+    }
+    .when {
+      font-family: ui-sans-serif, system-ui, sans-serif;
+      font-size: 0.78rem;
+      color: var(--muted);
+    }
+    .kind {
+      display: inline-block;
+      font-family: ui-sans-serif, system-ui, sans-serif;
+      font-size: 0.7rem;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      background: var(--olive);
+      padding: 0.1rem 0.4rem;
+      margin-right: 0.25rem;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.92rem;
+      background: var(--card);
+    }
+    th, td {
+      border: 1px solid var(--line);
+      padding: 0.5rem 0.65rem;
+      text-align: left;
+      vertical-align: top;
+    }
+    th { background: var(--olive); font-family: ui-sans-serif, system-ui, sans-serif; font-size: 0.8rem; }
+    .branch {
+      font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+      font-size: 0.82rem;
+    }
+    details {
+      background: var(--card);
+      border: 1px solid var(--line);
+      padding: 0.7rem 0.9rem;
+      margin: 0.5rem 0;
+    }
+    summary { cursor: pointer; font-weight: 600; }
+    ol.q { padding-left: 1.2rem; }
+    ol.q li { margin: 0.65rem 0; }
+    footer {
+      padding: 1.5rem 1.25rem 2.5rem;
+      color: var(--muted);
+      font-size: 0.88rem;
+    }
+    .filters {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.4rem;
+      margin: 0.8rem 0 1rem;
+      font-family: ui-sans-serif, system-ui, sans-serif;
+      font-size: 0.8rem;
+    }
+    .filters button {
+      border: 1px solid var(--line);
+      background: var(--card);
+      padding: 0.3rem 0.6rem;
+      cursor: pointer;
+      color: var(--ink);
+    }
+    .filters button[aria-pressed="true"] {
+      background: var(--accent);
+      color: #fff;
+      border-color: var(--accent);
+    }
+    .hidden { display: none; }
+    @media (max-width: 560px) {
+      table { font-size: 0.82rem; }
+    }
+  </style>
+</head>
+<body>
+  <header class="hero">
+    <div class="wrap">
+      <p class="meta">Startathon · Adaptive Capability-Profile Access Layer · later branded KAI</p>
+      <h1>How the project evolved</h1>
+      <p class="lede">
+        Two days of writing, arguing, and building. This page is a snapshot of
+        <strong>git history across every remaining branch</strong>, told mainly
+        through how <code>/docs</code> grew from one PRD into a 57-file record.
+      </p>
+      <div class="stats">
+        <div class="stat"><b>95</b><span>commits on all branches</span></div>
+        <div class="stat"><b>57</b><span>files in /docs today</span></div>
+        <div class="stat"><b>31</b><span>commits that touched docs</span></div>
+        <div class="stat"><b>6</b><span>remote branches still visible</span></div>
+        <div class="stat"><b>4</b><span>authors in the log</span></div>
+        <div class="stat"><b>v4</b><span>idea draft on main</span></div>
+      </div>
+    </div>
+  </header>
+
+  <nav class="toc">
+    <div class="wrap">
+      <a href="#questions">Questions</a>
+      <a href="#idea">Idea versions</a>
+      <a href="#folders">Docs folders</a>
+      <a href="#eras">Eras</a>
+      <a href="#timeline">Timeline</a>
+      <a href="#branches">Branches</a>
+      <a href="#code">Code alongside</a>
+    </div>
+  </nav>
+
+  <section id="questions">
+    <div class="wrap">
+      <h2>Questions for you</h2>
+      <p>
+        You asked me to clarify what you meant. I made a first cut (docs-first,
+        narrative, one static HTML file). Tell me which of these you actually wanted:
+      </p>
+      <ol class="q">
+        <li><strong>Who is this for?</strong> Internal team memory, judges, or a public “how we built this” story?</li>
+        <li><strong>How much git?</strong> This page summarizes commits. Did you want raw diffs, per-file “first appeared / last changed,” or a commit-by-commit log?</li>
+        <li><strong>Docs only, or the whole repo?</strong> I weighted <code>docs/</code> and only sketched code, mock UI, and the pitch deck. Should those get equal space?</li>
+        <li><strong>Live vs snapshot?</strong> This file is handwritten from history as of the current <code>main</code>. Should it stay static, or be generated from <code>git log</code>?</li>
+        <li><strong>Product name?</strong> Early docs say Adaptive Capability-Profile Access Layer; the deck later says KAI. Which name should the page use?</li>
+        <li><strong>CI noise?</strong> I hid the many <code>chore: bypass release commit</code> rows. Keep them hidden?</li>
+        <li><strong>Tone?</strong> Essay + eras (current), or a denser archive / index of every markdown file?</li>
+        <li><strong>Interactivity?</strong> I added a simple era filter. Do you want search, side-by-side before/after quotes, or keep it a linear read?</li>
+      </ol>
+      <p class="note">
+        Until you answer, this page assumes: <em>internal retrospective, docs-weighted,
+        static snapshot, hide CI-only commits, use both names, keep it readable.</em>
+      </p>
+    </div>
+  </section>
+
+  <section id="idea">
+    <div class="wrap">
+      <h2>The idea changed four times</h2>
+      <p>
+        <code>docs/idea/README.md</code> still labels the folder <strong>Draft v4</strong>.
+        That is the spine of the whole project: the code later implemented the model
+        the docs argued into existence.
+      </p>
+      <div class="cards">
+        <div class="card">
+          <div class="tag">v1 / v2</div>
+          <h3>Category buckets</h3>
+          <p>Users modeled as labels: motor impaired, speech impaired, “2+ impairments.” One PRD file: <code>startathonPRD.md</code> (5 Sep 11:55).</p>
+        </div>
+        <div class="card">
+          <div class="tag">v3</div>
+          <h3>Spectrum + fusion</h3>
+          <p>Drop disability categories. Continuous ability axes. Compose weak channels instead of picking one modality.</p>
+        </div>
+        <div class="card">
+          <div class="tag">v4</div>
+          <h3>Two-layer composition</h3>
+          <p>Per-user calibration <em>and</em> per-task ideal vs fallback. Written during pitch prep into <code>03-input-calibration.md</code>.</p>
+        </div>
+        <div class="card">
+          <div class="tag">scope lock</div>
+          <h3>Then: no AI at all</h3>
+          <p><code>idea/28</code> (6 Sep) kills the remaining LLM fallback. Docs 07 / tech README still lagged that decision.</p>
+        </div>
+      </div>
+      <p>
+        A second, quieter rewrite: AI starts as “narrow infrastructure under a confirm gate”
+        in the root README, narrows to “tree simplification only” after meeting notes 16–19,
+        then becomes <strong>zero AI/LLM anywhere</strong> so the pitch can contrast Google NAI
+        (<code>tech/research/15</code>).
+      </p>
+    </div>
+  </section>
+
+  <section id="folders">
+    <div class="wrap">
+      <h2>How <code>/docs</code> itself evolved</h2>
+      <p>
+        The folder did not exist at commit one. The PRD was split into <code>idea/</code>,
+        then moved under <code>docs/</code> the same afternoon. Four subfolders appeared
+        as the team needed different kinds of writing.
+      </p>
+      <table>
+        <thead>
+          <tr>
+            <th>Folder</th>
+            <th>Appeared</th>
+            <th>Job</th>
+            <th>Grew into</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><code>docs/idea/</code></td>
+            <td>5 Sep 13:16 (moved from <code>idea/</code>)</td>
+            <td>Product source of truth, meant to be read in order</td>
+            <td>01–30: problem → meetings → integration. Duplicate <code>22-*.md</code> names; no 23.</td>
+          </tr>
+          <tr>
+            <td><code>docs/tech/</code></td>
+            <td>5 Sep 13:16</td>
+            <td>Stack decisions vs still-open</td>
+            <td>README + research 01–15 (two different “11” briefs)</td>
+          </tr>
+          <tr>
+            <td><code>docs/desgin/</code></td>
+            <td>6 Sep 01:48 (typo kept)</td>
+            <td>Voice/text classification, then phone wireframes</td>
+            <td><code>desgin.md</code> + <code>ui-ux-phone-flow.md</code></td>
+          </tr>
+          <tr>
+            <td><code>docs/app/</code></td>
+            <td>6 Sep 08:50</td>
+            <td>What the Flutter app actually implements</td>
+            <td>Inventory, “not a screen gallery,” Expo map, clarity/playground plan</td>
+          </tr>
+        </tbody>
+      </table>
+      <h3>File count on the docs tree</h3>
+      <p>Same calendar days; the writing accelerated after the mock UI and meetings landed.</p>
+      <table>
+        <thead><tr><th>When (IST)</th><th>Files under docs/</th><th>What landed</th></tr></thead>
+        <tbody>
+          <tr><td>5 Sep 11:55</td><td>0</td><td>Single root PRD, no docs folder</td></tr>
+          <tr><td>5 Sep 13:16</td><td>16</td><td>idea 01–13 + tech README moved in</td></tr>
+          <tr><td>5 Sep 19:35</td><td>29</td><td>Canvas, tree-simplification notes, research briefs</td></tr>
+          <tr><td>5 Sep 20:50</td><td>34</td><td>More input modes; root README becomes idea + changelog</td></tr>
+          <tr><td>6 Sep 05:38</td><td>42</td><td>GH #1/#2 research (onboarding, caregiver)</td></tr>
+          <tr><td>6 Sep 08:44</td><td>49</td><td>No-AI lock + NAI comparison</td></tr>
+          <tr><td>6 Sep 08:50</td><td>53</td><td><code>docs/app/</code> feature record</td></tr>
+          <tr><td>6 Sep 16:18</td><td>57</td><td>Clarity / field / playground plan (current)</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section id="eras">
+    <div class="wrap">
+      <h2>Five eras (5–6 September 2026)</h2>
+      <p>Filter the next section, or just read these as the plot.</p>
+      <div class="cards">
+        <div class="card">
+          <div class="tag">1 · morning 5 Sep</div>
+          <h3>Write the argument</h3>
+          <p>PRD → numbered idea docs → <code>docs/</code> home. Calibration rules get a first refinement (relative fallback, item-count, floor).</p>
+        </div>
+        <div class="card">
+          <div class="tag">2 · afternoon 5 Sep</div>
+          <h3>Lock a demo surface</h3>
+          <p>Flutter app moves into <code>code/app</code>. Demo task: mock UI into a real Google Form. Aperture mock site + Vercel. Market research. Theme thrash on the mock (navy → purple → light olive <code>#e1e4c9</code>).</p>
+        </div>
+        <div class="card">
+          <div class="tag">3 · evening 5 Sep</div>
+          <h3>Meetings become docs</h3>
+          <p>Brain dump, canvas answers, tree simplification, feature ranking, resolved questions, extra input modes. Phone input layer ships: calibration + every pattern. Pitch folder replaces a placeholder deck.</p>
+        </div>
+        <div class="card">
+          <div class="tag">4 · night / morning 6 Sep</div>
+          <h3>Design + research issues</h3>
+          <p><code>desgin/</code> appears. Desktop inspector. Voice viability. GH #1–#4 researched then implemented. Scope lock: no AI. App feature record. Product renamed KAI in the deck.</p>
+        </div>
+        <div class="card">
+          <div class="tag">5 · midday 6 Sep</div>
+          <h3>Integrate and demo-harden</h3>
+          <p>Parallel branches for GH #9/#11/#13/#14, mock phone link, RailLink overlay, phone↔desktop docs. Merge train into <code>integrate/all</code> → main. Judges <code>scope.md</code>, trackpad/switch preset, playground plan.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="timeline">
+    <div class="wrap">
+      <h2>Commit story (docs-weighted)</h2>
+      <p>Meaningful commits only. Times are IST from the original author dates.</p>
+      <div class="filters" id="filters" role="group" aria-label="Filter timeline by era">
+        <button type="button" data-era="all" aria-pressed="true">All</button>
+        <button type="button" data-era="1" aria-pressed="false">Era 1 · argument</button>
+        <button type="button" data-era="2" aria-pressed="false">Era 2 · demo surface</button>
+        <button type="button" data-era="3" aria-pressed="false">Era 3 · meetings</button>
+        <button type="button" data-era="4" aria-pressed="false">Era 4 · issues</button>
+        <button type="button" data-era="5" aria-pressed="false">Era 5 · integrate</button>
+      </div>
+      <ol class="timeline">
+        <li data-era="1">
+          <div class="when">5 Sep 11:55 · saranskumar · <code>9885f20</code></div>
+          <span class="kind">docs</span> Add PRD: Adaptive Capability-Profile Access Layer
+          <p>One 311-line file. Everything after is a split, move, or argument with this draft.</p>
+        </li>
+        <li data-era="1">
+          <div class="when">5 Sep 13:10–13:16 · Trimpta</div>
+          <span class="kind">docs</span> Split into <code>idea/</code>, then move under <code>docs/</code> and add tech notes
+        </li>
+        <li data-era="1">
+          <div class="when">5 Sep 13:42 · Trimpta</div>
+          <span class="kind">docs</span> Refine calibration: relative fallback, item-count, floor case
+        </li>
+        <li data-era="2">
+          <div class="when">5 Sep 13:51 · saranskumar</div>
+          <span class="kind">code</span> “moved fiels” — Flutter app lands in <code>code/app</code>
+        </li>
+        <li data-era="2">
+          <div class="when">5 Sep 14:02 · Trimpta</div>
+          <span class="kind">docs</span> Lock demo task: custom mock UI feeding a real Google Form
+        </li>
+        <li data-era="2">
+          <div class="when">5 Sep 14:20–16:16</div>
+          <span class="kind">code</span> Aperture mock, Vercel deploys, theme experiments ending on <code>#e1e4c9</code>
+        </li>
+        <li data-era="2">
+          <div class="when">5 Sep 16:29 · mahreenzuraiq</div>
+          <span class="kind">docs</span> <code>idea/14</code> India market research
+        </li>
+        <li data-era="2">
+          <div class="when">5 Sep 16:42 · Trimpta</div>
+          <span class="kind">docs</span> Lock browser accessibility-tree automation and build order
+        </li>
+        <li data-era="3">
+          <div class="when">5 Sep 17:29 · Trimpta</div>
+          <span class="kind">docs</span> Brain dump + first five tech research briefs
+        </li>
+        <li data-era="3">
+          <div class="when">5 Sep 19:35–20:50 · Trimpta</div>
+          <span class="kind">docs</span> Canvas answers, tree-simplification &amp; ranking notes, resolved questions, extra input modes; root README rewritten as core idea + changelog
+        </li>
+        <li data-era="3">
+          <div class="when">5 Sep 23:00 · Trimpta</div>
+          <span class="kind">code</span> Phone input layer: full calibration + every input pattern
+        </li>
+        <li data-era="3">
+          <div class="when">5 Sep 23:12–23:44</div>
+          <span class="kind">pitch</span> Real <code>presentation/</code> deck; meeting notes 21 lock a 15-minute demo-first pitch
+        </li>
+        <li data-era="4">
+          <div class="when">6 Sep 01:48–05:03 · saranskumar</div>
+          <span class="kind">docs</span> <code>docs/desgin/</code> and dual <code>idea/22</code> scope files for input methods
+        </li>
+        <li data-era="4">
+          <div class="when">6 Sep 03:02 · mahreenzuraiq</div>
+          <span class="kind">docs</span> Voice accessibility viability brief (tech research 11 — later a second “11” also exists)
+        </li>
+        <li data-era="4">
+          <div class="when">6 Sep 04:37–06:32 · saranskumar</div>
+          <span class="kind">code</span> Axis-mix calibration, desktop inspector, Aperture Daily worlds, haptic/marker-grid
+        </li>
+        <li data-era="4">
+          <div class="when">6 Sep 05:38–07:29 · Trimpta</div>
+          <span class="kind">docs</span> Research GH #1–#4: onboarding, caregiver training, voice vocabulary, visual field loss
+        </li>
+        <li data-era="4">
+          <div class="when">6 Sep 08:03–08:22</div>
+          <span class="kind">code</span> Implement #1–#4; document phone UI/UX wireframe
+        </li>
+        <li data-era="4">
+          <div class="when">6 Sep 08:44 · Trimpta</div>
+          <span class="kind">docs</span> Scope lock: zero AI/LLM, mock-UI-primary demo, Google NAI comparison
+        </li>
+        <li data-era="4">
+          <div class="when">6 Sep 08:50 · saranskumar</div>
+          <span class="kind">docs</span> New <code>docs/app/</code>: feature inventory, adaptation-vs-screens, Expo port
+        </li>
+        <li data-era="5">
+          <div class="when">6 Sep 11:11–11:26</div>
+          <span class="kind">code</span> GH #5–#8/#10/#12 on main; parallel standalone branch for #9/#11/#13/#14; deck renamed to KAI
+        </li>
+        <li data-era="5">
+          <div class="when">6 Sep 11:35–11:41</div>
+          <span class="kind">branch</span> <code>demo/mock-phone-link</code> (WS relay + interaction map); <code>work/desktop-phone-integration-docs</code> (idea 29–30)
+        </li>
+        <li data-era="5">
+          <div class="when">6 Sep 12:10–12:34</div>
+          <span class="kind">merge</span> Finish #15 RailLink + Cloudflare relay; fold work branches into <code>integrate/all</code> (PR #18)
+        </li>
+        <li data-era="5">
+          <div class="when">6 Sep 14:16–17:01</div>
+          <span class="kind">docs</span> Judges <code>scope.md</code>, trackpad/switch + Live paging (#19/#20), then <code>docs/app/04</code> playground / field / highlight plan — last docs growth on current main
+        </li>
+      </ol>
+    </div>
+  </section>
+
+  <section id="branches">
+    <div class="wrap">
+      <h2>Branch history that is still on the remote</h2>
+      <p>
+        Almost everything merged back to <code>main</code>. The leftover branches are
+        historical lanes from the midday 6 Sep integration, not a long-lived git flow.
+        <code>work/issues-9-11-13-14-merged-with-teammate</code> is the only tip still
+        <em>ahead</em> of main (a merge-resolution commit + a CI bypass).
+      </p>
+      <table>
+        <thead>
+          <tr><th>Branch</th><th>Tip</th><th>vs main</th><th>What it was for</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td class="branch">main</td>
+            <td>playground hub + field shell</td>
+            <td>HEAD</td>
+            <td>Current story: idea v4, no-AI lock, Flutter app, mock worlds, deck, judges scope</td>
+          </tr>
+          <tr>
+            <td class="branch">demo/issue-15-continue</td>
+            <td>Finish #15 RailLink / Live / Cloudflare</td>
+            <td>0 ahead / 30 behind</td>
+            <td>Phone Live screen talking to the mock overlay through a relay</td>
+          </tr>
+          <tr>
+            <td class="branch">demo/mock-phone-link</td>
+            <td>Sync deck next-steps with voice research</td>
+            <td>0 ahead / 31 behind</td>
+            <td>Preprogrammed demo link: interaction map + phone/mock WebSocket relay</td>
+          </tr>
+          <tr>
+            <td class="branch">work/desktop-phone-integration-docs</td>
+            <td>idea 29–30 + transport planning</td>
+            <td>0 ahead / 33 behind</td>
+            <td>Docs for landmark highlight, WS handshake, scan tree; merged via integrate/all</td>
+          </tr>
+          <tr>
+            <td class="branch">work/issues-9-11-13-14-standalone</td>
+            <td>Hold reorder, voice/vision routing, Reach, timed feedback</td>
+            <td>0 ahead / 34 behind</td>
+            <td>The four issues implemented off to the side before the teammate merge</td>
+          </tr>
+          <tr>
+            <td class="branch">work/issues-9-11-13-14-merged-with-teammate</td>
+            <td>Resolve merge vs #5–#8/#10/#12</td>
+            <td>2 ahead / 31 behind</td>
+            <td>Conflict-resolution lane; later re-implemented on current main as <code>f178634</code></td>
+          </tr>
+        </tbody>
+      </table>
+      <p>
+        Authors in <code>git shortlog --all</code>: Trimpta (45), saranskumar (43),
+        mahreenzuraiq (6), Saran S Kumar (1). Docs commits are mostly Trimpta;
+        design filename + a lot of app/desktop/mock motion is saranskumar;
+        market + voice-viability briefs are mahreenzuraiq.
+      </p>
+    </div>
+  </section>
+
+  <section id="code">
+    <div class="wrap">
+      <h2>What grew next to the docs</h2>
+      <p>You asked mainly for documents. This is the matching build trail so the docs have a place to point.</p>
+      <ul>
+        <li><strong>Phone:</strong> <code>code/app</code> from the “moved fiels” commit → calibration runtime → GH issue batches → Live + presets.</li>
+        <li><strong>Target sites:</strong> <code>code/mock</code> Aperture, then Aperture Daily worlds (rail, pay, civic, clinic, shop, mail).</li>
+        <li><strong>Desktop/agent:</strong> <code>code/desktop</code> inspector, DOM ranking, later phone transport / scan tree (docs 29).</li>
+        <li><strong>Pitch:</strong> placeholder → five-slide event deck → KAI naming → scorecard rewrite.</li>
+        <li><strong>Honesty layer:</strong> root <code>scope.md</code> and <code>features-for-judges.md</code> so the deck cannot outrun the code.</li>
+      </ul>
+      <details>
+        <summary>Oddities the history still shows</summary>
+        <ul>
+          <li>Folder name <code>docs/desgin</code> (typo) was never renamed.</li>
+          <li>Two files numbered 22; no 23; two different tech research “11”s.</li>
+          <li>Root README still describes a narrow AI agent; <code>idea/28</code> says that is obsolete.</li>
+          <li>Many automated “bypass release” commits sit between real work.</li>
+        </ul>
+      </details>
+    </div>
+  </section>
+
+  <footer>
+    <div class="wrap">
+      Static snapshot from <code>git log --all</code> on this clone. Open this file in a browser;
+      it does not need a server. If you want a different cut, answer the questions at the top.
+    </div>
+  </footer>
+
+  <script>
+    (function () {
+      var buttons = document.querySelectorAll("#filters button");
+      var items = document.querySelectorAll(".timeline li");
+      buttons.forEach(function (btn) {
+        btn.addEventListener("click", function () {
+          var era = btn.getAttribute("data-era");
+          buttons.forEach(function (b) {
+            b.setAttribute("aria-pressed", b === btn ? "true" : "false");
+          });
+          items.forEach(function (li) {
+            var match = era === "all" || li.getAttribute("data-era") === era;
+            li.classList.toggle("hidden", !match);
+          });
+        });
+      });
+    })();
+  </script>
+</body>
+</html>
